@@ -5,6 +5,13 @@ let isWorkPhase = true;
 let currentLoop = 1;
 let totalLoops = 3;
 let alarmAudio = null;
+let paused = false; // Add paused state
+let remainingAlarmTime = 0; // Track remaining alarm time
+let workTime = 0;
+let breakTime = 0;
+let remainingCountdownTime = 0;
+
+import { alarmSettings } from "./renderer.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const initialTab =
@@ -23,9 +30,15 @@ function resetIntervalTimer() {
   clearInterval(intervalTimer);
   clearTimeout(alarmTimeout);
 
+  if (alarmAudio) {
+    alarmAudio.pause();
+    alarmAudio.currentTime = 0;
+  }
+
   intervalLoopActive = false;
   isWorkPhase = true;
   currentLoop = 1;
+  paused = false; // Reset paused state
 
   document.getElementById("intervalCountdown").textContent = "00:00";
   document.getElementById("intervalStatus").textContent = "Status: Ready";
@@ -34,6 +47,7 @@ function resetIntervalTimer() {
 
 function startIntervalLoop() {
   // User action starts here — ideal time to play silently to unlock audio
+
   if (!alarmAudio) {
     alarmAudio = new Audio("assets/alarm.mp3");
     alarmAudio.load();
@@ -63,19 +77,84 @@ function startIntervalLoop() {
     parseInt(document.getElementById("breakSeconds").value, 10) || 0;
   totalLoops = parseInt(document.getElementById("loopCount").value, 10) || 1;
 
-  const workTime = workMin * 60 + workSec;
-  const breakTime = breakMin * 60 + breakSec;
+  workTime = workMin * 60 + workSec;
+  breakTime = breakMin * 60 + breakSec;
 
   if (!workTime || !breakTime || isNaN(totalLoops)) return;
 
   intervalLoopActive = true;
   currentLoop = 1;
+  paused = false; // Reset paused state
   document.getElementById("currentLoop").textContent = currentLoop;
   startPhase(workTime, "Work", workTime, breakTime);
 }
 
 function stopIntervalLoop() {
   intervalLoopActive = false;
+  paused = false; // Reset paused state
+  clearInterval(intervalTimer);
+  clearTimeout(alarmTimeout);
+  if (alarmAudio) {
+    alarmAudio.pause();
+    alarmAudio.currentTime = 0;
+  }
+  document.getElementById("intervalStatus").textContent = "Status: Stopped";
+}
+
+function pauseIntervalLoop() {
+  if (intervalLoopActive) {
+    paused = true;
+    clearInterval(intervalTimer);
+    clearTimeout(alarmTimeout);
+
+    const [min, sec] = document
+      .getElementById("intervalCountdown")
+      .textContent.split(":")
+      .map(Number);
+    remainingCountdownTime = min * 60 + sec; // 👈 Save countdown time
+
+    if (alarmAudio && !alarmAudio.paused) {
+      remainingAlarmTime = alarmAudio.duration - alarmAudio.currentTime;
+      alarmAudio.pause();
+    }
+
+    document.getElementById("intervalStatus").textContent = "Status: Paused";
+  }
+}
+
+function continueIntervalLoop() {
+  if (!intervalLoopActive || !paused) return;
+
+  paused = false;
+
+  // If alarm was in progress
+  if (remainingAlarmTime > 0) {
+    alarmAudio.currentTime = alarmAudio.duration - remainingAlarmTime;
+    alarmAudio.play().catch(err => console.warn("Audio resume failed:", err));
+
+    alarmTimeout = setTimeout(() => {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+      remainingAlarmTime = 0;
+      startNextPhase();
+    }, remainingAlarmTime * 1000);
+
+    document.getElementById("intervalStatus").textContent = `Status: ${
+      isWorkPhase ? "Work" : "Break"
+    }`;
+    return;
+  }
+
+  // If timer countdown was paused
+  if (remainingCountdownTime > 0) {
+    startPhase(
+      remainingCountdownTime,
+      isWorkPhase ? "Work" : "Break",
+      savedWorkTime,
+      savedBreakTime
+    );
+    remainingCountdownTime = 0;
+  }
 }
 
 function startPhase(durationInSeconds, phase, workTime, breakTime) {
@@ -102,13 +181,10 @@ function startPhase(durationInSeconds, phase, workTime, breakTime) {
           startPhase(breakTime, "Break", workTime, breakTime);
         } else {
           currentLoop++;
+          document.getElementById(
+            "intervalStatus"
+          ).textContent = `Status: ${phase}`;
           document.getElementById("currentLoop").textContent = currentLoop;
-          if (currentLoop > totalLoops) {
-            intervalLoopActive = false;
-            document.getElementById("intervalStatus").textContent =
-              "Status: Completed";
-            return;
-          }
           startPhase(workTime, "Work", workTime, breakTime);
         }
       });
@@ -117,42 +193,55 @@ function startPhase(durationInSeconds, phase, workTime, breakTime) {
 }
 
 function playAlarm(callback) {
-  const alarmDuration = 5000;
+  const alarmDuration = isWorkPhase
+    ? alarmSettings.workAlarmLength
+    : alarmSettings.breakAlarmLength;
 
   if (!alarmAudio) {
-    alarmAudio = new Audio("assets/alarm.mp3"); // ✅ no leading slash
+    alarmAudio = new Audio("assets/alarm.mp3");
     alarmAudio.load();
   }
 
   alarmAudio.currentTime = 0;
-  alarmAudio.play().catch(err => {
-    console.warn("Audio playback failed:", err);
-  });
+  alarmAudio.play().catch(err => console.warn("Audio playback failed:", err));
 
   alarmTimeout = setTimeout(() => {
     alarmAudio.pause();
     alarmAudio.currentTime = 0;
+    remainingAlarmTime = 0; // Reset remaining alarm time
     callback();
-  }, alarmDuration);
+  }, alarmDuration * 1000);
+}
 
-  alarmAudio.onerror = () => {
-    console.error("❌ Failed to load alarm audio");
-  };
-  console.log("Alarm audio loaded successfully");
+function startNextPhase() {
+  if (!intervalLoopActive) return;
 
-  alarmAudio.oncanplaythrough = () => {
-    console.log("Alarm audio can play through");
-  };
+  if (isWorkPhase) {
+    startPhase(savedBreakTime, "Break", savedWorkTime, savedBreakTime);
+  } else {
+    currentLoop++;
+    document.getElementById("currentLoop").textContent = currentLoop;
+    if (currentLoop > totalLoops) {
+      intervalLoopActive = false;
+      document.getElementById("intervalStatus").textContent =
+        "Status: Completed";
+      return;
+    }
+    startPhase(savedWorkTime, "Work", savedWorkTime, savedBreakTime);
+  }
 }
 
 export function setupIntervalTimer() {
   document.getElementById("startLoopBtn").onclick = startIntervalLoop;
   document.getElementById("stopLoopBtn").onclick = stopIntervalLoop;
+  document.getElementById("pauseLoopBtn").onclick = pauseIntervalLoop; // Wire up pause button
+  document.getElementById("continueLoopBtn").onclick = continueIntervalLoop;
 
   const resetBtn = document.getElementById("resetIntervalBtn");
   if (resetBtn) {
     resetBtn.onclick = () => {
       if (confirm("Are you sure you want to reset the timer?")) {
+        stopIntervalLoop(); // Ensure the timer and alarm are stopped
         resetIntervalTimer();
       }
     };

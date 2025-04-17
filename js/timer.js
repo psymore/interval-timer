@@ -1,3 +1,5 @@
+import { alarmSettings } from "./renderer.js";
+
 let timer;
 let remainingTime = 0;
 
@@ -34,6 +36,7 @@ function runTimer() {
   timer = setInterval(() => {
     if (remainingTime <= 0) {
       clearInterval(timer);
+      playAlarm(alarmSettings.timerAlarmLength); // Use saved alarm length
       return;
     }
 
@@ -42,4 +45,11 @@ function runTimer() {
     document.getElementById("countdown").textContent = `${mins}:${secs}`;
     remainingTime--;
   }, 1000);
+}
+
+function playAlarm(duration) {
+  const alarm = document.getElementById("alarmSound");
+  alarm.currentTime = 0;
+  alarm.play();
+  setTimeout(() => alarm.pause(), duration * 1000);
 }

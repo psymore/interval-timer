@@ -9,8 +9,14 @@ export function renderTimerView() {
       </div>
   
       <div class="input-group">
-        <label>Minutes: <input type="number" id="minutes" min="0" value="0" /></label>
-        <label>Seconds: <input type="number" id="seconds" min="0" max="59" value="30" /></label>
+        <div>
+          <label> Minutes:</label>
+           <input type="number" id="minutes" min="0" value="0" />
+        </div>
+        <div>
+          <label> Seconds:</label>
+           <input type="number" id="seconds" min="0" max="59" value="0" />
+        </div>
       </div>
   
       <h2 id="countdown">00:00</h2>
