@@ -37,8 +37,27 @@ export function renderIntervalView() {
         <span id="currentLoop">1</span>
       </div>
 
-      <h2 id="intervalCountdown">00:00</h2>
+      <h1 id="intervalCountdown">00:00</h1>
       <p id="intervalStatus">Status: Ready</p>
     </div>
   `;
 }
+
+const style = document.createElement("style");
+style.textContent = `
+.input-group input {
+  align-self: center;
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  width: 100px;
+  padding: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+}
+`;
+document.head.appendChild(style);

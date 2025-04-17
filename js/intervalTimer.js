@@ -10,6 +10,8 @@ let remainingAlarmTime = 0; // Track remaining alarm time
 let workTime = 0;
 let breakTime = 0;
 let remainingCountdownTime = 0;
+let savedWorkTime = 0;
+let savedBreakTime = 0;
 
 import { alarmSettings } from "./renderer.js";
 
@@ -80,13 +82,17 @@ function startIntervalLoop() {
   workTime = workMin * 60 + workSec;
   breakTime = breakMin * 60 + breakSec;
 
+  // Save times for reuse
+  savedWorkTime = workTime;
+  savedBreakTime = breakTime;
+
   if (!workTime || !breakTime || isNaN(totalLoops)) return;
 
   intervalLoopActive = true;
   currentLoop = 1;
   paused = false; // Reset paused state
   document.getElementById("currentLoop").textContent = currentLoop;
-  startPhase(workTime, "Work", workTime, breakTime);
+  startPhase(workTime, "Work", savedWorkTime, savedBreakTime);
 }
 
 function stopIntervalLoop() {
@@ -123,25 +129,28 @@ function pauseIntervalLoop() {
 }
 
 function continueIntervalLoop() {
+  console.log("Continuing...", {
+    remainingAlarmTime,
+    remainingCountdownTime,
+    isWorkPhase,
+  });
+
   if (!intervalLoopActive || !paused) return;
 
   paused = false;
 
-  // If alarm was in progress
+  // 💥 FIX: If alarm was in progress
   if (remainingAlarmTime > 0) {
-    alarmAudio.currentTime = alarmAudio.duration - remainingAlarmTime;
-    alarmAudio.play().catch(err => console.warn("Audio resume failed:", err));
-
-    alarmTimeout = setTimeout(() => {
+    clearTimeout(alarmTimeout); // 💥 Clear any pending alarm timeout
+    if (alarmAudio) {
       alarmAudio.pause();
       alarmAudio.currentTime = 0;
-      remainingAlarmTime = 0;
-      startNextPhase();
-    }, remainingAlarmTime * 1000);
+    }
+    remainingAlarmTime = 0;
 
-    document.getElementById("intervalStatus").textContent = `Status: ${
-      isWorkPhase ? "Work" : "Break"
-    }`;
+    // 💥 Instead of resuming alarm, just move to next phase
+    startNextPhase();
+
     return;
   }
 
@@ -153,6 +162,7 @@ function continueIntervalLoop() {
       savedWorkTime,
       savedBreakTime
     );
+
     remainingCountdownTime = 0;
   }
 }
@@ -205,10 +215,12 @@ function playAlarm(callback) {
   alarmAudio.currentTime = 0;
   alarmAudio.play().catch(err => console.warn("Audio playback failed:", err));
 
+  remainingAlarmTime = alarmDuration; // 👈 Save this here for pause/resume
+
   alarmTimeout = setTimeout(() => {
     alarmAudio.pause();
     alarmAudio.currentTime = 0;
-    remainingAlarmTime = 0; // Reset remaining alarm time
+    remainingAlarmTime = 0; // Reset
     callback();
   }, alarmDuration * 1000);
 }
