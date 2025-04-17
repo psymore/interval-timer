@@ -1,7 +1,3 @@
-psymore: Please write a github repo readme for this project
-
-GitHub Copilot: # Interval Timer
-
 An Electron-based desktop application for managing interval timers and countdown timers. This app is designed to help users efficiently manage work and break intervals, making it ideal for productivity techniques like the Pomodoro Technique.
 
 ## Features
