@@ -11,8 +11,9 @@ An Electron-based desktop application for managing interval timers and countdown
 
 ## Screenshots
 
-![image](https://github.com/user-attachments/assets/0557966c-1f66-4777-9895-165fbcbc31ba)
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0557966c-1f66-4777-9895-165fbcbc31ba" alt="image" />
+</p>
 
 ## Installation
 
