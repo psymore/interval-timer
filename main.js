@@ -1,16 +1,16 @@
-const { app, BrowserWindow } = require("electron");
 const path = require("path");
+const { app, BrowserWindow } = require("electron");
 
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 400,
-    height: 500,
+  const mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
     webPreferences: {
-      preload: path.join(__dirname, "renderer.js"), // this will now work
+      preload: path.join(__dirname, "js", "renderer.js"),
     },
   });
 
-  win.loadFile("index.html");
+  mainWindow.loadFile(path.join(__dirname, "index.html"));
 }
 
 app.whenReady().then(createWindow);
