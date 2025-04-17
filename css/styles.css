@@ -167,20 +167,6 @@ body {
   user-select: none;
 }
 
-.input-group input {
-  align-self: center;
-  display: flex;
-  justify-content: center;
-  flex: 1;
-  width: 100px;
-  padding: 10px;
-  font-size: 1rem;
-  border: none;
-  border-radius: 8px;
-  background-color: #333;
-  color: white;
-  text-align: center;
-}
 .input-group input:focus {
   outline: none;
   box-shadow: 0 0 20px rgba(255, 106, 0, 0.5);
@@ -191,7 +177,6 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
   color: #ff6a00;
 }
 .currentLoop span {
@@ -304,6 +289,13 @@ button:disabled {
   font-weight: bold;
   letter-spacing: 2px;
   margin-top: 10px;
+}
+
+#intervalCountdown {
+  font-size: 3rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-top: 20px;
 }
 
 .settings-icon {
