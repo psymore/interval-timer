@@ -174,38 +174,30 @@ function startPhase(durationInSeconds, phase, workTime, breakTime) {
 
   console.log(`Starting ${phase} phase for ${durationInSeconds} seconds`);
 
-  intervalTimer = setInterval(() => {
-    const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
-    const seconds = String(remaining % 60).padStart(2, "0");
-    document.getElementById(
-      "intervalCountdown"
-    ).textContent = `${minutes}:${seconds}`;
-    remaining--;
+  // Play alarm first
+  playAlarm(() => {
+    intervalTimer = setInterval(() => {
+      const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const seconds = String(remaining % 60).padStart(2, "0");
+      document.getElementById(
+        "intervalCountdown"
+      ).textContent = `${minutes}:${seconds}`;
+      remaining--;
 
-    if (remaining < 0) {
-      clearInterval(intervalTimer);
-      playAlarm(() => {
-        if (!intervalLoopActive) return;
-
-        if (isWorkPhase) {
-          startPhase(breakTime, "Break", workTime, breakTime);
-        } else {
-          currentLoop++;
-          document.getElementById(
-            "intervalStatus"
-          ).textContent = `Status: ${phase}`;
-          document.getElementById("currentLoop").textContent = currentLoop;
-          startPhase(workTime, "Work", workTime, breakTime);
-        }
-      });
-    }
-  }, 1000);
+      if (remaining < 0) {
+        clearInterval(intervalTimer);
+        startNextPhase();
+      }
+    }, 1000);
+  });
 }
 
 function playAlarm(callback) {
-  const alarmDuration = isWorkPhase
-    ? alarmSettings.workAlarmLength
-    : alarmSettings.breakAlarmLength;
+  // Fallback in case alarmSettings is undefined
+  const defaultAlarmLength = 5; // 5 seconds as a fallback
+  const alarmDuration =
+    alarmSettings?.[isWorkPhase ? "workAlarmLength" : "breakAlarmLength"] ??
+    defaultAlarmLength;
 
   if (!alarmAudio) {
     alarmAudio = new Audio("assets/alarm.mp3");
@@ -215,12 +207,12 @@ function playAlarm(callback) {
   alarmAudio.currentTime = 0;
   alarmAudio.play().catch(err => console.warn("Audio playback failed:", err));
 
-  remainingAlarmTime = alarmDuration; // 👈 Save this here for pause/resume
+  remainingAlarmTime = alarmDuration;
 
   alarmTimeout = setTimeout(() => {
     alarmAudio.pause();
     alarmAudio.currentTime = 0;
-    remainingAlarmTime = 0; // Reset
+    remainingAlarmTime = 0;
     callback();
   }, alarmDuration * 1000);
 }
