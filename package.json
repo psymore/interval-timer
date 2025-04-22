@@ -6,20 +6,23 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
-    "build": "electron-builder",
-    "dist": "electron-builder --win --x64"
+    "clean": "rimraf dist",
+    "build": "npm run clean && electron-builder",
+    "dist": "npm run clean && electron-builder --win --x64"
   },
   "build": {
     "appId": "com.psymore.intervaltimer",
     "win": {
       "target": "nsis"
-    }
+    },
+    "mac": null
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "electron": "^35.1.5",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "rimraf": "^5.0.5"
   }
 }
