@@ -9,10 +9,17 @@
     "build": "electron-builder",
     "dist": "electron-builder --win --x64"
   },
+  "build": {
+    "appId": "com.psymore.intervaltimer",
+    "win": {
+      "target": "nsis"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^35.1.5"
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12"
   }
 }
