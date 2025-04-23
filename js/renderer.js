@@ -2,11 +2,12 @@ import { renderTimerView } from "./views/timerView.js";
 import { renderIntervalView } from "./views/intervalTimerView.js";
 import { setupTimer } from "./timer.js";
 import { setupIntervalTimer } from "./intervalTimer.js";
+import { setupTabListeners } from "./tabs.js";
 
-const { ipcRenderer } = require("electron"); // Add Electron IPC
 const app = document.getElementById("app");
 
 export function switchTab(tab) {
+  // Render the appropriate view and setup logic
   if (tab === "interval") {
     app.innerHTML = renderIntervalView();
     setupIntervalTimer();
@@ -16,15 +17,41 @@ export function switchTab(tab) {
   }
 
   // Dynamically update modal content based on the active tab
-  document
-    .getElementById("timerSettings")
-    .classList.toggle("hidden", tab !== "timer");
-  document
-    .getElementById("intervalSettings")
-    .classList.toggle("hidden", tab !== "interval");
+  const timerSettings = document.getElementById("timerSettings");
+  const intervalSettings = document.getElementById("intervalSettings");
+
+  if (timerSettings) {
+    timerSettings.classList.toggle("hidden", tab !== "timer");
+  }
+  if (intervalSettings) {
+    intervalSettings.classList.toggle("hidden", tab !== "interval");
+  }
+
+  // Ensure the active tab button is highlighted
+  document.querySelectorAll(".tab-buttons button").forEach(button => {
+    button.classList.toggle("active", button.getAttribute("data-tab") === tab);
+  });
+
+  // Ensure visibility of tab contents
+  const intervalContainer = document.getElementById("intervalTimerContainer");
+  const timerContainer = document.getElementById("timerContainer");
+
+  if (intervalContainer && timerContainer) {
+    intervalContainer.classList.remove("hidden");
+    timerContainer.classList.remove("hidden");
+
+    if (tab === "interval") {
+      timerContainer.classList.add("hidden");
+    } else if (tab === "timer") {
+      intervalContainer.classList.add("hidden");
+    }
+  }
 }
 
-window.switchTab = switchTab;
+// Initialize tab listeners
+setupTabListeners();
+
+// Default to the "interval" tab on load
 switchTab("interval");
 
 let alarmSettings = {
@@ -80,7 +107,7 @@ document.getElementById("saveSettingsBtn").onclick = () => {
 export { alarmSettings };
 
 // Listen for Electron-powered timer ticks (replace local timer loops)
-ipcRenderer.on("tick", () => {
+window.electronAPI.onTick(() => {
   const activeTab = document
     .querySelector(".tab-buttons button.active")
     ?.getAttribute("data-tab");
@@ -91,6 +118,3 @@ ipcRenderer.on("tick", () => {
     window.timerTick(); // Should be defined in setupTimer
   }
 });
-
-// You should now define `window.intervalTick` and `window.timerTick`
-// in your timer modules to handle countdown logic.
