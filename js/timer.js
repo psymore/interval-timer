@@ -1,55 +1,58 @@
+import { Timer } from "./logic/Timer.js";
 import { alarmSettings } from "./renderer.js";
 
-let remainingTime = 0;
-let isRunning = false;
+let timer = null;
 
 export function setupTimer() {
   document.getElementById("startBtn").onclick = startTimer;
   document.getElementById("stopBtn").onclick = stopTimer;
   document.getElementById("continueBtn").onclick = continueTimer;
   document.getElementById("resetBtn").onclick = resetTimer;
-
-  // Define tick handler to be called from IPC
-  window.timerTick = () => {
-    if (!isRunning) return;
-
-    if (remainingTime <= 0) {
-      isRunning = false;
-      playAlarm(alarmSettings.timerAlarmLength);
-      return;
-    }
-
-    const mins = String(Math.floor(remainingTime / 60)).padStart(2, "0");
-    const secs = String(remainingTime % 60).padStart(2, "0");
-    document.getElementById("countdown").textContent = `${mins}:${secs}`;
-    remainingTime--;
-  };
 }
 
 function startTimer() {
-  const mins = parseInt(document.getElementById("minutes").value, 10);
-  const secs = parseInt(document.getElementById("seconds").value, 10);
-  remainingTime = mins * 60 + secs;
+  const duration = getDurationFromInputs();
+  if (duration <= 0) return;
 
-  if (remainingTime > 0) {
-    isRunning = true;
-  }
+  if (timer) timer.reset();
+
+  timer = new Timer({
+    duration,
+    onTick: updateTimerDisplay,
+    onComplete: () => playAlarm(alarmSettings.timerAlarmLength),
+  });
+
+  timer.start();
+}
+
+function getDurationFromInputs() {
+  const mins = parseInt(document.getElementById("minutes").value, 10) || 0;
+  const secs = parseInt(document.getElementById("seconds").value, 10) || 0;
+  return mins * 60 + secs;
+}
+
+function updateTimerDisplay(remainingTime) {
+  const mins = String(Math.floor(remainingTime / 60000)).padStart(2, "0");
+  const secs = String(Math.floor((remainingTime % 60000) / 1000)).padStart(
+    2,
+    "0"
+  );
+  document.getElementById("countdown").textContent = `${mins}:${secs}`;
 }
 
 function stopTimer() {
-  isRunning = false;
+  if (timer) timer.stop();
 }
 
 function continueTimer() {
-  if (remainingTime > 0) {
-    isRunning = true;
-  }
+  if (timer) timer.start();
 }
 
 function resetTimer() {
-  isRunning = false;
-  remainingTime = 0;
-  document.getElementById("countdown").textContent = "00:00";
+  if (timer) {
+    timer.reset();
+    updateTimerDisplay(0);
+  }
 }
 
 function playAlarm(duration) {

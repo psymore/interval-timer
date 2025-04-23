@@ -1,253 +1,109 @@
-let intervalLoopActive = false;
-let intervalTimer = null;
-let alarmTimeout = null;
-let isWorkPhase = true;
-let currentLoop = 1;
-let totalLoops = 3;
-let alarmAudio = null;
-let paused = false; // Add paused state
-let remainingAlarmTime = 0; // Track remaining alarm time
-let workTime = 0;
-let breakTime = 0;
-let remainingCountdownTime = 0;
-let savedWorkTime = 0;
-let savedBreakTime = 0;
+import { IntervalTimer } from "./logic/IntervalTimer.js";
 
-import { alarmSettings } from "./renderer.js";
+export function setupIntervalTimer() {
+  const workDurationInput = document.getElementById("workMinutes");
+  const breakDurationInput = document.getElementById("breakMinutes");
+  const loopCountInput = document.getElementById("loopCount");
+  const startBtn = document.getElementById("startLoopBtn");
+  const stopBtn = document.getElementById("stopLoopBtn");
+  const resetBtn = document.getElementById("resetIntervalBtn");
 
-document.addEventListener("DOMContentLoaded", () => {
-  const initialTab =
-    document
-      .querySelector(".tab-buttons button.active")
-      ?.getAttribute("data-tab") || "timer";
-
-  switchTab(initialTab);
-});
-
-// Setup tab listeners
-import { setupTabListeners } from "./tabs.js";
-setupTabListeners();
-
-function resetIntervalTimer() {
-  clearInterval(intervalTimer);
-  clearTimeout(alarmTimeout);
-
-  if (alarmAudio) {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
-  }
-
-  intervalLoopActive = false;
-  isWorkPhase = true;
-  currentLoop = 1;
-  paused = false; // Reset paused state
-
-  document.getElementById("intervalCountdown").textContent = "00:00";
-  document.getElementById("intervalStatus").textContent = "Status: Ready";
-  document.getElementById("currentLoop").textContent = "1";
-}
-
-function startIntervalLoop() {
-  // User action starts here — ideal time to play silently to unlock audio
-
-  if (!alarmAudio) {
-    alarmAudio = new Audio("assets/alarm.mp3");
-    alarmAudio.load();
-  }
-
-  // 👇 Try playing a muted version to satisfy autoplay policy
-  alarmAudio.muted = true;
-  alarmAudio
-    .play()
-    .then(() => {
-      alarmAudio.pause();
-      alarmAudio.currentTime = 0;
-      alarmAudio.muted = false;
-    })
-    .catch(err => {
-      console.warn("Initial audio unlock failed:", err);
-    });
-
-  // Parse input values
-  const workMin =
-    parseInt(document.getElementById("workMinutes").value, 10) || 0;
-  const workSec =
-    parseInt(document.getElementById("workSeconds").value, 10) || 0;
-  const breakMin =
-    parseInt(document.getElementById("breakMinutes").value, 10) || 0;
-  const breakSec =
-    parseInt(document.getElementById("breakSeconds").value, 10) || 0;
-  totalLoops = parseInt(document.getElementById("loopCount").value, 10) || 1;
-
-  workTime = workMin * 60 + workSec;
-  breakTime = breakMin * 60 + breakSec;
-
-  // Save times for reuse
-  savedWorkTime = workTime;
-  savedBreakTime = breakTime;
-
-  if (!workTime || !breakTime || isNaN(totalLoops)) return;
-
-  intervalLoopActive = true;
-  currentLoop = 1;
-  paused = false; // Reset paused state
-  document.getElementById("currentLoop").textContent = currentLoop;
-  startPhase(workTime, "Work", savedWorkTime, savedBreakTime);
-}
-
-function stopIntervalLoop() {
-  intervalLoopActive = false;
-  paused = false; // Reset paused state
-  clearInterval(intervalTimer);
-  clearTimeout(alarmTimeout);
-  if (alarmAudio) {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
-  }
-  document.getElementById("intervalStatus").textContent = "Status: Stopped";
-}
-
-function pauseIntervalLoop() {
-  if (intervalLoopActive) {
-    paused = true;
-    clearInterval(intervalTimer);
-    clearTimeout(alarmTimeout);
-
-    const [min, sec] = document
-      .getElementById("intervalCountdown")
-      .textContent.split(":")
-      .map(Number);
-    remainingCountdownTime = min * 60 + sec; // 👈 Save countdown time
-
-    if (alarmAudio && !alarmAudio.paused) {
-      remainingAlarmTime = alarmAudio.duration - alarmAudio.currentTime;
-      alarmAudio.pause();
-    }
-
-    document.getElementById("intervalStatus").textContent = "Status: Paused";
-  }
-}
-
-function continueIntervalLoop() {
-  console.log("Continuing...", {
-    remainingAlarmTime,
-    remainingCountdownTime,
-    isWorkPhase,
-  });
-
-  if (!intervalLoopActive || !paused) return;
-
-  paused = false;
-
-  // 💥 FIX: If alarm was in progress
-  if (remainingAlarmTime > 0) {
-    clearTimeout(alarmTimeout); // 💥 Clear any pending alarm timeout
-    if (alarmAudio) {
-      alarmAudio.pause();
-      alarmAudio.currentTime = 0;
-    }
-    remainingAlarmTime = 0;
-
-    // 💥 Instead of resuming alarm, just move to next phase
-    startNextPhase();
-
+  if (
+    !workDurationInput ||
+    !breakDurationInput ||
+    !loopCountInput ||
+    !startBtn ||
+    !stopBtn ||
+    !resetBtn
+  ) {
+    console.error("One or more required DOM elements are missing.");
     return;
   }
 
-  // If timer countdown was paused
-  if (remainingCountdownTime > 0) {
-    startPhase(
-      remainingCountdownTime,
-      isWorkPhase ? "Work" : "Break",
-      savedWorkTime,
-      savedBreakTime
-    );
+  let intervalTimer = null;
+  let currentLoop = 0;
+  let totalLoops = 0;
 
-    remainingCountdownTime = 0;
-  }
-}
-
-function startPhase(durationInSeconds, phase, workTime, breakTime) {
-  isWorkPhase = phase === "Work";
-  document.getElementById("intervalStatus").textContent = `Status: ${phase}`;
-  let remaining = durationInSeconds;
-
-  console.log(`Starting ${phase} phase for ${durationInSeconds} seconds`);
-
-  // Play alarm first
-  playAlarm(() => {
-    intervalTimer = setInterval(() => {
-      const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
-      const seconds = String(remaining % 60).padStart(2, "0");
-      document.getElementById(
-        "intervalCountdown"
-      ).textContent = `${minutes}:${seconds}`;
-      remaining--;
-
-      if (remaining < 0) {
-        clearInterval(intervalTimer);
-        startNextPhase();
-      }
-    }, 1000);
-  });
-}
-
-function playAlarm(callback) {
-  // Fallback in case alarmSettings is undefined
-  const defaultAlarmLength = 5; // 5 seconds as a fallback
-  const alarmDuration =
-    alarmSettings?.[isWorkPhase ? "workAlarmLength" : "breakAlarmLength"] ??
-    defaultAlarmLength;
-
-  if (!alarmAudio) {
-    alarmAudio = new Audio("assets/alarm.mp3");
-    alarmAudio.load();
-  }
-
-  alarmAudio.currentTime = 0;
-  alarmAudio.play().catch(err => console.warn("Audio playback failed:", err));
-
-  remainingAlarmTime = alarmDuration;
-
-  alarmTimeout = setTimeout(() => {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
-    remainingAlarmTime = 0;
-    callback();
-  }, alarmDuration * 1000);
-}
-
-function startNextPhase() {
-  if (!intervalLoopActive) return;
-
-  if (isWorkPhase) {
-    startPhase(savedBreakTime, "Break", savedWorkTime, savedBreakTime);
-  } else {
-    currentLoop++;
-    document.getElementById("currentLoop").textContent = currentLoop;
-    if (currentLoop > totalLoops) {
-      intervalLoopActive = false;
-      document.getElementById("intervalStatus").textContent =
-        "Status: Completed";
-      return;
+  function playAlarm(duration) {
+    const alarm = document.getElementById("alarmSound");
+    if (alarm) {
+      alarm.currentTime = 0;
+      alarm.play();
+      setTimeout(() => alarm.pause(), duration * 1000);
     }
-    startPhase(savedWorkTime, "Work", savedWorkTime, savedBreakTime);
   }
-}
 
-export function setupIntervalTimer() {
-  document.getElementById("startLoopBtn").onclick = startIntervalLoop;
-  document.getElementById("stopLoopBtn").onclick = stopIntervalLoop;
-  document.getElementById("pauseLoopBtn").onclick = pauseIntervalLoop; // Wire up pause button
-  document.getElementById("continueLoopBtn").onclick = continueIntervalLoop;
+  startBtn.onclick = () => {
+    if (intervalTimer) intervalTimer.stop();
 
-  const resetBtn = document.getElementById("resetIntervalBtn");
-  if (resetBtn) {
-    resetBtn.onclick = () => {
-      if (confirm("Are you sure you want to reset the timer?")) {
-        stopIntervalLoop(); // Ensure the timer and alarm are stopped
-        resetIntervalTimer();
-      }
-    };
-  }
+    // Parse inputs for work duration and break duration
+    const workMin = parseInt(workDurationInput.value, 10) || 0;
+    const workSec =
+      parseInt(document.getElementById("workSeconds").value, 10) || 0;
+    const breakMin = parseInt(breakDurationInput.value, 10) || 0;
+    const breakSec =
+      parseInt(document.getElementById("breakSeconds").value, 10) || 0;
+
+    // Convert minutes and seconds to total seconds
+    const totalWorkDuration = workMin * 60 + workSec;
+    const totalBreakDuration = breakMin * 60 + breakSec;
+
+    totalLoops = parseInt(loopCountInput.value, 10) || 1;
+    currentLoop = 1;
+    document.getElementById("currentLoop").textContent = currentLoop;
+
+    intervalTimer = new IntervalTimer({
+      workDuration: totalWorkDuration,
+      breakDuration: totalBreakDuration,
+      onTick: (remaining, phase) => {
+        // Update countdown display
+        const mins = String(Math.floor(remaining / 60000)).padStart(2, "0");
+        const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(
+          2,
+          "0"
+        );
+        document.getElementById(
+          "intervalCountdown"
+        ).textContent = `${mins}:${secs}`;
+        document.getElementById(
+          "intervalStatus"
+        ).textContent = `Status: ${phase}`;
+      },
+      onPhaseChange: phase => {
+        // Trigger the alarm based on the phase
+        playAlarm(phase === "break" ? 5 : 3); // 5 seconds for break, 3 seconds for work
+
+        // Handle loop and completion logic
+        if (phase === "break") {
+          if (currentLoop >= totalLoops) {
+            intervalTimer.stop();
+            document.getElementById("intervalStatus").textContent =
+              "Status: Completed";
+            return;
+          }
+          currentLoop++;
+          document.getElementById("currentLoop").textContent = currentLoop;
+        }
+      },
+    });
+
+    intervalTimer.start();
+  };
+
+  stopBtn.onclick = () => {
+    if (intervalTimer) {
+      intervalTimer.stop();
+      document.getElementById("intervalStatus").textContent = "Status: Stopped";
+    }
+  };
+
+  resetBtn.onclick = () => {
+    if (intervalTimer) {
+      intervalTimer.reset();
+    }
+    currentLoop = 0;
+    document.getElementById("currentLoop").textContent = currentLoop;
+    document.getElementById("intervalCountdown").textContent = "00:00";
+    document.getElementById("intervalStatus").textContent = "Status: Ready";
+  };
 }

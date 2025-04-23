@@ -219,6 +219,10 @@ body {
   display: none;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .modal-content {
   background: #2b2b2b;
   padding: 20px;
@@ -318,4 +322,12 @@ button:disabled {
 .settings-group label {
   display: block;
   margin-bottom: 10px;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content:not(.hidden) {
+  display: block;
 }
