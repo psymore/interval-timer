@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head><meta http-equiv="Content-Security-Policy" content="
+<head>
+    <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data:;
     connect-src 'self';
     font-src 'self';
+    audio-src 'self' data:;
+    media-src 'self' blob:;
   ">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,7 +26,10 @@
         <button data-tab="timer">Timer</button>
     </div>
 
-    <div id="settingsIcon" class="settings-icon">⚙️</div>
+    <div class="modal-buttons">
+        <div id="settingsIcon" class="settings-icon">⚙️</div>
+        <button id="alarmFolderBtn" class="settings-icon">🔔</button>
+    </div>
 
     <div id="app">
         <div id="intervalTimerContainer" class="tab-content">
@@ -50,15 +56,26 @@
                     <input type="number" id="breakAlarmLength" min="1" value="5" />
                 </label>
             </div>
+
             <button id="saveSettingsBtn">Save</button>
             <button id="closeSettingsBtn">Close</button>
         </div>
     </div>
 
-    <audio id="alarmSound" src="assets/alarm.mp3"></audio>
+    <div id="alarmFolderModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Select Alarm Folder</h2>
+            <div>
+                <label for="alarmFolder">Choose Folder:</label>
+                <input type="file" id="alarmFolder" webkitdirectory directory />
+            </div>
+            <button id="closeAlarmFolderBtn">Close</button>
+        </div>
+    </div>
 
-    <!-- Load main logic -->
+    <audio id="alarmSound" src="assets/alarm.mp3"></audio>
     <script type="module" src="js/renderer.js"></script>
+    <script type="module" src="js/alarmModal.js"></script>
 </body>
 
 </html>

@@ -118,3 +118,11 @@ window.electronAPI.onTick(() => {
     window.timerTick(); // Should be defined in setupTimer
   }
 });
+
+document.getElementById("alarmFolderBtn").onclick = () => {
+  document.getElementById("alarmFolderModal").classList.remove("hidden");
+};
+
+document.getElementById("closeAlarmFolderBtn").onclick = () => {
+  document.getElementById("alarmFolderModal").classList.add("hidden");
+};

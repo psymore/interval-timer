@@ -85,6 +85,8 @@ function stopTimer() {
   clearInterval(timer);
 }
 
+app.disableHardwareAcceleration(); // Disable hardware acceleration
+
 app
   .whenReady()
   .then(() => {
