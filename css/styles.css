@@ -288,7 +288,7 @@ input[type="number"] {
 
 button {
   padding: 10px 20px;
-  border: 1px solid #ff6a00;
+  border: 1px solid #ff6a0097;
   background-color: rgba(255, 106, 0, 0.061);
   color: rgba(248, 246, 244, 0.916);
   font-size: 1rem;
@@ -301,6 +301,9 @@ button {
 
 button:hover {
   transform: translateY(-3px);
+  color: #ffffff;
+  background-color: rgba(255, 106, 0, 0.1);
+  border-color: #ff6a00;
   box-shadow: 0 6px 14px rgba(238, 9, 121, 0.4);
 }
 
