@@ -16,7 +16,7 @@ export function renderIntervalView() {
         </div>
         <div>
           <label for="workSeconds">Work Seconds:</label>
-          <input type="number" id="workSeconds" min="0" max="59" value="1" />
+          <input type="number" id="workSeconds" min="0" max="59" value="5" />
         </div>
         <div>
           <label for="breakMinutes">Break Minutes:</label>
@@ -24,7 +24,7 @@ export function renderIntervalView() {
         </div>
         <div>
           <label for="breakSeconds">Break Seconds:</label>
-          <input type="number" id="breakSeconds" min="0" max="59" value="1" />
+          <input type="number" id="breakSeconds" min="0" max="59" value="5" />
         </div>
         <div>
           <label for="loopCount">Number of Loops:</label>

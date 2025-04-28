@@ -159,7 +159,6 @@ body {
   flex: 1;
   font-size: 1.2rem;
   color: #ff6a00;
-  text-shadow: 0 0 80px rgba(255, 106, 0, 0.5);
   letter-spacing: 1px;
   font-weight: bold;
   transition: color 0.3s ease;
@@ -289,7 +288,7 @@ input[type="number"] {
 button {
   padding: 10px 20px;
   border: 1px solid #ff6a0097;
-  background-color: rgba(255, 106, 0, 0.061);
+  background-color: transparent;
   color: rgba(248, 246, 244, 0.916);
   font-size: 1rem;
   font-weight: bold;

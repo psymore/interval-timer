@@ -11,7 +11,10 @@ export class IntervalTimer {
     this.rafId = null;
   }
 
-  start() {
+  start(remainingTime = null) {
+    if (remainingTime !== null) {
+      this.duration = remainingTime; // Set the duration to the remaining time if provided
+    }
     this.startTime = Date.now();
     this.tick();
   }
@@ -43,5 +46,13 @@ export class IntervalTimer {
     this.phase = "work";
     this.duration = this.workDuration;
     this.startTime = null;
+  }
+
+  getRemainingTime() {
+    if (!this.startTime) {
+      return this.duration; // If the timer hasn't started, return the full duration
+    }
+    const elapsed = Date.now() - this.startTime;
+    return Math.max(this.duration - elapsed, 0); // Return the remaining time
   }
 }
