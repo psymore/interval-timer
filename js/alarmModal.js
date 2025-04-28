@@ -1,54 +1,30 @@
-const alarmSound = document.getElementById("alarmSound");
-const alarmFolderInput = document.getElementById("alarmFolder");
-const alarmFolderModal = document.getElementById("alarmFolderModal");
-const alarmFolderBtn = document.getElementById("alarmFolderBtn");
-const closeAlarmFolderBtn = document.getElementById("closeAlarmFolderBtn");
-const audioFileList = document.createElement("select");
+document.addEventListener("DOMContentLoaded", () => {
+  const alarmFolderInput = document.getElementById("alarmFolder");
+  const alarmSound = document.getElementById("alarmSound");
 
-audioFileList.id = "audioFileList"; // Ensure the ID matches the CSS
-audioFileList.style.marginTop = "10px";
-audioFileList.style.width = "100%";
-audioFileList.style.padding = "5px";
-audioFileList.style.borderRadius = "5px";
-audioFileList.style.border = "1px solid #ccc";
-
-alarmFolderModal.querySelector(".modal-content").appendChild(audioFileList);
-
-alarmFolderBtn.onclick = () => {
-  alarmFolderModal.classList.remove("hidden");
-};
-
-closeAlarmFolderBtn.onclick = () => {
-  alarmFolderModal.classList.add("hidden");
-};
-
-alarmFolderInput.addEventListener("change", event => {
-  const files = event.target.files;
-  audioFileList.innerHTML = ""; // Clear previous options
-
-  Array.from(files)
-    .filter(file => file.type.startsWith("audio/")) // Filter audio files
-    .forEach(file => {
-      const option = document.createElement("option");
-      option.value = URL.createObjectURL(file);
-      option.textContent = file.name;
-      audioFileList.appendChild(option);
-    });
-
-  if (audioFileList.options.length > 0) {
-    audioFileList.value = audioFileList.options[0].value;
-    alarmSound.src = audioFileList.value;
-    console.log(
-      "Alarm sound updated to:",
-      audioFileList.options[0].textContent
-    );
+  // Load saved alarm file path from localStorage
+  const savedAlarmPath = localStorage.getItem("selectedAlarmPath");
+  if (savedAlarmPath) {
+    console.log("Loaded saved alarm path:", savedAlarmPath);
+    alarmSound.src = savedAlarmPath; // Set the saved alarm as the default
   }
-});
 
-audioFileList.addEventListener("change", () => {
-  alarmSound.src = audioFileList.value;
-  console.log(
-    "Alarm sound updated to:",
-    audioFileList.selectedOptions[0].textContent
-  );
+  // Save selected alarm file path to localStorage
+  alarmFolderInput.addEventListener("change", event => {
+    const files = Array.from(event.target.files);
+    if (files.length > 0) {
+      const file = files[0];
+      const filePath = URL.createObjectURL(file);
+      localStorage.setItem("selectedAlarmPath", filePath);
+      console.log("Saved alarm path:", filePath);
+
+      alarmSound.src = filePath; // Update the alarm sound source
+    }
+  });
+
+  // Ensure the alarm stops playing after it finishes
+  alarmSound.addEventListener("ended", () => {
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+  });
 });

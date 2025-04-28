@@ -9,7 +9,6 @@
     img-src 'self' data:;
     connect-src 'self';
     font-src 'self';
-    audio-src 'self' data:;
     media-src 'self' blob:;
   ">
     <meta charset="UTF-8" />
@@ -28,7 +27,7 @@
 
     <div class="modal-buttons">
         <div id="settingsIcon" class="settings-icon">⚙️</div>
-        <button id="alarmFolderBtn" class="settings-icon">🔔</button>
+        <div id="alarmFolderBtn" class="settings-icon">🔔</div>
     </div>
 
     <div id="app">
@@ -66,8 +65,8 @@
         <div class="modal-content">
             <h2>Select Alarm Folder</h2>
             <div>
-                <label for="alarmFolder">Choose Folder:</label>
-                <input type="file" id="alarmFolder" webkitdirectory directory />
+                <label for="alarmFolder">Choose Audio Files:</label>
+                <input type="file" id="alarmFolder" accept="audio/*" multiple />
             </div>
             <button id="closeAlarmFolderBtn">Close</button>
         </div>
