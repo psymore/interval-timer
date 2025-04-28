@@ -1,6 +1,12 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { app, BrowserWindow, ipcMain, powerSaveBlocker } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  powerSaveBlocker,
+  dialog,
+} from "electron";
 import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -118,6 +124,23 @@ app.on("window-all-closed", () => {
 // --- IPC logic for timer ---
 ipcMain.on("start-timer", (event, intervalMs) => startTimer(event, intervalMs));
 ipcMain.on("stop-timer", stopTimer);
+
+// Handle file path retrieval
+ipcMain.handle("get-file-path", async () => {
+  console.log("get-file-path handler invoked");
+  const result = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    filters: [{ name: "Audio Files", extensions: ["mp3", "wav", "ogg"] }],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    console.log("No file selected");
+    return null; // No file selected
+  }
+
+  console.log("Selected file path:", result.filePaths[0]);
+  return result.filePaths[0]; // Return the selected file path
+});
 
 process.on("uncaughtException", error => {
   console.error("Uncaught exception in main process:", error);
