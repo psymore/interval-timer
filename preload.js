@@ -8,4 +8,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onTick: listener => ipcRenderer.on("tick", listener), // Existing onTick listener
   startTimer: intervalMs => ipcRenderer.send("start-timer", intervalMs), // Expose start-timer
   stopTimer: () => ipcRenderer.send("stop-timer"), // Expose stop-timer
+
+  // Expose file path API
+  getFilePath: () => {
+    return ipcRenderer.invoke("get-file-path");
+  },
 });
