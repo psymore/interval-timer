@@ -7,6 +7,8 @@ export function setupIntervalTimer() {
   const loopCountInput = document.getElementById("loopCount");
   const startBtn = document.getElementById("startLoopBtn");
   const stopBtn = document.getElementById("stopLoopBtn");
+  const pauseBtn = document.getElementById("pauseLoopBtn");
+  const continueBtn = document.getElementById("continueLoopBtn");
   const resetBtn = document.getElementById("resetIntervalBtn");
 
   if (
@@ -15,6 +17,8 @@ export function setupIntervalTimer() {
     !loopCountInput ||
     !startBtn ||
     !stopBtn ||
+    !pauseBtn ||
+    !continueBtn ||
     !resetBtn
   ) {
     console.error("One or more required DOM elements are missing.");
@@ -119,7 +123,6 @@ export function setupIntervalTimer() {
     if (intervalTimer) intervalTimer.stop();
     stopAlarmSound();
 
-    // Parse inputs for work duration and break duration
     const workMin = parseInt(workDurationInput.value, 10) || 0;
     const workSec =
       parseInt(document.getElementById("workSeconds").value, 10) || 0;
@@ -127,7 +130,6 @@ export function setupIntervalTimer() {
     const breakSec =
       parseInt(document.getElementById("breakSeconds").value, 10) || 0;
 
-    // Convert minutes and seconds to total seconds
     const totalWorkDuration = workMin * 60 + workSec;
     const totalBreakDuration = breakMin * 60 + breakSec;
 
@@ -141,7 +143,6 @@ export function setupIntervalTimer() {
       breakDuration: totalBreakDuration,
 
       onTick: (remaining, phase) => {
-        // Update countdown display
         const mins = String(Math.floor(remaining / 60000)).padStart(2, "0");
         const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(
           2,

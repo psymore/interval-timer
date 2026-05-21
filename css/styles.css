@@ -154,7 +154,6 @@ body {
   flex: 1;
   font-size: 1.1rem;
   color: #ff6a00;
-  text-shadow: 0 0 80px rgba(255, 106, 0, 0.5);
   letter-spacing: 1px;
   font-weight: bold;
   cursor: pointer;
