@@ -6,36 +6,59 @@ export class Timer {
 
     this.startTime = null;
     this.remainingTime = this.duration;
-    this.rafId = null;
+    this._intervalId = null;
+    this._completed = false;
   }
 
   start() {
+    if (this._completed) return; // Don't restart if already finished
     this.startTime = Date.now();
-    this.tick();
+    this._clearInterval();
+    this._intervalId = setInterval(() => this._tick(), 200);
+    this._tick(); // Fire immediately so UI doesn't lag on start
   }
 
-  tick = () => {
+  _tick() {
     const elapsed = Date.now() - this.startTime;
     const remaining = Math.max(this.remainingTime - elapsed, 0);
 
     this.onTick(remaining);
 
     if (remaining <= 0) {
-      this.stop();
+      this._clearInterval();
+      this._completed = true;
+      this.remainingTime = 0;
       this.onComplete();
-    } else {
-      this.rafId = requestAnimationFrame(this.tick);
     }
-  };
+  }
 
   stop() {
-    cancelAnimationFrame(this.rafId);
-    this.remainingTime -= Date.now() - this.startTime;
+    if (this._completed) return;
+    this._clearInterval();
+    // Snapshot remaining time correctly so resume works
+    const elapsed = Date.now() - this.startTime;
+    this.remainingTime = Math.max(this.remainingTime - elapsed, 0);
+    this.startTime = null; // Clear so start() anchors fresh on resume
   }
 
   reset() {
-    this.stop();
+    this._clearInterval();
     this.remainingTime = this.duration;
     this.startTime = null;
+    this._completed = false;
+  }
+
+  getRemainingTime() {
+    if (this._completed) return 0;
+    if (!this.startTime) return this.remainingTime;
+    const elapsed = Date.now() - this.startTime;
+    return Math.max(this.remainingTime - elapsed, 0);
+  }
+
+  _clearInterval() {
+    if (this._intervalId !== null) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
   }
 }
