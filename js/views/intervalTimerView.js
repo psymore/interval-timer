@@ -1,13 +1,6 @@
 export function renderIntervalView() {
   return `
     <div class="interval-timer-container">
-      <div class="button-group">
-        <button id="startLoopBtn">Start Loop</button>
-        <button id="stopLoopBtn">Stop After Current</button>
-        <button id="pauseLoopBtn">Pause</button>
-        <button id="continueLoopBtn">Continue</button>
-        <button id="resetIntervalBtn">Reset</button>
-      </div>
 
       <div class="input-group">
         <div>
@@ -33,31 +26,45 @@ export function renderIntervalView() {
       </div>
 
       <div class="currentLoop">
-        <label>Current Loop</label>
+        <label>Current Loop:</label>
         <span id="currentLoop">1</span>
       </div>
 
       <h1 id="intervalCountdown">00:00</h1>
       <p id="intervalStatus">Status: Ready</p>
+      <p id="intervalPhase">Phase: work</p>
+
+      <div class="button-group">
+        <button id="startLoopBtn">Start Loop</button>
+        <button id="pauseLoopBtn">Pause</button>
+        <button id="continueLoopBtn">Continue</button>
+        <button id="stopLoopBtn">Stop</button>
+        <button id="resetIntervalBtn">Reset</button>
+      </div>
+
     </div>
   `;
 }
 
-const style = document.createElement("style");
-style.textContent = `
-.input-group input {
-  align-self: center;
-  display: flex;
-  justify-content: center;
-  flex: 1;
-  width: 100px;
-  padding: 10px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  text-align: center;
+// ── Inject styles once, guard against duplicates ──────────────
+if (!document.getElementById("intervalTimerViewStyle")) {
+  const style = document.createElement("style");
+  style.id = "intervalTimerViewStyle";
+  style.textContent = `
+    .input-group input {
+      align-self: center;
+      display: flex;
+      justify-content: center;
+      flex: 1;
+      width: 100px;
+      padding: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      text-align: center;
+    }
+  `;
+  document.head.appendChild(style);
 }
-`;
-document.head.appendChild(style);
