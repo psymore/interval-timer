@@ -1,20 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<<<<<<< Updated upstream
-<head><meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data:;
-    connect-src 'self';
-    font-src 'self';
-  ">
-=======
 <head>
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; media-src 'self' file: blob: data:">
->>>>>>> Stashed changes
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timer App</title>
@@ -25,18 +14,10 @@
 
     <h2 class="gradient-title">Timer App</h2>
 
-<<<<<<< Updated upstream
-    <div id="settingsIcon" class="settings-icon">⚙️</div>
-
-    <div id="app">
-        <div id="intervalTimerContainer" class="tab-content">
-            <!-- Interval Timer content will be rendered here -->
-=======
     <div class="top-bar">
         <div class="tab-buttons">
             <button class="active" data-tab="interval">Interval Timer</button>
             <button data-tab="timer">Timer</button>
->>>>>>> Stashed changes
         </div>
         <div class="modal-buttons">
             <div id="settingsIcon" class="settings-icon">⚙️</div>
@@ -69,12 +50,6 @@
         </div>
     </div>
 
-<<<<<<< Updated upstream
-    <audio id="alarmSound" src="assets/alarm.mp3"></audio>
-
-    <!-- Load main logic -->
-    <script type="module" src="js/renderer.js"></script>
-=======
     <!-- Alarm File Modal -->
     <div id="alarmFolderModal" class="modal hidden">
         <div class="modal-content">
@@ -92,7 +67,6 @@
     <script type="module" src="js/renderer.js"></script>
     <script type="module" src="js/alarmModal.js"></script>
 
->>>>>>> Stashed changes
 </body>
 
 </html>
