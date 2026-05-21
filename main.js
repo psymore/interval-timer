@@ -1,6 +1,12 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { app, BrowserWindow, ipcMain, powerSaveBlocker } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  powerSaveBlocker,
+  dialog,
+} from "electron";
 import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);

@@ -6,16 +6,16 @@ import { setupTabListeners } from "./tabs.js";
 
 const app = document.getElementById("app");
 
-// ── Active cleanup registry ───────────────────────────────────
-// Each tab setup can register a cleanup function here
-let activeCleanup = null;
-
 // ── Alarm settings (declared first, before any switchTab call) ──
 export let alarmSettings = {
   timerAlarmLength: 5,
   workAlarmLength: 5,
   breakAlarmLength: 5,
 };
+
+// ── Active cleanup registry ───────────────────────────────────
+// Each tab setup can register a cleanup function here
+let activeCleanup = null;
 
 export function registerCleanup(fn) {
   activeCleanup = fn;
