@@ -14,7 +14,8 @@
   "build": {
     "appId": "com.psymore.intervaltimer",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signAndEditExecutable": false
     },
     "mac": null
   },
