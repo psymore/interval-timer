@@ -54,6 +54,8 @@ function createWindow() {
 }
 
 // ── App lifecycle ─────────────────────────────────────────────
+app.setPath("userData", path.join(app.getPath("appData"), "timer-app"));
+
 app
   .whenReady()
   .then(() => {
