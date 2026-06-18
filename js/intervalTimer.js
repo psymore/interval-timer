@@ -1,5 +1,6 @@
 import { IntervalTimer } from "./logic/IntervalTimer.js";
 import { registerCleanup } from "./renderer.js";
+import { alarmSettings } from "./renderer.js";
 
 export function setupIntervalTimer() {
   const workDurationInput = document.getElementById("workMinutes");
@@ -61,6 +62,7 @@ export function setupIntervalTimer() {
       alarmTimeoutId = null;
     }
     if (alarm) {
+      alarm.removeEventListener("ended", onAlarmEnded);
       try {
         alarm.pause();
         alarm.currentTime = 0;
@@ -73,22 +75,40 @@ export function setupIntervalTimer() {
 
   function playAlarm(duration) {
     if (!alarm) return;
-    stopAlarmSound(); // Always clear previous alarm before playing a new one
+
+    // Clear any previous stop-timeout
+    if (alarmTimeoutId) {
+      clearTimeout(alarmTimeoutId);
+      alarmTimeoutId = null;
+    }
+
+    // Remove previous ended listener to avoid stacking
+    alarm.removeEventListener("ended", onAlarmEnded);
+
     alarm.currentTime = 0;
     const playPromise = alarm.play();
     if (playPromise?.then) {
       playPromise.catch(err => console.warn("Alarm play() rejected:", err));
     }
     isAlarmPlaying = true;
+
+    // Case 1: Audio file is shorter than duration — let it finish naturally
+    alarm.addEventListener("ended", onAlarmEnded);
+
+    // Case 2: Audio file is longer than duration — cut it off at duration
     alarmTimeoutId = setTimeout(() => {
-      if (!alarmPaused) {
-        try {
-          alarm.pause();
-        } catch (e) {}
-        isAlarmPlaying = false;
-      }
-      alarmTimeoutId = null;
+      stopAlarmSound();
     }, duration * 1000);
+  }
+
+  function onAlarmEnded() {
+    // Audio finished before the timeout — clean up
+    if (alarmTimeoutId) {
+      clearTimeout(alarmTimeoutId);
+      alarmTimeoutId = null;
+    }
+    isAlarmPlaying = false;
+    alarm.removeEventListener("ended", onAlarmEnded);
   }
 
   function pauseAlarm() {
@@ -156,18 +176,15 @@ export function setupIntervalTimer() {
 
       onPhaseChange: phase => {
         if (phase === "break") {
-          // Work phase just ended → play break alarm
-          playAlarm(5);
+          playAlarm(alarmSettings.breakAlarmLength);
         } else if (phase === "work") {
-          // Break phase just ended → check if all loops are done
           if (currentLoop >= totalLoops) {
             handleCompletion();
             return;
           }
-          // Move to next loop
           currentLoop++;
           document.getElementById("currentLoop").textContent = currentLoop;
-          playAlarm(3); // Optional: work-start sound
+          playAlarm(alarmSettings.workAlarmLength);
         }
       },
     });

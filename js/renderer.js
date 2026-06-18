@@ -6,44 +6,49 @@ import { setupTabListeners } from "./tabs.js";
 
 const app = document.getElementById("app");
 
-// ── Alarm settings (declared first, before any switchTab call) ──
+// ── Alarm settings ────────────────────────────────────────────
 export let alarmSettings = {
   timerAlarmLength: 5,
   workAlarmLength: 5,
   breakAlarmLength: 5,
 };
 
-// ── Active cleanup registry ───────────────────────────────────
-// Each tab setup can register a cleanup function here
+// ── Cleanup registry ──────────────────────────────────────────
 let activeCleanup = null;
 
 export function registerCleanup(fn) {
   activeCleanup = fn;
 }
 
-// ── Tab switching ─────────────────────────────────────────────
+// ── Render both views once on startup ─────────────────────────
+app.innerHTML = `
+  <div id="intervalView">${renderIntervalView()}</div>
+  <div id="timerView" class="hidden">${renderTimerView()}</div>
+`;
+
+// Setup both controllers once — they wire up to already-existing DOM
+setupIntervalTimer();
+setupTimer();
+
+// ── Tab switching — show/hide only, no re-render ──────────────
 export function switchTab(tab) {
-  // Run cleanup for the previously active tab (stops any running timers)
-  if (typeof activeCleanup === "function") {
-    activeCleanup();
-    activeCleanup = null;
-  }
+  const intervalView = document.getElementById("intervalView");
+  const timerView = document.getElementById("timerView");
 
-  // Render the new view
   if (tab === "interval") {
-    app.innerHTML = renderIntervalView();
-    setupIntervalTimer();
+    intervalView.classList.remove("hidden");
+    timerView.classList.add("hidden");
   } else if (tab === "timer") {
-    app.innerHTML = renderTimerView();
-    setupTimer();
+    timerView.classList.remove("hidden");
+    intervalView.classList.add("hidden");
   }
 
-  // Highlight the active tab button
+  // Highlight active tab button
   document.querySelectorAll(".tab-buttons button").forEach(button => {
     button.classList.toggle("active", button.getAttribute("data-tab") === tab);
   });
 
-  // Sync settings modal visibility to active tab
+  // Sync settings modal to active tab
   const timerSettings = document.getElementById("timerSettings");
   const intervalSettings = document.getElementById("intervalSettings");
   if (timerSettings) timerSettings.classList.toggle("hidden", tab !== "timer");
@@ -56,7 +61,7 @@ document.getElementById("settingsIcon").onclick = () => {
   const currentTab =
     document
       .querySelector(".tab-buttons button.active")
-      ?.getAttribute("data-tab") || "timer";
+      ?.getAttribute("data-tab") || "interval";
 
   const timerSettings = document.getElementById("timerSettings");
   const intervalSettings = document.getElementById("intervalSettings");
@@ -86,7 +91,6 @@ document.getElementById("saveSettingsBtn").onclick = () => {
     10,
   );
 
-  // Use isNaN instead of || so that 0 is a valid saved value
   if (!isNaN(timerAlarmLength))
     alarmSettings.timerAlarmLength = timerAlarmLength;
   if (!isNaN(workAlarmLength)) alarmSettings.workAlarmLength = workAlarmLength;
@@ -108,4 +112,4 @@ document.getElementById("closeAlarmFolderBtn").onclick = () => {
 
 // ── Initialize ────────────────────────────────────────────────
 setupTabListeners();
-switchTab("interval"); // Default tab — alarmSettings is already declared above
+switchTab("interval");

@@ -1,10 +1,11 @@
 import { Timer } from "./logic/Timer.js";
-import { alarmSettings } from "./renderer.js";
-import { registerCleanup } from "./renderer.js";
+import { alarmSettings, registerCleanup } from "./renderer.js";
 
 let timer = null;
 let timerStatus = "ready"; // "ready" | "running" | "paused" | "stopped" | "completed"
 let alarmTimeoutId = null;
+
+const getAlarm = () => document.getElementById("alarmSound");
 
 export function setupTimer() {
   document.getElementById("startBtn").onclick = startTimer;
@@ -12,6 +13,7 @@ export function setupTimer() {
   document.getElementById("continueBtn").onclick = continueTimer;
   document.getElementById("stopBtn").onclick = stopTimer;
   document.getElementById("resetBtn").onclick = resetTimer;
+
   registerCleanup(() => {
     if (timer) {
       timer.reset();
@@ -36,13 +38,23 @@ function setStatus(status) {
 }
 
 // ── Alarm helpers ─────────────────────────────────────────────
+function onAlarmEnded() {
+  if (alarmTimeoutId) {
+    clearTimeout(alarmTimeoutId);
+    alarmTimeoutId = null;
+  }
+  const alarm = getAlarm();
+  if (alarm) alarm.removeEventListener("ended", onAlarmEnded);
+}
+
 function stopAlarmSound() {
   if (alarmTimeoutId) {
     clearTimeout(alarmTimeoutId);
     alarmTimeoutId = null;
   }
-  const alarm = document.getElementById("alarmSound");
+  const alarm = getAlarm();
   if (alarm) {
+    alarm.removeEventListener("ended", onAlarmEnded);
     try {
       alarm.pause();
       alarm.currentTime = 0;
@@ -51,22 +63,31 @@ function stopAlarmSound() {
 }
 
 function playAlarm(duration) {
-  const alarm = document.getElementById("alarmSound");
+  const alarm = getAlarm();
   if (!alarm) {
     console.warn("playAlarm: no #alarmSound element found");
     return;
   }
-  stopAlarmSound(); // Cancel any previous alarm before starting
+
+  // Clear previous timeout but don't stop audio abruptly
+  if (alarmTimeoutId) {
+    clearTimeout(alarmTimeoutId);
+    alarmTimeoutId = null;
+  }
+  alarm.removeEventListener("ended", onAlarmEnded);
+
   alarm.currentTime = 0;
   const playPromise = alarm.play();
   if (playPromise?.then) {
     playPromise.catch(err => console.warn("Alarm play() rejected:", err));
   }
+
+  // Case 1: Audio shorter than duration — let it finish naturally
+  alarm.addEventListener("ended", onAlarmEnded);
+
+  // Case 2: Audio longer than duration — cut it off at duration
   alarmTimeoutId = setTimeout(() => {
-    try {
-      alarm.pause();
-    } catch (e) {}
-    alarmTimeoutId = null;
+    stopAlarmSound();
   }, duration * 1000);
 }
 
@@ -110,7 +131,7 @@ function startTimer() {
 
 function pauseTimer() {
   if (!timer || timerStatus !== "running") return;
-  timer.stop(); // stop() snapshots remainingTime internally
+  timer.stop();
   stopAlarmSound();
   setStatus("paused");
 }
@@ -120,13 +141,13 @@ function continueTimer() {
     console.warn("Cannot continue: Timer is not paused.");
     return;
   }
-  timer.start(); // Resumes from snapshotted remainingTime
+  timer.start();
   setStatus("running");
 }
 
 function stopTimer() {
   if (!timer) return;
-  timer.reset(); // Full stop: clear all state
+  timer.reset();
   stopAlarmSound();
   updateTimerDisplay(0);
   setStatus("stopped");
