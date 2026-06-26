@@ -9,26 +9,29 @@ export class IntervalTimer {
     this.duration = this.workDuration;
     this.phase = "work";
     this._intervalId = null;
+    this._stopped = false; // ← guards against restart after stop
   }
 
   start(remainingTime = null) {
     if (remainingTime !== null) {
       this.duration = remainingTime;
     }
+    this._stopped = false; // ← clear flag on every start
     this.startTime = Date.now();
     this._clearInterval();
-    this._intervalId = setInterval(() => this._tick(), 200); // 200ms for smooth UI, still reliable
-    this._tick(); // fire immediately so UI doesn't lag on start
+    this._intervalId = setInterval(() => this._tick(), 200);
+    this._tick();
   }
 
   _tick() {
+    if (this._stopped) return; // ← bail if stopped mid-tick
+
     const elapsed = Date.now() - this.startTime;
     const remaining = Math.max(this.duration - elapsed, 0);
 
     this.onTick(remaining, this.phase);
 
     if (remaining <= 0) {
-      // Stop current interval before switching phase to prevent double-firing
       this._clearInterval();
 
       this.phase = this.phase === "work" ? "break" : "work";
@@ -36,18 +39,23 @@ export class IntervalTimer {
         this.phase === "work" ? this.workDuration : this.breakDuration;
       this.startTime = Date.now();
 
+      // onPhaseChange may call stop() — check _stopped before restarting
       this.onPhaseChange(this.phase);
 
-      // Restart interval for the new phase
-      this._intervalId = setInterval(() => this._tick(), 200);
+      // Only restart if stop() was NOT called during onPhaseChange
+      if (!this._stopped) {
+        this._intervalId = setInterval(() => this._tick(), 200);
+      }
     }
   }
 
   stop() {
+    this._stopped = true; // ← set before clearing so _tick sees it
     this._clearInterval();
   }
 
   reset() {
+    this._stopped = true;
     this._clearInterval();
     this.phase = "work";
     this.duration = this.workDuration;
@@ -55,9 +63,7 @@ export class IntervalTimer {
   }
 
   getRemainingTime() {
-    if (!this.startTime) {
-      return this.duration;
-    }
+    if (!this.startTime) return this.duration;
     const elapsed = Date.now() - this.startTime;
     return Math.max(this.duration - elapsed, 0);
   }

@@ -2,7 +2,7 @@ import { Timer } from "./logic/Timer.js";
 import { alarmSettings, registerCleanup } from "./renderer.js";
 
 let timer = null;
-let timerStatus = "ready"; // "ready" | "running" | "paused" | "stopped" | "completed"
+let timerStatus = "ready";
 let alarmTimeoutId = null;
 
 const getAlarm = () => document.getElementById("alarmSound");
@@ -19,6 +19,7 @@ export function setupTimer() {
       timer.reset();
       timer = null;
     }
+    stopAlarmSound();
     timerStatus = "ready";
   });
 }
@@ -68,27 +69,18 @@ function playAlarm(duration) {
     console.warn("playAlarm: no #alarmSound element found");
     return;
   }
-
-  // Clear previous timeout but don't stop audio abruptly
   if (alarmTimeoutId) {
     clearTimeout(alarmTimeoutId);
     alarmTimeoutId = null;
   }
   alarm.removeEventListener("ended", onAlarmEnded);
-
   alarm.currentTime = 0;
   const playPromise = alarm.play();
   if (playPromise?.then) {
     playPromise.catch(err => console.warn("Alarm play() rejected:", err));
   }
-
-  // Case 1: Audio shorter than duration — let it finish naturally
   alarm.addEventListener("ended", onAlarmEnded);
-
-  // Case 2: Audio longer than duration — cut it off at duration
-  alarmTimeoutId = setTimeout(() => {
-    stopAlarmSound();
-  }, duration * 1000);
+  alarmTimeoutId = setTimeout(() => stopAlarmSound(), duration * 1000);
 }
 
 // ── Input helper ──────────────────────────────────────────────
@@ -105,7 +97,8 @@ function updateTimerDisplay(remainingMs) {
     2,
     "0",
   );
-  document.getElementById("countdown").textContent = `${mins}:${secs}`;
+  const el = document.getElementById("countdown");
+  if (el) el.textContent = `${mins}:${secs}`;
 }
 
 // ── Button handlers ───────────────────────────────────────────
@@ -149,13 +142,13 @@ function stopTimer() {
   if (!timer) return;
   timer.reset();
   stopAlarmSound();
-  updateTimerDisplay(0);
+  updateTimerDisplay(getDurationFromInputs() * 1000); // ← show input duration not 00:00
   setStatus("stopped");
 }
 
 function resetTimer() {
   if (timer) timer.reset();
   stopAlarmSound();
-  updateTimerDisplay(0);
+  updateTimerDisplay(getDurationFromInputs() * 1000); // ← show input duration not 00:00
   setStatus("ready");
 }
