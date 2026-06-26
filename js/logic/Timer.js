@@ -1,6 +1,6 @@
 export class Timer {
   constructor({ duration, onTick, onComplete }) {
-    this.duration = duration * 1000; // in ms
+    this.duration = duration * 1000;
     this.onTick = onTick;
     this.onComplete = onComplete;
 
@@ -8,17 +8,21 @@ export class Timer {
     this.remainingTime = this.duration;
     this._intervalId = null;
     this._completed = false;
+    this._stopped = false; // ← same guard as IntervalTimer
   }
 
   start() {
-    if (this._completed) return; // Don't restart if already finished
+    if (this._completed) return;
+    this._stopped = false;
     this.startTime = Date.now();
     this._clearInterval();
     this._intervalId = setInterval(() => this._tick(), 200);
-    this._tick(); // Fire immediately so UI doesn't lag on start
+    this._tick();
   }
 
   _tick() {
+    if (this._stopped) return;
+
     const elapsed = Date.now() - this.startTime;
     const remaining = Math.max(this.remainingTime - elapsed, 0);
 
@@ -34,14 +38,15 @@ export class Timer {
 
   stop() {
     if (this._completed) return;
+    this._stopped = true;
     this._clearInterval();
-    // Snapshot remaining time correctly so resume works
     const elapsed = Date.now() - this.startTime;
     this.remainingTime = Math.max(this.remainingTime - elapsed, 0);
-    this.startTime = null; // Clear so start() anchors fresh on resume
+    this.startTime = null;
   }
 
   reset() {
+    this._stopped = true;
     this._clearInterval();
     this.remainingTime = this.duration;
     this.startTime = null;

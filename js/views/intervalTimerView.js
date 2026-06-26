@@ -32,13 +32,12 @@ export function renderIntervalView() {
 
       <h1 id="intervalCountdown">00:00</h1>
       <p id="intervalStatus">Status: Ready</p>
-      <p id="intervalPhase">Phase: work</p>
+      <p id="intervalPhase">Phase: -</p>
 
       <div class="button-group">
-        <button id="startLoopBtn">Start Loop</button>
+        <button id="startLoopBtn">Start</button>
         <button id="pauseLoopBtn">Pause</button>
         <button id="continueLoopBtn">Continue</button>
-        <button id="stopLoopBtn">Stop</button>
         <button id="resetIntervalBtn">Reset</button>
       </div>
 
@@ -46,25 +45,25 @@ export function renderIntervalView() {
   `;
 }
 
-// ── Inject styles once, guard against duplicates ──────────────
-if (!document.getElementById("intervalTimerViewStyle")) {
-  const style = document.createElement("style");
-  style.id = "intervalTimerViewStyle";
-  style.textContent = `
-    .input-group input {
-      align-self: center;
-      display: flex;
-      justify-content: center;
-      flex: 1;
-      width: 100px;
-      padding: 10px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      text-align: center;
-    }
-  `;
-  document.head.appendChild(style);
-}
+// // ── Inject styles once, guard against duplicates ──────────────
+// if (!document.getElementById("intervalTimerViewStyle")) {
+//   const style = document.createElement("style");
+//   style.id = "intervalTimerViewStyle";
+//   style.textContent = `
+//     .input-group input {
+//       align-self: center;
+//       display: flex;
+//       justify-content: center;
+//       flex: 1;
+//       width: 100px;
+//       padding: 10px;
+//       font-size: 1.2rem;
+//       font-weight: bold;
+//       border: none;
+//       border-radius: 8px;
+//       color: white;
+//       text-align: center;
+//     }
+//   `;
+//   document.head.appendChild(style);
+// }

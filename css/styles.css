@@ -176,6 +176,21 @@ input[type="number"]:focus {
   box-shadow: 0 0 20px rgba(255, 106, 0, 0.5);
 }
 
+.input-group input {
+  align-self: center;
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  width: 100px;
+  padding: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+}
+
 /* ── Countdown displays ────────────────────────────────────── */
 #countdown {
   font-size: 4rem;
