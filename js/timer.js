@@ -1,11 +1,42 @@
 import { Timer } from "./logic/Timer.js";
-import { alarmSettings, registerCleanup } from "./renderer.js";
+import {
+  alarmSettings,
+  registerCleanup,
+  broadcastTimerState,
+} from "./renderer.js";
 
 let timer = null;
 let timerStatus = "ready";
 let alarmTimeoutId = null;
 
 const getAlarm = () => document.getElementById("alarmSound");
+
+// ── State yayını ──────────────────────────────────────────────
+function broadcast(overrides = {}) {
+  const cd = document.getElementById("countdown");
+  const base = {
+    time: cd?.textContent ?? "00:00",
+    phase: "",
+    status: timerStatus,
+    tab: "timer",
+    loop: null,
+    total: null,
+  };
+  broadcastTimerState({ ...base, ...overrides });
+}
+
+// ── Mini açıldığında anlık state gönder ───────────────────────
+window.addEventListener("request-timer-snapshot", () => {
+  const cd = document.getElementById("countdown");
+  broadcastTimerState({
+    time: cd?.textContent ?? "00:00",
+    phase: "",
+    status: timerStatus,
+    tab: "timer",
+    loop: null,
+    total: null,
+  });
+});
 
 export function setupTimer() {
   document.getElementById("startBtn").onclick = startTimer;
@@ -36,6 +67,7 @@ function setStatus(status) {
   };
   const el = document.getElementById("timerStatus");
   if (el) el.textContent = labels[status] ?? `Status: ${status}`;
+  broadcast(); // ← her status değişiminde yay
 }
 
 // ── Alarm helpers ─────────────────────────────────────────────
@@ -75,10 +107,8 @@ function playAlarm(duration) {
   }
   alarm.removeEventListener("ended", onAlarmEnded);
   alarm.currentTime = 0;
-  const playPromise = alarm.play();
-  if (playPromise?.then) {
-    playPromise.catch(err => console.warn("Alarm play() rejected:", err));
-  }
+  const p = alarm.play();
+  if (p?.then) p.catch(err => console.warn("Alarm play() rejected:", err));
   alarm.addEventListener("ended", onAlarmEnded);
   alarmTimeoutId = setTimeout(() => stopAlarmSound(), duration * 1000);
 }
@@ -109,24 +139,49 @@ function startTimer() {
   stopAlarmSound();
   if (timer) timer.reset();
 
+  const cd = document.getElementById("countdown");
+  if (cd) cd.classList.remove("countdown-pulse", "countdown-complete");
+
   timer = new Timer({
     duration,
-    onTick: updateTimerDisplay,
+    onTick: remainingMs => {
+      updateTimerDisplay(remainingMs);
+
+      const mins = String(Math.floor(remainingMs / 60000)).padStart(2, "0");
+      const secs = String(Math.floor((remainingMs % 60000) / 1000)).padStart(
+        2,
+        "0",
+      );
+      broadcastTimerState({
+        time: `${mins}:${secs}`,
+        phase: "",
+        status: timerStatus,
+        tab: "timer",
+        loop: null,
+        total: null,
+      });
+    },
     onComplete: () => {
-      setStatus("completed");
+      const cd = document.getElementById("countdown");
+      if (cd) {
+        cd.classList.remove("countdown-pulse", "countdown-complete");
+        void cd.offsetWidth;
+        cd.classList.add("countdown-complete");
+      }
+      setStatus("completed"); // broadcast tetiklenir
       playAlarm(alarmSettings.timerAlarmLength);
     },
   });
 
   timer.start();
-  setStatus("running");
+  setStatus("running"); // broadcast tetiklenir
 }
 
 function pauseTimer() {
   if (!timer || timerStatus !== "running") return;
   timer.stop();
   stopAlarmSound();
-  setStatus("paused");
+  setStatus("paused"); // broadcast tetiklenir
 }
 
 function continueTimer() {
@@ -135,20 +190,22 @@ function continueTimer() {
     return;
   }
   timer.start();
-  setStatus("running");
+  setStatus("running"); // broadcast tetiklenir
 }
 
 function stopTimer() {
   if (!timer) return;
   timer.reset();
   stopAlarmSound();
-  updateTimerDisplay(getDurationFromInputs() * 1000); // ← show input duration not 00:00
-  setStatus("stopped");
+  updateTimerDisplay(getDurationFromInputs() * 1000);
+  setStatus("stopped"); // broadcast tetiklenir
 }
 
 function resetTimer() {
   if (timer) timer.reset();
   stopAlarmSound();
-  updateTimerDisplay(getDurationFromInputs() * 1000); // ← show input duration not 00:00
-  setStatus("ready");
+  const cd = document.getElementById("countdown");
+  if (cd) cd.classList.remove("countdown-pulse", "countdown-complete");
+  updateTimerDisplay(getDurationFromInputs() * 1000);
+  setStatus("ready"); // broadcast tetiklenir
 }
