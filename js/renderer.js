@@ -110,6 +110,140 @@ document.getElementById("closeAlarmFolderBtn").onclick = () => {
   document.getElementById("alarmFolderModal").classList.add("hidden");
 };
 
+// ── Modal keyboard handling ───────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  const settingsModal = document.getElementById("settingsModal");
+  const alarmModal = document.getElementById("alarmFolderModal");
+  if (!settingsModal.classList.contains("hidden")) {
+    settingsModal.classList.add("hidden");
+  } else if (!alarmModal.classList.contains("hidden")) {
+    alarmModal.classList.add("hidden");
+  }
+});
+
+// ── Always on Top toggle ──────────────────────────────────────
+let alwaysOnTop = false;
+
+const aotBtn = document.getElementById("alwaysOnTopBtn");
+if (aotBtn) {
+  aotBtn.addEventListener("click", () => {
+    alwaysOnTop = !alwaysOnTop;
+    window.electronAPI.setAlwaysOnTop(alwaysOnTop);
+    aotBtn.classList.toggle("active", alwaysOnTop);
+    aotBtn.setAttribute("aria-pressed", alwaysOnTop);
+    aotBtn.setAttribute(
+      "aria-label",
+      alwaysOnTop ? "Unpin window" : "Pin window on top",
+    );
+    aotBtn.textContent = alwaysOnTop ? "📌" : "📍";
+  });
+}
+
+// ── Timer state → mini window yayını ─────────────────────────
+// Her tab'ın onTick'i bu fonksiyonu çağıracak
+export function broadcastTimerState(state) {
+  window.electronAPI.sendTimerState(state);
+}
+
+// ── Mini'den gelen aksiyonları ilgili tab'a yönlendir ─────────
+window.electronAPI.onMiniAction(action => {
+  const activeTab = document
+    .querySelector(".tab-buttons button.active")
+    ?.getAttribute("data-tab");
+
+  const buttonMap = {
+    pause: activeTab === "interval" ? "pauseLoopBtn" : "pauseBtn",
+    continue: activeTab === "interval" ? "continueLoopBtn" : "continueBtn",
+    reset: activeTab === "interval" ? "resetIntervalBtn" : "resetBtn",
+    start: activeTab === "interval" ? "startLoopBtn" : "startBtn", // ← eklendi
+  };
+
+  const btnId = buttonMap[action];
+  if (btnId) document.getElementById(btnId)?.click();
+});
+
+// ── Anlık state snapshot — mini açıldığında gönderilir ────────
+export function snapshotTimerState() {
+  const activeTab = document
+    .querySelector(".tab-buttons button.active")
+    ?.getAttribute("data-tab");
+
+  if (activeTab === "interval") {
+    // intervalTimer.js kendi snapshot'ını gönderir
+    window.dispatchEvent(new CustomEvent("request-interval-snapshot"));
+  } else if (activeTab === "timer") {
+    window.dispatchEvent(new CustomEvent("request-timer-snapshot"));
+  }
+}
+
+// Mini hazır olduğunda snapshot gönder
+window.electronAPI.onMiniReady(() => {
+  snapshotTimerState();
+});
+
+// ── Mini kapandığında always on top toggle'ı sıfırla ─────────
+window.electronAPI.onMiniClosed(() => {
+  alwaysOnTop = false;
+  const aotBtn = document.getElementById("alwaysOnTopBtn");
+  if (aotBtn) {
+    aotBtn.classList.remove("active");
+    aotBtn.setAttribute("aria-pressed", "false");
+    aotBtn.setAttribute("aria-label", "Pin window on top");
+    aotBtn.textContent = "📍";
+  }
+});
+
+// Focus trap for modals
+function trapFocus(modal) {
+  const focusable = modal.querySelectorAll(
+    'button, input, [tabindex]:not([tabindex="-1"])',
+  );
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  modal.addEventListener("keydown", function handler(e) {
+    if (e.key !== "Tab") return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+}
+
+// Apply focus trap and auto-focus when modals open
+const settingsModal = document.getElementById("settingsModal");
+const alarmModal = document.getElementById("alarmFolderModal");
+trapFocus(settingsModal);
+trapFocus(alarmModal);
+
+// Auto-focus first button when modal opens
+const settingsObserver = new MutationObserver(() => {
+  if (!settingsModal.classList.contains("hidden")) {
+    settingsModal.querySelector("button")?.focus();
+  }
+});
+settingsObserver.observe(settingsModal, {
+  attributes: true,
+  attributeFilter: ["class"],
+});
+
+const alarmObserver = new MutationObserver(() => {
+  if (!alarmModal.classList.contains("hidden")) {
+    alarmModal.querySelector("button")?.focus();
+  }
+});
+alarmObserver.observe(alarmModal, {
+  attributes: true,
+  attributeFilter: ["class"],
+});
+
 // ── Initialize ────────────────────────────────────────────────
 setupTabListeners();
 switchTab("interval");

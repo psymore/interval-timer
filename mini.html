@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" style="-webkit-app-region: drag;">
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+             script-src 'self';
+             style-src 'self' 'unsafe-inline';
+             font-src 'self';
+             img-src 'self' data:;
+             connect-src 'self';
+             media-src 'self' file: blob: data:">
+    <meta charset="UTF-8" />
+    <title>Timer — Mini</title>
+    <link rel="stylesheet" href="css/mini.css" />
+</head>
+
+<body>
+    <div class="mini-container">
+
+        <div class="mini-header">
+            <span class="mini-label" id="miniLabel">TIMER</span>
+            <button class="mini-close" id="miniCloseBtn" aria-label="Close mini view">✕</button>
+        </div>
+
+        <div class="mini-countdown" id="miniCountdown">00:00</div>
+        <div class="mini-phase" id="miniPhase">READY</div>
+        <div class="mini-loop" id="miniLoop"></div>
+
+        <div class="mini-controls">
+            <button class="mini-btn" id="miniPauseBtn" data-action="pause" aria-label="Pause timer"
+                title="Pause">⏸</button>
+            <button class="mini-btn" id="miniContinueBtn" data-action="continue" aria-label="Continue timer"
+                title="Continue">▶</button>
+            <button class="mini-btn" id="miniResetBtn" data-action="reset" aria-label="Reset timer"
+                title="Reset">↺</button>
+        </div>
+
+    </div>
+    <script src="js/mini.js"></script>
+</body>
+
+</html>

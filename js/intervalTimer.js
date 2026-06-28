@@ -1,5 +1,9 @@
 import { IntervalTimer } from "./logic/IntervalTimer.js";
-import { registerCleanup, alarmSettings } from "./renderer.js";
+import {
+  registerCleanup,
+  alarmSettings,
+  broadcastTimerState,
+} from "./renderer.js";
 
 export function setupIntervalTimer() {
   const workDurationInput = document.getElementById("workMinutes");
@@ -38,6 +42,23 @@ export function setupIntervalTimer() {
 
   const alarm = document.getElementById("alarmSound");
 
+  // ── State yayını — her değişimde çağrılır ─────────────────
+  function broadcast(overrides = {}) {
+    const base = {
+      time:
+        document.getElementById("intervalCountdown")?.textContent ?? "00:00",
+      phase:
+        document
+          .getElementById("intervalPhase")
+          ?.textContent?.replace("Phase: ", "") ?? "",
+      status: timerStatus,
+      tab: "interval",
+      loop: currentLoop,
+      total: totalLoops,
+    };
+    broadcastTimerState({ ...base, ...overrides });
+  }
+
   function setStatus(status) {
     timerStatus = status;
     const labels = {
@@ -48,6 +69,7 @@ export function setupIntervalTimer() {
     };
     const el = document.getElementById("intervalStatus");
     if (el) el.textContent = labels[status] ?? `Status: ${status}`;
+    broadcast(); // ← her status değişiminde yay
   }
 
   function updateDisplay(remaining, phase) {
@@ -62,7 +84,7 @@ export function setupIntervalTimer() {
     if (ph) ph.textContent = `Phase: ${phase}`;
   }
 
-  // ── Alarm helpers ─────────────────────────────────────────────
+  // ── Alarm helpers ─────────────────────────────────────────
   function onAlarmEnded() {
     if (alarmTimeoutId) {
       clearTimeout(alarmTimeoutId);
@@ -97,10 +119,8 @@ export function setupIntervalTimer() {
     }
     alarm.removeEventListener("ended", onAlarmEnded);
     alarm.currentTime = 0;
-    const playPromise = alarm.play();
-    if (playPromise?.then) {
-      playPromise.catch(err => console.warn("Alarm play() rejected:", err));
-    }
+    const p = alarm.play();
+    if (p?.then) p.catch(err => console.warn("Alarm play() rejected:", err));
     isAlarmPlaying = true;
     alarm.addEventListener("ended", onAlarmEnded);
     alarmTimeoutId = setTimeout(() => stopAlarmSound(), duration * 1000);
@@ -125,7 +145,7 @@ export function setupIntervalTimer() {
     }
   }
 
-  // ── Completion ────────────────────────────────────────────────
+  // ── Completion ────────────────────────────────────────────
   function handleCompletion() {
     if (isCompleted) return;
     isCompleted = true;
@@ -134,14 +154,21 @@ export function setupIntervalTimer() {
       intervalTimer = null;
     }
     playAlarm(alarmSettings.breakAlarmLength);
-    setStatus("completed");
+
     const cd = document.getElementById("intervalCountdown");
-    if (cd) cd.textContent = "00:00";
+    if (cd) {
+      cd.classList.remove("countdown-pulse", "countdown-complete");
+      void cd.offsetWidth;
+      cd.classList.add("countdown-complete");
+      cd.textContent = "00:00";
+    }
     const ph = document.getElementById("intervalPhase");
     if (ph) ph.textContent = "Phase: -";
+
+    setStatus("completed"); // broadcast içinde çağrılıyor
   }
 
-  // ── Start ─────────────────────────────────────────────────────
+  // ── Start ─────────────────────────────────────────────────
   startBtn.onclick = () => {
     if (intervalTimer) {
       intervalTimer.stop();
@@ -172,6 +199,9 @@ export function setupIntervalTimer() {
     const loopEl = document.getElementById("currentLoop");
     if (loopEl) loopEl.textContent = currentLoop;
 
+    const cd = document.getElementById("intervalCountdown");
+    if (cd) cd.classList.remove("countdown-pulse", "countdown-complete");
+
     intervalTimer = new IntervalTimer({
       workDuration: totalWorkDuration,
       breakDuration: totalBreakDuration,
@@ -179,10 +209,32 @@ export function setupIntervalTimer() {
       onTick: (remaining, phase) => {
         if (isCompleted) return;
         updateDisplay(remaining, phase);
+
+        // Tick'te sadece time + phase güncelle, status setStatus'tan geliyor
+        const mins = String(Math.floor(remaining / 60000)).padStart(2, "0");
+        const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(
+          2,
+          "0",
+        );
+        broadcastTimerState({
+          time: `${mins}:${secs}`,
+          phase,
+          status: timerStatus,
+          tab: "interval",
+          loop: currentLoop,
+          total: totalLoops,
+        });
       },
 
       onPhaseChange: phase => {
         if (isCompleted) return;
+
+        const cd = document.getElementById("intervalCountdown");
+        if (cd) {
+          cd.classList.remove("countdown-pulse");
+          void cd.offsetWidth;
+          cd.classList.add("countdown-pulse");
+        }
 
         if (phase === "break") {
           playAlarm(alarmSettings.workAlarmLength);
@@ -196,23 +248,39 @@ export function setupIntervalTimer() {
           if (loopEl) loopEl.textContent = currentLoop;
           playAlarm(alarmSettings.breakAlarmLength);
         }
+
+        broadcast(); // faz değişimini yay
       },
     });
 
     intervalTimer.start();
-    setStatus("running");
+    setStatus("running"); // broadcast tetiklenir
   };
 
-  // ── Pause ─────────────────────────────────────────────────────
+  // ── Mini açıldığında anlık state gönder ───────────────────────
+  window.addEventListener("request-interval-snapshot", () => {
+    const cd = document.getElementById("intervalCountdown");
+    const ph = document.getElementById("intervalPhase");
+    broadcastTimerState({
+      time: cd?.textContent ?? "00:00",
+      phase: ph?.textContent?.replace("Phase: ", "") ?? "",
+      status: timerStatus,
+      tab: "interval",
+      loop: currentLoop,
+      total: totalLoops,
+    });
+  });
+
+  // ── Pause ─────────────────────────────────────────────────
   pauseBtn.onclick = () => {
     if (!intervalTimer || timerStatus !== "running") return;
     pausedTime = intervalTimer.getRemainingTime();
     intervalTimer.stop();
     pauseAlarm();
-    setStatus("paused");
+    setStatus("paused"); // broadcast tetiklenir
   };
 
-  // ── Continue ──────────────────────────────────────────────────
+  // ── Continue ──────────────────────────────────────────────
   continueBtn.onclick = () => {
     if (!intervalTimer || timerStatus !== "paused") {
       console.warn("Cannot continue: Timer is not paused.");
@@ -221,10 +289,10 @@ export function setupIntervalTimer() {
     intervalTimer.start(pausedTime);
     pausedTime = 0;
     continueAlarm();
-    setStatus("running");
+    setStatus("running"); // broadcast tetiklenir
   };
 
-  // ── Reset ─────────────────────────────────────────────────────
+  // ── Reset ─────────────────────────────────────────────────
   resetBtn.onclick = () => {
     if (intervalTimer) {
       intervalTimer.stop();
@@ -235,16 +303,21 @@ export function setupIntervalTimer() {
     currentLoop = 0;
     pausedTime = 0;
     totalLoops = 0;
+
     const loopEl = document.getElementById("currentLoop");
     const cd = document.getElementById("intervalCountdown");
     const ph = document.getElementById("intervalPhase");
     if (loopEl) loopEl.textContent = 0;
-    if (cd) cd.textContent = "00:00";
+    if (cd) {
+      cd.textContent = "00:00";
+      cd.classList.remove("countdown-pulse", "countdown-complete");
+    }
     if (ph) ph.textContent = "Phase: -";
-    setStatus("ready");
+
+    setStatus("ready"); // broadcast tetiklenir — mini UI güncellenir
   };
 
-  // ── Cleanup on tab switch ─────────────────────────────────────
+  // ── Cleanup ───────────────────────────────────────────────
   registerCleanup(() => {
     if (intervalTimer) {
       intervalTimer.stop();

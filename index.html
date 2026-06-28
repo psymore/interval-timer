@@ -2,8 +2,13 @@
 <html lang="en">
 
 <head>
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; media-src 'self' file: blob: data:">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+             script-src 'self';
+             style-src 'self' 'unsafe-inline';
+             font-src 'self';
+             img-src 'self' data:;
+             connect-src 'self';
+             media-src 'self' file: blob: data:">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timer App</title>
@@ -12,7 +17,7 @@
 
 <body>
 
-    <h2 class="gradient-title">Timer App</h2>
+    <h1 class="gradient-title">Timer App</h1>
 
     <div class="top-bar">
         <div class="tab-buttons">
@@ -20,45 +25,67 @@
             <button data-tab="timer">Timer</button>
         </div>
         <div class="modal-buttons">
-            <div id="settingsIcon" class="settings-icon">⚙️</div>
-            <div id="alarmFolderBtn" class="settings-icon">🔔</div>
+            <button id="settingsIcon" class="icon-btn" aria-label="Open settings">⚙️</button>
+            <button id="alarmFolderBtn" class="icon-btn" aria-label="Choose alarm sound">🔔</button>
+            <button id="alwaysOnTopBtn" class="icon-btn" aria-label="Pin window on top" aria-pressed="false">📍</button>
+
         </div>
     </div>
 
-    <!-- renderer.js renders tab content here via innerHTML -->
     <div id="app"></div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="modal hidden">
+    <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
         <div class="modal-content">
-            <h2>Alarm Settings</h2>
+            <h2 id="settingsTitle">Alarm Settings</h2>
             <div id="timerSettings" class="settings-group hidden">
-                <label for="timerAlarmLength">Alarm Length (seconds):
+                <label for="timerAlarmLength">
+                    Alarm Length (seconds)
                     <input type="number" id="timerAlarmLength" min="1" value="5" />
                 </label>
             </div>
             <div id="intervalSettings" class="settings-group hidden">
-                <label for="workAlarmLength">Work Alarm Length (seconds):
+                <label for="workAlarmLength">
+                    Work Alarm (seconds)
                     <input type="number" id="workAlarmLength" min="1" value="5" />
                 </label>
-                <label for="breakAlarmLength">Break Alarm Length (seconds):
+                <label for="breakAlarmLength">
+                    Break Alarm (seconds)
                     <input type="number" id="breakAlarmLength" min="1" value="5" />
                 </label>
             </div>
-            <button id="saveSettingsBtn">Save</button>
-            <button id="closeSettingsBtn">Close</button>
+            <div class="button-group">
+                <button id="saveSettingsBtn">Save</button>
+                <button id="closeSettingsBtn">Close</button>
+            </div>
         </div>
     </div>
 
     <!-- Alarm File Modal -->
-    <div id="alarmFolderModal" class="modal hidden">
+    <div id="alarmFolderModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="alarmTitle">
         <div class="modal-content">
-            <h2>Select Alarm Sound</h2>
-            <div>
-                <label for="chooseAlarmBtn">Choose Audio File:</label>
-                <button id="chooseAlarmBtn">Choose file...</button>
+            <h2 id="alarmTitle">Alarm Sound</h2>
+
+            <!-- Mevcut seçim durumu -->
+            <div class="alarm-current">
+                <span class="alarm-current-label">Current</span>
+                <span class="alarm-current-file" id="alarmCurrentFile">Default alarm</span>
             </div>
-            <button id="closeAlarmFolderBtn">Close</button>
+
+            <!-- Aksiyonlar -->
+            <div class="alarm-actions">
+                <button id="chooseAlarmBtn" class="btn-primary">
+                    Choose file…
+                </button>
+                <button id="previewAlarmBtn" id="previewAlarmBtn" aria-label="Preview alarm sound">
+                    ▶ Preview
+                </button>
+            </div>
+
+            <!-- Feedback mesajı -->
+            <p class="alarm-feedback hidden" id="alarmFeedback"></p>
+
+            <button id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
         </div>
     </div>
 
