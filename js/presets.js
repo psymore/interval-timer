@@ -1,11 +1,57 @@
-// Preset yönetimi — intervalTimerView ile entegre çalışır
+const MAX_PRESETS = 20;
 
 export async function setupPresets(onPresetLoad) {
   const container = document.getElementById("presetsContainer");
   const addBtn = document.getElementById("addPresetBtn");
-  if (!container || !addBtn) return;
+  const triggerBtn = document.getElementById("presetTriggerBtn");
+  const dropdown = document.getElementById("presetDropdown");
 
-  // ── Tüm preset'leri yükle ve render et ───────────────────
+  if (!container || !addBtn || !triggerBtn || !dropdown) return;
+
+  // ── Dropdown aç/kapat ─────────────────────────────────────
+  function openDropdown() {
+    dropdown.hidden = false;
+    triggerBtn.setAttribute("aria-expanded", "true");
+    triggerBtn.classList.add("preset-trigger--open");
+    // İlk item'a focus
+    container.querySelector(".preset-item__load")?.focus();
+  }
+
+  function closeDropdown() {
+    dropdown.hidden = true;
+    triggerBtn.setAttribute("aria-expanded", "false");
+    triggerBtn.classList.remove("preset-trigger--open");
+  }
+
+  function toggleDropdown() {
+    dropdown.hidden ? openDropdown() : closeDropdown();
+  }
+
+  triggerBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    toggleDropdown();
+  });
+
+  // Dışarı tıklayınca kapat
+  document.addEventListener("click", e => {
+    if (
+      !dropdown.hidden &&
+      !dropdown.contains(e.target) &&
+      e.target !== triggerBtn
+    ) {
+      closeDropdown();
+    }
+  });
+
+  // Escape ile kapat
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !dropdown.hidden) {
+      closeDropdown();
+      triggerBtn.focus();
+    }
+  });
+
+  // ── Render ────────────────────────────────────────────────
   async function renderPresets() {
     const [presets, active] = await Promise.all([
       window.electronAPI.presetsGetAll(),
@@ -14,88 +60,155 @@ export async function setupPresets(onPresetLoad) {
 
     container.innerHTML = "";
 
+    // Trigger label'ı aktif preset adıyla güncelle
+    const triggerLabel = document.getElementById("presetTriggerLabel");
+    if (triggerLabel) {
+      triggerLabel.textContent = active?.name ?? "Presets";
+    }
+
+    // Empty state
+    if (!presets || presets.length === 0) {
+      const li = document.createElement("li");
+      li.className = "preset-empty";
+      li.textContent = "No presets yet.";
+      container.appendChild(li);
+      addBtn.disabled = false;
+      return;
+    }
+
     presets.forEach(preset => {
-      const card = buildPresetCard(
+      const li = buildPresetItem(
         preset,
         active?.id === preset.id,
         onPresetLoad,
         renderPresets,
+        closeDropdown,
       );
-      container.appendChild(card);
+      container.appendChild(li);
     });
+
+    // Max limitte + New disabled
+    addBtn.disabled = presets.length >= MAX_PRESETS;
+    addBtn.title =
+      presets.length >= MAX_PRESETS
+        ? `Maximum ${MAX_PRESETS} presets reached`
+        : "";
   }
 
-  // ── Yeni preset ekle ──────────────────────────────────────
+  // + New preset
   addBtn.addEventListener("click", () => {
+    closeDropdown();
     showPresetForm(null, renderPresets);
   });
 
   await renderPresets();
 }
 
-// ── Preset kartı ──────────────────────────────────────────────
-function buildPresetCard(preset, isActive, onLoad, onRefresh) {
-  const card = document.createElement("div");
-  card.className = `preset-card${isActive ? " preset-card--active" : ""}`;
-  card.dataset.id = preset.id;
+// ── Preset item ───────────────────────────────────────────────
+function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
+  const isDefault = preset.id.startsWith("default-");
+
+  const li = document.createElement("li");
+  li.className = `preset-item${isActive ? " preset-item--active" : ""}`;
+  li.setAttribute("role", "option");
+  li.setAttribute("aria-selected", isActive ? "true" : "false");
 
   const workLabel = formatDuration(preset.workMinutes, preset.workSeconds);
   const breakLabel = formatDuration(preset.breakMinutes, preset.breakSeconds);
+  const loopLabel = `${preset.loops} loop${preset.loops !== 1 ? "s" : ""}`;
 
-  card.innerHTML = `
-    <div class="preset-card__body">
-      <div class="preset-card__name">${escapeHtml(preset.name)}</div>
-      <div class="preset-card__meta">
-        <span title="Work">⏱ ${workLabel}</span>
-        <span class="preset-meta-sep">·</span>
-        <span title="Break">☕ ${breakLabel}</span>
-        <span class="preset-meta-sep">·</span>
-        <span title="Loops">↻ ${preset.loops}×</span>
-      </div>
+  li.innerHTML = `
+    <button class="preset-item__load" aria-label="Load ${escapeHtml(preset.name)}">
+      <span class="preset-item__name">${escapeHtml(preset.name)}</span>
+      <span class="preset-item__meta">
+        ⏱ ${workLabel}
+        <span aria-hidden="true">·</span>
+        ☕ ${breakLabel}
+        <span aria-hidden="true">·</span>
+        ↻ ${loopLabel}
+      </span>
+    </button>
+    <div class="preset-item__actions">
+      <button class="preset-item__btn preset-item__btn--edit"
+        aria-label="Edit ${escapeHtml(preset.name)}"
+        title="Edit"
+        ${isDefault ? "disabled" : ""}>✎</button>
+      <button class="preset-item__btn preset-item__btn--delete"
+        aria-label="Delete ${escapeHtml(preset.name)}"
+        title="${isDefault ? "Cannot delete default" : "Delete"}"
+        ${isDefault ? "disabled" : ""}>✕</button>
     </div>
-    <div class="preset-card__actions">
-      <button class="preset-btn preset-btn--load"
-        aria-label="Load ${escapeHtml(preset.name)}">Load</button>
-      <button class="preset-btn preset-btn--edit"
-        aria-label="Edit ${escapeHtml(preset.name)}">✎</button>
-      <button class="preset-btn preset-btn--delete"
-        aria-label="Delete ${escapeHtml(preset.name)}">✕</button>
+    <div class="preset-item__confirm hidden">
+      <span>Delete?</span>
+      <button class="preset-item__btn preset-item__btn--yes">Yes</button>
+      <button class="preset-item__btn preset-item__btn--no">No</button>
     </div>
   `;
 
-  // Load
-  card
-    .querySelector(".preset-btn--load")
-    .addEventListener("click", async () => {
-      await window.electronAPI.presetsSetActive(preset.id);
-      onLoad(preset);
-      await onRefresh();
-    });
+  // ── Load ──────────────────────────────────────────────────
+  li.querySelector(".preset-item__load").addEventListener("click", async () => {
+    await window.electronAPI.presetsSetActive(preset.id);
+    onLoad(preset);
 
-  // Edit
-  card.querySelector(".preset-btn--edit").addEventListener("click", () => {
-    showPresetForm(preset, onRefresh);
+    // Trigger label güncelle
+    const label = document.getElementById("presetTriggerLabel");
+    if (label) label.textContent = preset.name;
+
+    // Flash
+    li.classList.add("preset-item--loaded");
+    setTimeout(() => li.classList.remove("preset-item--loaded"), 500);
+
+    onClose();
+    await onRefresh();
   });
 
-  // Delete — default preset'leri silme
-  const deleteBtn = card.querySelector(".preset-btn--delete");
-  if (preset.id.startsWith("default-")) {
-    deleteBtn.disabled = true;
-    deleteBtn.title = "Default presets cannot be deleted";
-  } else {
-    deleteBtn.addEventListener("click", async () => {
-      if (!confirm(`Delete "${preset.name}"?`)) return;
-      await window.electronAPI.presetsDelete(preset.id);
+  // ── Edit ──────────────────────────────────────────────────
+  const editBtn = li.querySelector(".preset-item__btn--edit");
+  if (editBtn && !isDefault) {
+    editBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      onClose();
+      showPresetForm(preset, onRefresh);
+    });
+  }
+
+  // ── Delete inline confirm ──────────────────────────────────
+  const deleteBtn = li.querySelector(".preset-item__btn--delete");
+  const confirmPanel = li.querySelector(".preset-item__confirm");
+  const confirmYes = li.querySelector(".preset-item__btn--yes");
+  const confirmNo = li.querySelector(".preset-item__btn--no");
+
+  if (deleteBtn && !isDefault) {
+    deleteBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      confirmPanel.classList.remove("hidden");
+      li.querySelector(".preset-item__actions").classList.add("hidden");
+      confirmYes.focus();
+    });
+
+    confirmNo.addEventListener("click", e => {
+      e.stopPropagation();
+      confirmPanel.classList.add("hidden");
+      li.querySelector(".preset-item__actions").classList.remove("hidden");
+      deleteBtn.focus();
+    });
+
+    confirmYes.addEventListener("click", async e => {
+      e.stopPropagation();
+      const result = await window.electronAPI.presetsDelete(preset.id);
+      if (result?.error) {
+        showToast(result.error, "error");
+        return;
+      }
       await onRefresh();
     });
   }
 
-  return card;
+  return li;
 }
 
-// ── Preset form (add / edit) ──────────────────────────────────
+// ── Preset form ───────────────────────────────────────────────
 function showPresetForm(existingPreset, onRefresh) {
-  // Varsa önceki formu kaldır
   document.getElementById("presetFormOverlay")?.remove();
 
   const isEdit = !!existingPreset;
@@ -113,45 +226,57 @@ function showPresetForm(existingPreset, onRefresh) {
   const overlay = document.createElement("div");
   overlay.id = "presetFormOverlay";
   overlay.className = "preset-overlay";
+  overlay.setAttribute("role", "presentation");
+
   overlay.innerHTML = `
     <div class="preset-form" role="dialog" aria-modal="true"
-      aria-label="${isEdit ? "Edit" : "New"} Preset">
-      <h3 class="preset-form__title">${isEdit ? "Edit Preset" : "New Preset"}</h3>
+      aria-labelledby="pfTitle">
+      <h3 class="preset-form__title" id="pfTitle">
+        ${isEdit ? "Edit Preset" : "New Preset"}
+      </h3>
 
       <div class="preset-form__field">
         <label for="pf-name">Name</label>
         <input id="pf-name" type="text" maxlength="32"
-          value="${escapeHtml(p.name)}" placeholder="e.g. Morning Focus" />
+          value="${escapeHtml(p.name)}"
+          placeholder="e.g. Morning Focus"
+          autocomplete="off" />
       </div>
 
       <div class="preset-form__row">
         <div class="preset-form__field">
           <label for="pf-wm">Work min</label>
-          <input id="pf-wm" type="number" min="0" max="99" value="${p.workMinutes}" />
+          <input id="pf-wm" type="number" min="0" max="99"
+            value="${p.workMinutes}" />
         </div>
         <div class="preset-form__field">
           <label for="pf-ws">Work sec</label>
-          <input id="pf-ws" type="number" min="0" max="59" value="${p.workSeconds}" />
+          <input id="pf-ws" type="number" min="0" max="59"
+            value="${p.workSeconds}" />
         </div>
       </div>
 
       <div class="preset-form__row">
         <div class="preset-form__field">
           <label for="pf-bm">Break min</label>
-          <input id="pf-bm" type="number" min="0" max="99" value="${p.breakMinutes}" />
+          <input id="pf-bm" type="number" min="0" max="99"
+            value="${p.breakMinutes}" />
         </div>
         <div class="preset-form__field">
           <label for="pf-bs">Break sec</label>
-          <input id="pf-bs" type="number" min="0" max="59" value="${p.breakSeconds}" />
+          <input id="pf-bs" type="number" min="0" max="59"
+            value="${p.breakSeconds}" />
         </div>
       </div>
 
       <div class="preset-form__field">
         <label for="pf-loops">Loops</label>
-        <input id="pf-loops" type="number" min="1" max="99" value="${p.loops}" />
+        <input id="pf-loops" type="number" min="1" max="99"
+          value="${p.loops}" />
       </div>
 
-      <p class="preset-form__error hidden" id="pfError"></p>
+      <p class="preset-form__error hidden" id="pfError"
+        role="alert" aria-live="assertive"></p>
 
       <div class="preset-form__btns">
         <button id="pfSaveBtn" class="btn-primary">
@@ -164,27 +289,27 @@ function showPresetForm(existingPreset, onRefresh) {
 
   document.body.appendChild(overlay);
 
-  // Focus ilk input
-  setTimeout(() => overlay.querySelector("#pf-name")?.focus(), 50);
+  const nameInput = overlay.querySelector("#pf-name");
+  const errEl = overlay.querySelector("#pfError");
 
-  // Escape kapat
-  overlay.addEventListener("keydown", e => {
-    if (e.key === "Escape") overlay.remove();
-  });
+  setTimeout(() => nameInput?.focus(), 50);
 
-  // Cancel
-  overlay.querySelector("#pfCancelBtn").addEventListener("click", () => {
+  function closeForm() {
     overlay.remove();
+  }
+
+  overlay.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeForm();
   });
 
-  // Overlay dışı tıklama
   overlay.addEventListener("click", e => {
-    if (e.target === overlay) overlay.remove();
+    if (e.target === overlay) closeForm();
   });
 
-  // Save
-  overlay.querySelector("#pfSaveBtn").addEventListener("click", async () => {
-    const name = overlay.querySelector("#pf-name").value.trim();
+  overlay.querySelector("#pfCancelBtn").addEventListener("click", closeForm);
+
+  async function validate() {
+    const name = nameInput.value.trim();
     const workMinutes =
       parseInt(overlay.querySelector("#pf-wm").value, 10) || 0;
     const workSeconds =
@@ -194,24 +319,30 @@ function showPresetForm(existingPreset, onRefresh) {
     const breakSeconds =
       parseInt(overlay.querySelector("#pf-bs").value, 10) || 0;
     const loops = parseInt(overlay.querySelector("#pf-loops").value, 10) || 1;
-    const errEl = overlay.querySelector("#pfError");
 
-    // Validasyon
     if (!name) {
-      errEl.textContent = "Please enter a name.";
-      errEl.classList.remove("hidden");
-      overlay.querySelector("#pf-name").focus();
+      showError("Please enter a name.");
+      nameInput.focus();
       return;
     }
     if (workMinutes === 0 && workSeconds === 0) {
-      errEl.textContent = "Work duration must be greater than 0.";
-      errEl.classList.remove("hidden");
+      showError("Work duration must be greater than 0.");
+      return;
+    }
+
+    const allPresets = await window.electronAPI.presetsGetAll();
+    const duplicate = allPresets.find(
+      pr => pr.name.toLowerCase() === name.toLowerCase() && pr.id !== p.id,
+    );
+    if (duplicate) {
+      showError(`A preset named "${name}" already exists.`);
+      nameInput.focus();
       return;
     }
 
     errEl.classList.add("hidden");
 
-    const updated = {
+    const result = await window.electronAPI.presetsSave({
       ...p,
       name,
       workMinutes,
@@ -219,11 +350,51 @@ function showPresetForm(existingPreset, onRefresh) {
       breakMinutes,
       breakSeconds,
       loops,
-    };
+    });
 
-    await window.electronAPI.presetsSave(updated);
-    overlay.remove();
+    if (result?.error) {
+      showError(result.error);
+      return;
+    }
+
+    closeForm();
     await onRefresh();
+  }
+
+  function showError(msg) {
+    errEl.textContent = msg;
+    errEl.classList.remove("hidden");
+  }
+
+  overlay.querySelector("#pfSaveBtn").addEventListener("click", validate);
+
+  overlay.querySelector(".preset-form").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.tagName !== "BUTTON") {
+      e.preventDefault();
+      validate();
+    }
+  });
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function showToast(message, type = "success") {
+  document.getElementById("presetToast")?.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "presetToast";
+  toast.className = `preset-toast preset-toast--${type}`;
+  toast.setAttribute("role", "status");
+  toast.setAttribute("aria-live", "polite");
+  toast.textContent = message;
+
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("preset-toast--visible");
+    setTimeout(() => {
+      toast.classList.remove("preset-toast--visible");
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
   });
 }
 

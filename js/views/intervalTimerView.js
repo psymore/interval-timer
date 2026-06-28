@@ -2,14 +2,24 @@ export function renderIntervalView() {
   return `
     <div class="interval-timer-container">
 
-      <!-- Presets -->
-      <div class="presets-section">
-        <div class="presets-header">
-          <span class="presets-title">Presets</span>
-          <button id="addPresetBtn" class="preset-add-btn"
-            aria-label="Add new preset">+ New</button>
+      <!-- Preset dropdown trigger -->
+      <div class="preset-dropdown-wrapper">
+        <button class="preset-trigger" id="presetTriggerBtn"
+          aria-haspopup="listbox" aria-expanded="false"
+          aria-label="Select preset">
+          <span class="preset-trigger__label" id="presetTriggerLabel">Presets</span>
+          <span class="preset-trigger__chevron" aria-hidden="true">▾</span>
+        </button>
+
+        <div class="preset-dropdown" id="presetDropdown"
+          role="listbox" aria-label="Presets" hidden>
+          <ul class="preset-dropdown__list" id="presetsContainer"></ul>
+          <div class="preset-dropdown__footer">
+            <button id="addPresetBtn" class="preset-dropdown__add">
+              + New preset
+            </button>
+          </div>
         </div>
-        <div id="presetsContainer" class="presets-list"></div>
       </div>
 
       <!-- Inputs -->

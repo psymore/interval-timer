@@ -260,43 +260,74 @@ ipcMain.on("timer-state", (_event, state) => {
 });
 
 // ── Preset IPC handlers ───────────────────────────────────────
+const MAX_PRESETS = 20;
+
 ipcMain.handle("presets:get-all", () => {
-  return store.get("presets");
+  try {
+    return store.get("presets");
+  } catch (e) {
+    console.error("presets:get-all error:", e);
+    return [];
+  }
 });
 
 ipcMain.handle("presets:get-active", () => {
-  const presets = store.get("presets");
-  const activeId = store.get("activePresetId");
-  return presets.find(p => p.id === activeId) ?? presets[0];
+  try {
+    const presets = store.get("presets");
+    const activeId = store.get("activePresetId");
+    return presets.find(p => p.id === activeId) ?? presets[0];
+  } catch (e) {
+    console.error("presets:get-active error:", e);
+    return null;
+  }
 });
 
 ipcMain.handle("presets:save", (_event, preset) => {
-  const presets = store.get("presets");
-  const index = presets.findIndex(p => p.id === preset.id);
-  if (index >= 0) {
-    presets[index] = preset; // güncelle
-  } else {
-    presets.push(preset); // yeni ekle
+  try {
+    const presets = store.get("presets");
+    const index = presets.findIndex(p => p.id === preset.id);
+
+    if (index >= 0) {
+      presets[index] = preset;
+    } else {
+      if (presets.length >= MAX_PRESETS) {
+        return { error: `Maximum ${MAX_PRESETS} presets allowed.` };
+      }
+      presets.push(preset);
+    }
+
+    store.set("presets", presets);
+    return { presets };
+  } catch (e) {
+    console.error("presets:save error:", e);
+    return { error: "Failed to save preset." };
   }
-  store.set("presets", presets);
-  return presets;
 });
 
 ipcMain.handle("presets:delete", (_event, id) => {
-  const presets = store.get("presets");
-  const filtered = presets.filter(p => p.id !== id);
-  store.set("presets", filtered);
+  try {
+    const presets = store.get("presets");
+    const filtered = presets.filter(p => p.id !== id);
+    store.set("presets", filtered);
 
-  // Silinen preset aktifse ilkini seç
-  if (store.get("activePresetId") === id) {
-    store.set("activePresetId", filtered[0]?.id ?? null);
+    if (store.get("activePresetId") === id) {
+      store.set("activePresetId", filtered[0]?.id ?? null);
+    }
+    return { presets: filtered };
+  } catch (e) {
+    console.error("presets:delete error:", e);
+    return { error: "Failed to delete preset." };
   }
-  return filtered;
 });
 
 ipcMain.handle("presets:set-active", (_event, id) => {
-  store.set("activePresetId", id);
-  return id;
+  try {
+    store.set("activePresetId", id);
+    return { id };
+  } catch (e) {
+    console.error("presets:set-active error:", e);
+    return { error: "Failed to set active preset." };
+  }
 });
 
 process.on("uncaughtException", error => {
