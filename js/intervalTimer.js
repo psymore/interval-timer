@@ -1,4 +1,5 @@
 import { IntervalTimer } from "./logic/IntervalTimer.js";
+import { setupPresets } from "./presets.js";
 import {
   registerCleanup,
   alarmSettings,
@@ -13,6 +14,28 @@ export function setupIntervalTimer() {
   const pauseBtn = document.getElementById("pauseLoopBtn");
   const continueBtn = document.getElementById("continueLoopBtn");
   const resetBtn = document.getElementById("resetIntervalBtn");
+
+  // ── Preset yüklendiğinde input'ları doldur ────────────────
+  function applyPreset(preset) {
+    const wm = document.getElementById("workMinutes");
+    const ws = document.getElementById("workSeconds");
+    const bm = document.getElementById("breakMinutes");
+    const bs = document.getElementById("breakSeconds");
+    const lc = document.getElementById("loopCount");
+
+    if (wm) wm.value = preset.workMinutes;
+    if (ws) ws.value = preset.workSeconds;
+    if (bm) bm.value = preset.breakMinutes;
+    if (bs) bs.value = preset.breakSeconds;
+    if (lc) lc.value = preset.loops;
+  }
+
+  // Preset UI'ını başlat
+  setupPresets(applyPreset).then(async () => {
+    // Aktif preset'i uygula
+    const active = await window.electronAPI.presetsGetActive();
+    if (active) applyPreset(active);
+  });
 
   if (
     !workDurationInput ||
