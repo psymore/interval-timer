@@ -2,32 +2,43 @@ export function renderIntervalView() {
   return `
     <div class="interval-timer-container">
 
+      <!-- Presets -->
+      <div class="presets-section">
+        <div class="presets-header">
+          <span class="presets-title">Presets</span>
+          <button id="addPresetBtn" class="preset-add-btn"
+            aria-label="Add new preset">+ New</button>
+        </div>
+        <div id="presetsContainer" class="presets-list"></div>
+      </div>
+
+      <!-- Inputs -->
       <div class="input-group">
         <div>
           <label for="workMinutes">Work Minutes:</label>
-          <input type="number" id="workMinutes" min="0" value="0" />
+          <input type="number" id="workMinutes" min="0" value="25" />
         </div>
         <div>
           <label for="workSeconds">Work Seconds:</label>
-          <input type="number" id="workSeconds" min="0" max="59" value="5" />
+          <input type="number" id="workSeconds" min="0" max="59" value="0" />
         </div>
         <div>
           <label for="breakMinutes">Break Minutes:</label>
-          <input type="number" id="breakMinutes" min="0" value="0" />
+          <input type="number" id="breakMinutes" min="0" value="5" />
         </div>
         <div>
           <label for="breakSeconds">Break Seconds:</label>
-          <input type="number" id="breakSeconds" min="0" max="59" value="5" />
+          <input type="number" id="breakSeconds" min="0" max="59" value="0" />
         </div>
         <div>
           <label for="loopCount">Number of Loops:</label>
-          <input type="number" id="loopCount" min="1" value="3" />
+          <input type="number" id="loopCount" min="1" value="4" />
         </div>
       </div>
 
       <div class="currentLoop">
         <label>Current Loop:</label>
-        <span id="currentLoop">1</span>
+        <span id="currentLoop">0</span>
       </div>
 
       <h1 id="intervalCountdown">00:00</h1>
@@ -44,26 +55,3 @@ export function renderIntervalView() {
     </div>
   `;
 }
-
-// // ── Inject styles once, guard against duplicates ──────────────
-// if (!document.getElementById("intervalTimerViewStyle")) {
-//   const style = document.createElement("style");
-//   style.id = "intervalTimerViewStyle";
-//   style.textContent = `
-//     .input-group input {
-//       align-self: center;
-//       display: flex;
-//       justify-content: center;
-//       flex: 1;
-//       width: 100px;
-//       padding: 10px;
-//       font-size: 1.2rem;
-//       font-weight: bold;
-//       border: none;
-//       border-radius: 8px;
-//       color: white;
-//       text-align: center;
-//     }
-//   `;
-//   document.head.appendChild(style);
-// }
