@@ -1,5 +1,7 @@
 import { IntervalTimer } from "./logic/IntervalTimer.js";
 import { setupPresets } from "./presets.js";
+import { alarmManager } from "./alarm/AlarmManager.js";
+
 import {
   registerCleanup,
   alarmSettings,
@@ -134,19 +136,60 @@ export function setupIntervalTimer() {
     alarmResumeTime = 0;
   }
 
-  function playAlarm(duration) {
-    if (!alarm) return;
-    if (alarmTimeoutId) {
-      clearTimeout(alarmTimeoutId);
-      alarmTimeoutId = null;
+  // function playAlarm(duration) {
+  //   if (!alarm) return;
+  //   if (alarmTimeoutId) {
+  //     clearTimeout(alarmTimeoutId);
+  //     alarmTimeoutId = null;
+  //   }
+  //   alarm.removeEventListener("ended", onAlarmEnded);
+  //   alarm.currentTime = 0;
+  //   const p = alarm.play();
+  //   if (p?.then) p.catch(err => console.warn("Alarm play() rejected:", err));
+  //   isAlarmPlaying = true;
+  //   alarm.addEventListener("ended", onAlarmEnded);
+  //   alarmTimeoutId = setTimeout(() => stopAlarmSound(), duration * 1000);
+  // }
+
+  // Uygulama başlarken bir kez çağır (setupTimer veya setupIntervalTimer içinde)
+  async function initAlarmManager() {
+    // Fallback: localStorage'daki dosya veya default
+    const savedPath = localStorage.getItem("selectedAlarmPath");
+    const fallback = savedPath ? toFileUrl(savedPath) : "assets/alarm.mp3";
+
+    alarmManager.setFallbackSource(fallback);
+
+    alarmManager.setCallbacks({
+      onFallback: ({ reason }) => {
+        console.warn("Alarm fell back to local:", reason);
+      },
+      onError: ({ error, type }) => {
+        console.error(`Alarm error [${type}]:`, error.message);
+      },
+    });
+
+    // Aktif kaynağı yükle
+    try {
+      await alarmManager.load(savedPath ? toFileUrl(savedPath) : fallback);
+    } catch (e) {
+      console.error("AlarmManager init failed:", e);
     }
-    alarm.removeEventListener("ended", onAlarmEnded);
-    alarm.currentTime = 0;
-    const p = alarm.play();
-    if (p?.then) p.catch(err => console.warn("Alarm play() rejected:", err));
-    isAlarmPlaying = true;
-    alarm.addEventListener("ended", onAlarmEnded);
-    alarmTimeoutId = setTimeout(() => stopAlarmSound(), duration * 1000);
+  }
+
+  // playAlarm fonksiyonunu değiştir
+  async function playAlarm(duration) {
+    try {
+      await alarmManager.play(duration);
+    } catch (e) {
+      console.error("playAlarm failed:", e);
+    }
+  }
+
+  // stopAlarmSound fonksiyonunu değiştir
+  async function stopAlarmSound() {
+    try {
+      await alarmManager.stop();
+    } catch (e) {}
   }
 
   function pauseAlarm() {
@@ -176,7 +219,7 @@ export function setupIntervalTimer() {
       intervalTimer.stop();
       intervalTimer = null;
     }
-    playAlarm(alarmSettings.breakAlarmLength);
+    initAlarmManager(alarmSettings.breakAlarmLength);
 
     const cd = document.getElementById("intervalCountdown");
     if (cd) {
@@ -260,7 +303,7 @@ export function setupIntervalTimer() {
         }
 
         if (phase === "break") {
-          playAlarm(alarmSettings.workAlarmLength);
+          initAlarmManager(alarmSettings.workAlarmLength);
         } else if (phase === "work") {
           if (currentLoop >= totalLoops) {
             handleCompletion();
@@ -269,7 +312,7 @@ export function setupIntervalTimer() {
           currentLoop++;
           const loopEl = document.getElementById("currentLoop");
           if (loopEl) loopEl.textContent = currentLoop;
-          playAlarm(alarmSettings.breakAlarmLength);
+          initAlarmManager(alarmSettings.breakAlarmLength);
         }
 
         broadcast(); // faz değişimini yay
