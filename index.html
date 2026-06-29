@@ -2,13 +2,26 @@
 <html lang="en">
 
 <head>
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+           script-src 'self' https://www.youtube.com https://sdk.scdn.co;
+           frame-src https://www.youtube.com;
+           style-src 'self' 'unsafe-inline';
+           font-src 'self';
+           img-src 'self' data: https://i.ytimg.com;
+           connect-src 'self' https://api.spotify.com;
+           media-src 'self' file: blob: data: https://p.scdn.co;
+           worker-src blob:"> -->
+
     <meta http-equiv="Content-Security-Policy" content="default-src 'self';
-             script-src 'self';
-             style-src 'self' 'unsafe-inline';
-             font-src 'self';
-             img-src 'self' data:;
-             connect-src 'self';
-             media-src 'self' file: blob: data:">
+       script-src 'self' https://www.youtube.com https://s.ytimg.com https://sdk.scdn.co;
+       frame-src 'self' https://www.youtube.com https://sdk.scdn.co https://*.spotify.com;
+       style-src 'self' 'unsafe-inline';
+       font-src 'self';
+       img-src 'self' data: https://i.ytimg.com https://*.scdn.co;
+       connect-src 'self' https://api.spotify.com https://*.spotify.com wss://*.spotify.com wss://*.api.spotify.com;
+       media-src 'self' file: blob: data: https://p.scdn.co https://*.cdn.spotify.com;
+       worker-src blob:">
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timer App</title>
@@ -66,26 +79,43 @@
         <div class="modal-content">
             <h2 id="alarmTitle">Alarm Sound</h2>
 
-            <!-- Mevcut seçim durumu -->
+            <!-- Mevcut kaynak -->
             <div class="alarm-current">
                 <span class="alarm-current-label">Current</span>
-                <span class="alarm-current-file" id="alarmCurrentFile">Default alarm</span>
+                <span class="alarm-current-file" id="alarmCurrentFile">alarm.mp3 (default)</span>
+                <span class="alarm-provider-tag hidden" id="alarmProviderTag"></span>
             </div>
 
-            <!-- Aksiyonlar -->
+            <!-- Local dosya seçimi -->
+            <div class="alarm-section">
+                <p class="alarm-section-label">Local file</p>
+                <button id="chooseAlarmBtn" class="btn-primary">Choose file…</button>
+            </div>
+
+            <!-- URL ile yükleme -->
+            <div class="alarm-section">
+                <p class="alarm-section-label">YouTube or Spotify URL</p>
+                <div class="alarm-url-row">
+                    <input id="alarmUrlInput" type="url" placeholder="https://youtube.com/watch?v=… or spotify link"
+                        autocomplete="off" spellcheck="false" />
+                    <button id="alarmUrlLoadBtn">Load</button>
+                </div>
+                <p class="alarm-url-hint">
+                    Paste a YouTube video or Spotify track URL.
+                    If unavailable, local alarm will be used as fallback.
+                </p>
+            </div>
+
+            <!-- Preview -->
             <div class="alarm-actions">
-                <button id="chooseAlarmBtn" class="btn-primary">
-                    Choose file…
-                </button>
-                <button id="previewAlarmBtn" id="previewAlarmBtn" aria-label="Preview alarm sound">
+                <button id="previewAlarmBtn" aria-label="Preview alarm sound">
                     ▶ Preview
                 </button>
+                <button id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
             </div>
 
-            <!-- Feedback mesajı -->
+            <!-- Feedback -->
             <p class="alarm-feedback hidden" id="alarmFeedback"></p>
-
-            <button id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
         </div>
     </div>
 

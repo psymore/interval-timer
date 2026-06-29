@@ -52,6 +52,16 @@ const store = new Store({
         loops: 2,
         isDefault: false,
       },
+      {
+        id: "default-test",
+        name: "test",
+        workMinutes: 0,
+        workSeconds: 5,
+        breakMinutes: 0,
+        breakSeconds: 5,
+        loops: 4,
+        isDefault: false,
+      },
     ],
     activePresetId: "default-pomodoro",
   },
@@ -63,6 +73,7 @@ let tray = null;
 let blockerId = null;
 let isQuitting = false;
 
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
