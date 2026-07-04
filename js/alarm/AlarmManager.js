@@ -1,104 +1,110 @@
 import { AlarmProviderFactory } from "./AlarmProviderFactory.js";
 import { LocalAlarmProvider } from "./providers/LocalAlarmProvider.js";
 
-/**
- * AlarmManager
- *
- * Sorumluluk: Alarm çalma operasyonlarının merkezi yöneticisi.
- *
- *   - Aktif provider'ı yönetir
- *   - Yükleme başarısız olursa fallback provider'a geçer
- *   - Çalma başarısız olursa fallback'e geçer
- *   - Event callback'leri ile dışarıya durum bildirir
- *   - Tek instance (singleton) olarak kullanılır
- *
- * Renderer process'te yaşar.
- * AlarmManager dışarıdan doğrudan provider sınıflarını bilmez.
- */
-
 export class AlarmManager {
   constructor() {
-    this._provider = null; // Aktif provider
-    this._fallbackProvider = null; // Local fallback
-    this._fallbackSource = null; // Fallback için local dosya yolu
-    this._currentSource = null; // Yüklü kaynak
-    this._providerType = null; // Aktif provider tipi
-
-    // Event callbacks
+    this._provider = null;
+    this._fallbackSource = null;
+    this._defaultSource = null;
+    this._currentSource = null;
+    this._providerType = null;
     this._onError = null;
     this._onFallback = null;
     this._onPlay = null;
     this._onStop = null;
   }
 
+  // ── Başlangıç ─────────────────────────────────────────────
+
   /**
-   * Default local kaynağı ayarlar ve yükler.
-   * Uygulama başlarken çağrılmalı.
+   * AlarmManager'ı başlatır.
+   * localStorage'daki kaynağı tespit eder, doğru şekilde yükler.
+   * @param {string} defaultSource - Hiçbir şey seçilmemişse kullanılacak yol
    */
   async initialize(defaultSource) {
     this._defaultSource = defaultSource;
     this.setFallbackSource(defaultSource);
 
-    const savedPath = localStorage.getItem("selectedAlarmPath");
-    const source = savedPath ? this._toFileUrl(savedPath) : defaultSource;
+    const savedSource = localStorage.getItem("selectedAlarmPath");
+
+    if (!savedSource) {
+      // Kayıtlı kaynak yok — default'u yükle
+      try {
+        await this.load(defaultSource);
+      } catch (e) {
+        console.error("AlarmManager: Default source failed:", e.message);
+      }
+      return;
+    }
+
+    // Kaynak tipini tespit et — local mi, URL mi?
+    const detectedType = AlarmProviderFactory.detect(savedSource);
+    let sourceToLoad = savedSource;
+
+    if (detectedType === "local") {
+      // Sadece local dosyalar için file:// dönüşümü yap
+      sourceToLoad = this._toFileUrl(savedSource);
+    }
+    // Spotify veya YouTube ise ham URL'yi koru
 
     try {
-      await this.load(source);
+      if (detectedType === "spotify") {
+        // Spotify için token hazırla, sonra yükle
+        const opts = await this._buildSpotifyOpts();
+        await this.load(sourceToLoad, opts);
+      } else {
+        await this.load(sourceToLoad);
+      }
     } catch (e) {
-      // Kayıtlı dosya artık yoksa default'a dön
-      if (savedPath) {
-        console.warn(
-          "AlarmManager: Saved path failed, falling back to default.",
-        );
+      console.warn(
+        `AlarmManager: Saved source [${detectedType}] failed, ` +
+          `falling back to default. Error: ${e.message}`,
+      );
+      try {
         await this.load(defaultSource);
+      } catch (e2) {
+        console.error("AlarmManager: Default source also failed:", e2.message);
       }
     }
   }
 
-  _toFileUrl(filePath) {
-    const normalized = filePath.replace(/\\/g, "/");
-    return normalized.startsWith("/")
-      ? `file://${normalized}`
-      : `file:///${normalized}`;
-  }
+  // ── Konfigürasyon ──────────────────────────────────────────
 
-  // ── Konfigürasyon ─────────────────────────────────────────
-
-  /**
-   * Fallback için kullanılacak local dosya yolunu ayarlar.
-   * Uygulama başlarken çağrılmalı.
-   * @param {string} localFilePath - file:// yolu
-   */
   setFallbackSource(localFilePath) {
     this._fallbackSource = localFilePath;
   }
 
-  /**
-   * Event callback'lerini ayarlar.
-   * @param {{ onError, onFallback, onPlay, onStop }} callbacks
-   */
-  // AlarmManager.js içinde setCallbacks'i güncelle
-  setCallbacks(callbacks = {}) {
-    // Mevcut callback'leri koru, sadece verilenlerle merge et
-    this._onError = callbacks.onError ?? this._onError ?? null;
-    this._onFallback = callbacks.onFallback ?? this._onFallback ?? null;
-    this._onPlay = callbacks.onPlay ?? this._onPlay ?? null;
-    this._onStop = callbacks.onStop ?? this._onStop ?? null;
+  setCallbacks({ onError, onFallback, onPlay, onStop } = {}) {
+    if (onError !== undefined) this._onError = onError;
+    if (onFallback !== undefined) this._onFallback = onFallback;
+    if (onPlay !== undefined) this._onPlay = onPlay;
+    if (onStop !== undefined) this._onStop = onStop;
   }
 
   // ── Ana API ────────────────────────────────────────────────
 
   /**
-   * Kaynağı yükler ve provider'ı hazırlar.
-   * Yükleme başarısız olursa fallback'e geçer.
-   *
-   * @param {string} source - Dosya yolu, YouTube URL, Spotify URL vb.
-   * @param {object} opts   - Provider opsiyonları (Spotify token vb.)
-   * @returns {Promise<{ type: string, usedFallback: boolean }>}
+   * Kaynağı yükler. Tip otomatik tespit edilir.
+   * @param {string} source
+   * @param {object} opts - Provider opsiyonları
    */
   async load(source, opts = {}) {
-    // Önceki provider'ı durdur
     await this._stopCurrent();
+
+    if (
+      AlarmProviderFactory.detect(source) === "spotify" &&
+      !opts.accessToken
+    ) {
+      try {
+        const spotifyOpts = await this._buildSpotifyOpts();
+        opts = { ...spotifyOpts, ...opts };
+        console.log("AlarmManager: Spotify opts prepared:", {
+          hasToken: !!opts.accessToken,
+        });
+      } catch (e) {
+        console.error("AlarmManager: Spotify token prep FAILED:", e.message); // ← warn yerine error, daha görünür
+      }
+    }
 
     const { provider, type } = AlarmProviderFactory.createFromSource(
       source,
@@ -110,42 +116,45 @@ export class AlarmManager {
       this._provider = provider;
       this._providerType = type;
       this._currentSource = source;
-
       console.log(`AlarmManager: Loaded [${type}] — "${source}"`);
       return { type, usedFallback: false };
     } catch (loadError) {
       console.error(`AlarmManager: [${type}] load failed:`, loadError.message);
       this._emit("onError", { error: loadError, type, source });
 
-      // Fallback — sadece zaten local değilsek
       if (type !== "local") {
         return this._activateFallback(
           `${type} provider failed to load. Using local alarm.`,
         );
       }
-
-      throw loadError; // Local da başarısız olduysa fırlat
+      throw loadError;
     }
   }
 
   /**
    * Alarmı çalar.
-   * Çalma başarısız olursa fallback'e geçer.
-   *
    * @param {number} duration - saniye (0 = doğal bitiş)
-   * @returns {Promise<void>}
    */
   async play(duration = 0) {
     if (!this._provider) {
       throw new Error("AlarmManager: No provider loaded. Call load() first.");
     }
 
+    // Spotify token süresi dolmuş olabilir — çalmadan önce kontrol et
+    if (this._providerType === "spotify") {
+      try {
+        await this._refreshSpotifyTokenIfNeeded();
+        this._provider.setAccessToken(
+          localStorage.getItem("spotify_access_token"),
+        );
+      } catch (e) {
+        console.warn("AlarmManager: Spotify token refresh failed:", e.message);
+      }
+    }
+
     try {
       await this._provider.play(duration);
       this._emit("onPlay", { type: this._providerType, duration });
-      console.log(
-        `AlarmManager: Playing [${this._providerType}] for ${duration || "∞"}s`,
-      );
     } catch (playError) {
       console.error(
         `AlarmManager: [${this._providerType}] play failed:`,
@@ -153,7 +162,6 @@ export class AlarmManager {
       );
       this._emit("onError", { error: playError, type: this._providerType });
 
-      // Çalma başarısız → fallback'i yükle ve çal
       if (this._providerType !== "local") {
         await this._activateFallback(
           `${this._providerType} playback failed. Using local alarm.`,
@@ -164,48 +172,135 @@ export class AlarmManager {
     }
   }
 
-  /**
-   * Aktif alarmı durdurur.
-   */
   async stop() {
     await this._stopCurrent();
     this._emit("onStop");
   }
 
   /**
-   * Kaynağı yükler ve hemen çalar.
-   * load() + play() kısayolu.
-   *
-   * @param {string} source
-   * @param {number} duration
-   * @param {object} opts
+   * Mevcut provider duraklatmayı destekliyorsa (şu an sadece Spotify)
+   * duraklatır; desteklemiyorsa (local/YouTube) sessizce hiçbir şey yapmaz.
    */
+  async pauseCurrent() {
+    if (this._provider && typeof this._provider.pause === "function") {
+      try {
+        await this._provider.pause();
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * pauseCurrent() ile duraklatılmış olanı devam ettirir. play() ile aynı
+   * şekilde, devam ettirmeden önce Spotify token'ını tazeler.
+   */
+  async resumeCurrent() {
+    if (!this._provider || typeof this._provider.resume !== "function") return;
+
+    if (this._providerType === "spotify") {
+      try {
+        await this._refreshSpotifyTokenIfNeeded();
+        this._provider.setAccessToken(
+          localStorage.getItem("spotify_access_token"),
+        );
+      } catch (e) {
+        console.warn("AlarmManager: Spotify token refresh failed:", e.message);
+      }
+    }
+
+    try {
+      await this._provider.resume();
+    } catch (e) {}
+  }
+
   async loadAndPlay(source, duration = 0, opts = {}) {
     await this.load(source, opts);
     await this.play(duration);
   }
 
-  /**
-   * Aktif provider'ın hazır olup olmadığını döner.
-   */
   isReady() {
     return this._provider?.isReady() ?? false;
   }
 
-  /**
-   * Aktif provider tipini döner.
-   * @returns {string|null}
-   */
   getProviderType() {
     return this._providerType;
   }
 
-  // ── Private ────────────────────────────────────────────────
+  // ── Spotify token yönetimi ────────────────────────────────
 
   /**
-   * Fallback local provider'ı aktive eder.
-   * @param {string} reason - Log mesajı
+   * Spotify için geçerli bir kullanıcı accessToken'ı içeren opts döner.
+   * Önce localStorage'a bakar. Token süresi dolmuşsa/dolmak üzereyse
+   * refresh eder. Ne geçerli token ne de refresh token varsa fırlatır —
+   * bu, load()'daki mevcut non-local-provider catch bloğunu tetikleyip
+   * local alarm fallback'ine düşürür.
    */
+  async _buildSpotifyOpts() {
+    const refreshToken = localStorage.getItem("spotify_refresh_token");
+    const expiresAt = parseInt(
+      localStorage.getItem("spotify_expires_at") ?? "0",
+      10,
+    );
+    const accessToken = localStorage.getItem("spotify_access_token");
+
+    if (accessToken && Date.now() < expiresAt) {
+      return { accessToken };
+    }
+
+    if (refreshToken) {
+      try {
+        const tokens = await window.electronAPI.spotifyRefresh(refreshToken);
+        this._saveSpotifyTokens(tokens);
+        return { accessToken: tokens.accessToken };
+      } catch (e) {
+        console.warn("AlarmManager: Refresh token failed:", e.message);
+        this._clearSpotifyTokens();
+      }
+    }
+
+    throw new Error(
+      "AlarmManager: No Spotify session. Connect a Spotify account first.",
+    );
+  }
+
+  /**
+   * Alarm çalmadan önce token'ın geçerliliğini kontrol eder.
+   * Süresi dolmak üzereyse sessizce refresh eder.
+   */
+  async _refreshSpotifyTokenIfNeeded() {
+    const expiresAt = parseInt(
+      localStorage.getItem("spotify_expires_at") ?? "0",
+      10,
+    );
+    const refreshToken = localStorage.getItem("spotify_refresh_token");
+
+    // 60 saniyeden az kaldıysa refresh et
+    if (refreshToken && Date.now() > expiresAt - 60_000) {
+      try {
+        const tokens = await window.electronAPI.spotifyRefresh(refreshToken);
+        this._saveSpotifyTokens(tokens);
+        console.log("AlarmManager: Spotify token silently refreshed.");
+      } catch (e) {
+        console.warn("AlarmManager: Silent token refresh failed:", e.message);
+      }
+    }
+  }
+
+  _saveSpotifyTokens({ accessToken, refreshToken, expiresAt }) {
+    if (accessToken) localStorage.setItem("spotify_access_token", accessToken);
+    if (refreshToken)
+      localStorage.setItem("spotify_refresh_token", refreshToken);
+    if (expiresAt)
+      localStorage.setItem("spotify_expires_at", String(expiresAt));
+  }
+
+  _clearSpotifyTokens() {
+    localStorage.removeItem("spotify_access_token");
+    localStorage.removeItem("spotify_refresh_token");
+    localStorage.removeItem("spotify_expires_at");
+  }
+
+  // ── Private ────────────────────────────────────────────────
+
   async _activateFallback(reason) {
     console.warn(`AlarmManager: Fallback triggered — ${reason}`);
     this._emit("onFallback", { reason });
@@ -215,13 +310,10 @@ export class AlarmManager {
       return { type: "local", usedFallback: true };
     }
 
-    // Fallback provider'ı yükle
     const fallback = new LocalAlarmProvider();
     await fallback.load(this._fallbackSource);
-
     this._provider = fallback;
     this._providerType = "local";
-
     return { type: "local", usedFallback: true };
   }
 
@@ -231,6 +323,13 @@ export class AlarmManager {
         await this._provider.stop();
       } catch (e) {}
     }
+  }
+
+  // Renderer http:// origin'inden yüklendiği için file:// kaynaklar artık
+  // çalışmıyor — main.js'in /local-audio/ route'u üzerinden aynı origin'den
+  // servis ediyoruz (bkz. alarmModal.js toFileUrl).
+  _toFileUrl(filePath) {
+    return `${window.location.origin}/local-audio/${encodeURIComponent(filePath)}`;
   }
 
   _emit(event, data = {}) {
@@ -245,5 +344,4 @@ export class AlarmManager {
   }
 }
 
-// ── Singleton export ──────────────────────────────────────────
 export const alarmManager = new AlarmManager();

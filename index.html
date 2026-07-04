@@ -13,14 +13,15 @@
            worker-src blob:"> -->
 
     <meta http-equiv="Content-Security-Policy" content="default-src 'self';
-       script-src 'self' https://www.youtube.com https://s.ytimg.com https://sdk.scdn.co;
-       frame-src 'self' https://www.youtube.com https://sdk.scdn.co https://*.spotify.com;
-       style-src 'self' 'unsafe-inline';
-       font-src 'self';
-       img-src 'self' data: https://i.ytimg.com https://*.scdn.co;
-       connect-src 'self' https://api.spotify.com https://*.spotify.com wss://*.spotify.com wss://*.api.spotify.com;
-       media-src 'self' file: blob: data: https://p.scdn.co https://*.cdn.spotify.com;
-       worker-src blob:">
+           script-src 'self' https://www.youtube.com https://sdk.scdn.co;
+           frame-src https://www.youtube.com https://www.youtube-nocookie.com https://accounts.spotify.com https://sdk.scdn.co;
+
+           img-src 'self' data: https://i.ytimg.com https://i.scdn.co;
+           connect-src 'self' https://www.youtube.com https://api.spotify.com https://accounts.spotify.com;
+           style-src 'self' 'unsafe-inline';
+           font-src 'self';
+           media-src 'self' blob: data: https://p.scdn.co;
+           worker-src blob:">
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -101,7 +102,9 @@
                     <button id="alarmUrlLoadBtn">Load</button>
                 </div>
                 <p class="alarm-url-hint">
-                    Paste a YouTube video or Spotify track URL.
+                    Paste a YouTube video or Spotify track URL. Spotify links
+                    require connecting your account and play through the real
+                    Spotify app (not an in-app preview).
                     If unavailable, local alarm will be used as fallback.
                 </p>
             </div>
@@ -111,6 +114,12 @@
                 <button id="previewAlarmBtn" aria-label="Preview alarm sound">
                     ▶ Preview
                 </button>
+                <div class="alarm-spotify-status" id="spotifyStatusRow">
+                    <span class="alarm-section-label">Spotify</span>
+                    <span id="spotifyStatusLabel">Not connected</span>
+                    <button id="spotifyConnectBtn" class="btn-subtle">Connect Spotify</button>
+                    <button id="spotifyLogoutBtn" class="btn-subtle hidden">Disconnect</button>
+                </div>
                 <button id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
             </div>
 

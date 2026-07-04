@@ -7,6 +7,7 @@ import {
   alarmSettings,
   broadcastTimerState,
 } from "./renderer.js";
+import { toFileUrl } from "./alarmModal.js";
 
 export function setupIntervalTimer() {
   const workDurationInput = document.getElementById("workMinutes");
@@ -58,14 +59,10 @@ export function setupIntervalTimer() {
   let pausedTime = 0;
   let isCompleted = false;
 
-  let alarmTimeoutId = null;
   let isAlarmPlaying = false;
   let alarmPaused = false;
-  let alarmResumeTime = 0;
 
   let timerStatus = "ready";
-
-  const alarm = document.getElementById("alarmSound");
 
   // ── State yayını — her değişimde çağrılır ─────────────────
   function broadcast(overrides = {}) {
@@ -110,105 +107,42 @@ export function setupIntervalTimer() {
   }
 
   // ── Alarm helpers ─────────────────────────────────────────
-  function onAlarmEnded() {
-    if (alarmTimeoutId) {
-      clearTimeout(alarmTimeoutId);
-      alarmTimeoutId = null;
-    }
-    isAlarmPlaying = false;
-    if (alarm) alarm.removeEventListener("ended", onAlarmEnded);
-  }
-
-  function stopAlarmSound() {
-    if (alarmTimeoutId) {
-      clearTimeout(alarmTimeoutId);
-      alarmTimeoutId = null;
-    }
-    if (alarm) {
-      alarm.removeEventListener("ended", onAlarmEnded);
-      try {
-        alarm.pause();
-        alarm.currentTime = 0;
-      } catch (e) {}
-    }
-    isAlarmPlaying = false;
-    alarmPaused = false;
-    alarmResumeTime = 0;
-  }
-
-  // function playAlarm(duration) {
-  //   if (!alarm) return;
-  //   if (alarmTimeoutId) {
-  //     clearTimeout(alarmTimeoutId);
-  //     alarmTimeoutId = null;
-  //   }
-  //   alarm.removeEventListener("ended", onAlarmEnded);
-  //   alarm.currentTime = 0;
-  //   const p = alarm.play();
-  //   if (p?.then) p.catch(err => console.warn("Alarm play() rejected:", err));
-  //   isAlarmPlaying = true;
-  //   alarm.addEventListener("ended", onAlarmEnded);
-  //   alarmTimeoutId = setTimeout(() => stopAlarmSound(), duration * 1000);
-  // }
-
-  // Uygulama başlarken bir kez çağır (setupTimer veya setupIntervalTimer içinde)
-  async function initAlarmManager() {
-    // Fallback: localStorage'daki dosya veya default
-    const savedPath = localStorage.getItem("selectedAlarmPath");
-    const fallback = savedPath ? toFileUrl(savedPath) : "assets/alarm.mp3";
-
-    alarmManager.setFallbackSource(fallback);
-
-    alarmManager.setCallbacks({
-      onFallback: ({ reason }) => {
-        console.warn("Alarm fell back to local:", reason);
-      },
-      onError: ({ error, type }) => {
-        console.error(`Alarm error [${type}]:`, error.message);
-      },
-    });
-
-    // Aktif kaynağı yükle
-    try {
-      await alarmManager.load(savedPath ? toFileUrl(savedPath) : fallback);
-    } catch (e) {
-      console.error("AlarmManager init failed:", e);
-    }
-  }
-
-  // playAlarm fonksiyonunu değiştir
   async function playAlarm(duration) {
+    console.log("[DIAG] playAlarm requested duration:", duration, "full alarmSettings:", JSON.stringify(alarmSettings));
     try {
       await alarmManager.play(duration);
+      isAlarmPlaying = true;
+      alarmPaused = false;
     } catch (e) {
       console.error("playAlarm failed:", e);
     }
   }
 
-  // stopAlarmSound fonksiyonunu değiştir
   async function stopAlarmSound() {
     try {
       await alarmManager.stop();
     } catch (e) {}
+    isAlarmPlaying = false;
+    alarmPaused = false;
   }
 
-  function pauseAlarm() {
-    if (alarm && isAlarmPlaying && !alarmPaused) {
-      try {
-        alarm.pause();
-      } catch (e) {}
-      alarmResumeTime = alarm.currentTime;
-      alarmPaused = true;
-    }
+  // Timer'ın kendi Pause/Continue butonlarıyla eşleşir — şu an sadece
+  // Spotify gerçek duraklat/devam ettir destekliyor (AlarmManager provider
+  // capability'sine göre no-op yapar), local/YouTube için etkisiz.
+  async function pauseAlarm() {
+    if (!isAlarmPlaying || alarmPaused) return;
+    alarmPaused = true;
+    try {
+      await alarmManager.pauseCurrent();
+    } catch (e) {}
   }
 
-  function continueAlarm() {
-    if (!isAlarmPlaying) return;
-    if (alarmPaused && alarm) {
-      alarm.currentTime = alarmResumeTime;
-      alarm.play().catch(err => console.warn("Alarm resume rejected:", err));
-      alarmPaused = false;
-    }
+  async function continueAlarm() {
+    if (!isAlarmPlaying || !alarmPaused) return;
+    alarmPaused = false;
+    try {
+      await alarmManager.resumeCurrent();
+    } catch (e) {}
   }
 
   // ── Completion ────────────────────────────────────────────
@@ -219,7 +153,7 @@ export function setupIntervalTimer() {
       intervalTimer.stop();
       intervalTimer = null;
     }
-    initAlarmManager(alarmSettings.breakAlarmLength);
+    playAlarm(alarmSettings.breakAlarmLength); // ← initAlarmManager yerine playAlarm
 
     const cd = document.getElementById("intervalCountdown");
     if (cd) {
@@ -303,7 +237,7 @@ export function setupIntervalTimer() {
         }
 
         if (phase === "break") {
-          initAlarmManager(alarmSettings.workAlarmLength);
+          playAlarm(alarmSettings.workAlarmLength); // ← initAlarmManager yerine playAlarm
         } else if (phase === "work") {
           if (currentLoop >= totalLoops) {
             handleCompletion();
@@ -312,7 +246,7 @@ export function setupIntervalTimer() {
           currentLoop++;
           const loopEl = document.getElementById("currentLoop");
           if (loopEl) loopEl.textContent = currentLoop;
-          initAlarmManager(alarmSettings.breakAlarmLength);
+          playAlarm(alarmSettings.breakAlarmLength); // ← initAlarmManager yerine playAlarm
         }
 
         broadcast(); // faz değişimini yay

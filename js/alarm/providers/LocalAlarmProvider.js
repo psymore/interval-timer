@@ -77,6 +77,7 @@ export class LocalAlarmProvider extends BaseAlarmProvider {
     this._audio.currentTime = 0;
     await this._audio.play();
 
+    console.log("[DIAG] LocalAlarmProvider.play arming stop timeout for", duration, "seconds");
     if (duration > 0) {
       this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
     }

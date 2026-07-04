@@ -10,14 +10,140 @@ import {
   Menu,
   nativeImage,
   screen,
+  shell,
 } from "electron";
 import fs from "fs";
 import Store from "electron-store";
 
+import http from "http";
+
+// ── Local server için MIME type haritası ──────────────────────
+const MIME_TYPES = {
+  ".html": "text/html",
+  ".js": "application/javascript",
+  ".css": "text/css",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".json": "application/json",
+};
+
+// Kullanıcının seçtiği local alarm dosyaları için izin verilen uzantılar —
+// LocalAlarmProvider'ın desteklediği formatlarla eşleşir.
+const LOCAL_AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg"];
+
+let localServer = null;
+let serverPort = 0;
+
+// Sabit port: localStorage bir origin'e (scheme+host+port) bağlıdır — port
+// her başlangıçta rastgele seçilseydi (0), her açılış farklı bir origin'e
+// denk gelir ve localStorage (seçili alarm, Spotify token'ları) hiç
+// kalıcı olmazdı. Zaten kullanımda ise (nadir), OS'in seçtiği rastgele
+// bir porta düşülür — bu durumda sadece o oturumda kalıcılık bozulur.
+const LOCAL_SERVER_PORT = 47821;
+
+// Renderer http://127.0.0.1 origin'inden yükleniyor (YouTube IFrame API
+// postMessage gerektirdiği için), bu yüzden <audio src="file://..."> artık
+// çalışmıyor — Chromium, http origin'li bir sayfanın file:// kaynak
+// yüklemesini engelliyor. Kullanıcının seçtiği local dosyaları da aynı
+// origin üzerinden servis ederek bu engeli aşıyoruz.
+function handleLocalAudioRequest(req, res) {
+  const encodedPath = req.url.slice("/local-audio/".length);
+  const filePath = decodeURIComponent(encodedPath);
+  const ext = path.extname(filePath).toLowerCase();
+
+  if (!LOCAL_AUDIO_EXTENSIONS.includes(ext)) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+    res.writeHead(200, { "Content-Type": MIME_TYPES[ext] });
+    res.end(data);
+  });
+}
+
+function handleLocalServerRequest(req, res) {
+  if (req.url.startsWith("/local-audio/")) {
+    handleLocalAudioRequest(req, res);
+    return;
+  }
+
+  let filePath = path.join(
+    __dirname,
+    decodeURIComponent(req.url.split("?")[0]),
+  );
+  if (req.url === "/") filePath = path.join(__dirname, "index.html");
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+    const ext = path.extname(filePath);
+    res.writeHead(200, {
+      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+    });
+    res.end(data);
+  });
+}
+
+function startLocalServer() {
+  return new Promise((resolve, reject) => {
+    const tryListen = port => {
+      localServer = http.createServer(handleLocalServerRequest);
+
+      localServer.once("error", err => {
+        if (err.code === "EADDRINUSE" && port !== 0) {
+          console.warn(
+            `Local server: port ${port} already in use, falling back to a ` +
+              `random port (alarm selection/Spotify login won't persist across restarts this session).`,
+          );
+          tryListen(0);
+        } else {
+          reject(err);
+        }
+      });
+
+      localServer.listen(port, "127.0.0.1", () => {
+        serverPort = localServer.address().port;
+        console.log(`Local server running on http://127.0.0.1:${serverPort}`);
+        resolve(serverPort);
+      });
+    };
+
+    tryListen(LOCAL_SERVER_PORT);
+  });
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ── Store schema ──────────────────────────────────────────────
+// ── Spotify Credentials ───────────────────────────────────────
+// Spotify Dashboard'dan alınan değerleri buraya gir:
+const SPOTIFY_CLIENT_ID = "***REMOVED-SEE-SECURITY-HISTORY***";
+const SPOTIFY_CLIENT_SECRET = "***REMOVED-SEE-SECURITY-HISTORY***";
+const SPOTIFY_REDIRECT_URI = "http://127.0.0.1:8888/callback";
+const SPOTIFY_SCOPES = [
+  "streaming",
+  "user-read-email",
+  "user-read-private",
+  "user-modify-playback-state",
+  "user-read-playback-state",
+].join(" ");
+
+// ── Store ─────────────────────────────────────────────────────
+const MAX_PRESETS = 20;
+
 const store = new Store({
   name: "timer-config",
   defaults: {
@@ -52,16 +178,6 @@ const store = new Store({
         loops: 2,
         isDefault: false,
       },
-      {
-        id: "default-test",
-        name: "test",
-        workMinutes: 0,
-        workSeconds: 5,
-        breakMinutes: 0,
-        breakSeconds: 5,
-        loops: 4,
-        isDefault: false,
-      },
     ],
     activePresetId: "default-pomodoro",
   },
@@ -73,12 +189,12 @@ let tray = null;
 let blockerId = null;
 let isQuitting = false;
 
-app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+// ── Throttling prevention ─────────────────────────────────────
 app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
 // ── Main window ───────────────────────────────────────────────
-function createWindow() {
+async function createWindow() {
   const preloadPath = path.join(__dirname, "preload.cjs");
   const indexPath = path.join(__dirname, "index.html");
 
@@ -91,6 +207,11 @@ function createWindow() {
     return;
   }
 
+  // Local server'ı başlat (henüz başlamadıysa)
+  if (!localServer) {
+    await startLocalServer();
+  }
+
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -99,10 +220,12 @@ function createWindow() {
       enableRemoteModule: false,
       preload: preloadPath,
       backgroundThrottling: false,
+      autoplayPolicy: "no-user-gesture-required",
     },
   });
 
-  mainWindow.loadFile(indexPath);
+  // file:// yerine http:// kullan
+  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/index.html`);
 
   mainWindow.on("close", e => {
     if (!isQuitting) {
@@ -209,12 +332,12 @@ function createTray() {
 // ── App lifecycle ─────────────────────────────────────────────
 app
   .whenReady()
-  .then(() => {
-    createWindow();
+  .then(async () => {
+    await createWindow(); // ← await eklendi
     createTray();
     blockerId = powerSaveBlocker.start("prevent-app-suspension");
-    app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    app.on("activate", async () => {
+      if (BrowserWindow.getAllWindows().length === 0) await createWindow();
     });
   })
   .catch(err => console.error("App init error:", err));
@@ -231,6 +354,10 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  if (localServer) {
+    localServer.close();
+    localServer = null;
+  }
 });
 
 // ── File picker IPC ───────────────────────────────────────────
@@ -243,7 +370,7 @@ ipcMain.handle("get-file-path", async () => {
   return result.filePaths[0];
 });
 
-// ── Always on Top IPC ─────────────────────────────────────────
+// ── Always on Top / Mini IPC ──────────────────────────────────
 ipcMain.handle("set-always-on-top", (_event, value) => {
   if (value) {
     createMiniWindow();
@@ -257,7 +384,6 @@ ipcMain.handle("set-always-on-top", (_event, value) => {
   }
 });
 
-// ── Mini IPC ──────────────────────────────────────────────────
 ipcMain.on("mini-action", (_event, action) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("mini-action", action);
@@ -270,9 +396,7 @@ ipcMain.on("timer-state", (_event, state) => {
   }
 });
 
-// ── Preset IPC handlers ───────────────────────────────────────
-const MAX_PRESETS = 20;
-
+// ── Preset IPC ────────────────────────────────────────────────
 ipcMain.handle("presets:get-all", () => {
   try {
     return store.get("presets");
@@ -297,7 +421,6 @@ ipcMain.handle("presets:save", (_event, preset) => {
   try {
     const presets = store.get("presets");
     const index = presets.findIndex(p => p.id === preset.id);
-
     if (index >= 0) {
       presets[index] = preset;
     } else {
@@ -306,7 +429,6 @@ ipcMain.handle("presets:save", (_event, preset) => {
       }
       presets.push(preset);
     }
-
     store.set("presets", presets);
     return { presets };
   } catch (e) {
@@ -320,7 +442,6 @@ ipcMain.handle("presets:delete", (_event, id) => {
     const presets = store.get("presets");
     const filtered = presets.filter(p => p.id !== id);
     store.set("presets", filtered);
-
     if (store.get("activePresetId") === id) {
       store.set("activePresetId", filtered[0]?.id ?? null);
     }
@@ -340,6 +461,188 @@ ipcMain.handle("presets:set-active", (_event, id) => {
     return { error: "Failed to set active preset." };
   }
 });
+
+// ── Spotify IPC ───────────────────────────────────────────────
+
+/**
+ * spotify:login
+ * Authorization Code Flow ile kullanıcı login penceresi açar.
+ * Code'u yakalar, token exchange yapar, token'ları döner.
+ */
+ipcMain.handle("spotify:login", async () => {
+  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+    throw new Error("Spotify Client ID or Secret is missing in main.js.");
+  }
+
+  const authUrl = new URL("https://accounts.spotify.com/authorize");
+  authUrl.searchParams.set("client_id", SPOTIFY_CLIENT_ID);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("redirect_uri", SPOTIFY_REDIRECT_URI);
+  authUrl.searchParams.set("scope", SPOTIFY_SCOPES);
+  authUrl.searchParams.set("show_dialog", "true");
+
+  return new Promise((resolve, reject) => {
+    const authWindow = new BrowserWindow({
+      width: 480,
+      height: 680,
+      alwaysOnTop: true,
+      resizable: false,
+      title: "Login with Spotify",
+      show: false, // ← başta gizli aç
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+        webSecurity: true,
+      },
+    });
+
+    authWindow.once("ready-to-show", () => {
+      authWindow.show();
+      authWindow.focus(); // ← öne getir
+    });
+
+    let settled = false;
+
+    authWindow.loadURL(authUrl.toString());
+
+    // ── Hem will-redirect HEM will-navigate'i dinle ───────────
+    // Spotify bazen navigate, bazen redirect kullanıyor
+    const handleUrlChange = async (event, url) => {
+      if (settled) return;
+      if (!url.startsWith(SPOTIFY_REDIRECT_URI)) return;
+
+      event.preventDefault();
+      settled = true;
+      authWindow.hide();
+
+      try {
+        const parsed = new URL(url);
+        const code = parsed.searchParams.get("code");
+        const error = parsed.searchParams.get("error");
+
+        if (error || !code) {
+          authWindow.close();
+          reject(
+            new Error(`Spotify auth error: ${error ?? "No code returned"}`),
+          );
+          return;
+        }
+
+        const tokens = await exchangeCodeForTokens(code);
+        authWindow.close();
+        resolve(tokens);
+      } catch (err) {
+        authWindow.close();
+        reject(err);
+      }
+    };
+
+    authWindow.webContents.on("will-redirect", handleUrlChange);
+    authWindow.webContents.on("will-navigate", handleUrlChange);
+
+    // ── Beyaz ekran debug: yükleme hatalarını yakala ──────────
+    authWindow.webContents.on(
+      "did-fail-load",
+      (event, errorCode, errorDescription, validatedURL) => {
+        console.error(
+          `Spotify auth window failed to load: ${errorDescription} (${validatedURL})`,
+        );
+      },
+    );
+
+    authWindow.on("closed", () => {
+      if (!settled) {
+        settled = true;
+        reject(new Error("Spotify login cancelled by user."));
+      }
+    });
+  });
+});
+
+/**
+ * spotify:refresh
+ * Refresh token ile yeni access token alır.
+ * client_secret main process'te kalır.
+ */
+ipcMain.handle("spotify:refresh", async (_event, refreshToken) => {
+  if (!refreshToken) {
+    throw new Error("spotify:refresh: No refresh token provided.");
+  }
+  return refreshAccessToken(refreshToken);
+});
+
+/**
+ * spotify:open-track
+ * OS URI ile Spotify masaüstü uygulamasını açar, track'i tam olarak çalar.
+ * Token gerekmez — shell.openExternal işletim sistemine devrediyor.
+ */
+ipcMain.handle("spotify:open-track", async (_event, trackId) => {
+  if (!trackId) {
+    throw new Error("spotify:open-track: No track ID provided.");
+  }
+  await shell.openExternal(`spotify:track:${trackId}`);
+});
+
+// ── Spotify helpers (main process only) ──────────────────────
+
+async function exchangeCodeForTokens(code) {
+  const response = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${Buffer.from(
+        `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`,
+      ).toString("base64")}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: SPOTIFY_REDIRECT_URI,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Token exchange failed (${response.status}): ${text}`);
+  }
+
+  const data = await response.json();
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+  };
+}
+
+async function refreshAccessToken(refreshToken) {
+  const response = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${Buffer.from(
+        `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`,
+      ).toString("base64")}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Token refresh failed (${response.status}): ${text}`);
+  }
+
+  const data = await response.json();
+  return {
+    accessToken: data.access_token,
+    // Spotify bazen yeni refresh token verir, bazen vermez
+    refreshToken: data.refresh_token ?? refreshToken,
+    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+  };
+}
 
 process.on("uncaughtException", error => {
   console.error("Uncaught exception:", error);

@@ -21,6 +21,7 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
     this._ready = false;
     this._container = null; // iframe container div
     this._timeoutId = null;
+    this._onPlayingForTimer = null; // pending onStateChange listener, if any
   }
 
   /**
@@ -58,10 +59,14 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
     }
 
     this._clearTimeout();
+
+    // Ses ayarları sadece gerçekten çalma anında yapılır
+    this._player.unMute();
+    this._player.setVolume(100);
     this._player.playVideo();
 
     if (duration > 0) {
-      this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
+      this._armDurationTimer(duration);
     }
   }
 
@@ -74,6 +79,40 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
       try {
         this._player.stopVideo();
       } catch (e) {}
+    }
+  }
+
+  /**
+   * Süre sayacını videonun GERÇEKTEN çalmaya başladığı anda başlatır.
+   * playVideo() çağrısı ile fiili ses başlangıcı arasında buffering
+   * gecikmesi olabiliyor — sayaç play() anından başlarsa duration'ın
+   * büyük kısmı sessiz beklemeye gidip alarm kısa çalıyormuş gibi
+   * hissettiriyordu.
+   */
+  _armDurationTimer(duration) {
+    this._clearPlayingListener();
+
+    if (this._player.getPlayerState?.() === window.YT.PlayerState.PLAYING) {
+      this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
+      return;
+    }
+
+    this._onPlayingForTimer = event => {
+      if (event.data === window.YT.PlayerState.PLAYING) {
+        this._clearPlayingListener();
+        this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
+      }
+    };
+    this._player.addEventListener("onStateChange", this._onPlayingForTimer);
+  }
+
+  _clearPlayingListener() {
+    if (this._onPlayingForTimer) {
+      this._player.removeEventListener(
+        "onStateChange",
+        this._onPlayingForTimer,
+      );
+      this._onPlayingForTimer = null;
     }
   }
 
@@ -188,16 +227,14 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
           controls: 0,
           disablekb: 1,
           fs: 0,
-          iv_load_policy: 3, // annotation yok
+          iv_load_policy: 3,
           modestbranding: 1,
           rel: 0,
+          mute: 1, // ← yükleme sırasında her zaman muted başlasın
         },
+        // load() aşamasında SADECE player'ı hazırla, ses ile ilgili hiçbir şey yapma
         events: {
           onReady: () => {
-            this._player.unMute();
-            this._player.setVolume(100);
-            this._player.playVideo();
-
             clearTimeout(timeout);
             resolve();
           },
@@ -216,6 +253,7 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
   }
 
   _clearTimeout() {
+    this._clearPlayingListener();
     if (this._timeoutId) {
       clearTimeout(this._timeoutId);
       this._timeoutId = null;

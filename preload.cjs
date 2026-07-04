@@ -19,4 +19,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   presetsSave: preset => ipcRenderer.invoke("presets:save", preset),
   presetsDelete: id => ipcRenderer.invoke("presets:delete", id),
   presetsSetActive: id => ipcRenderer.invoke("presets:set-active", id),
+
+  // Spotify — client_secret hiçbir zaman renderer'a geçmez
+  spotifyLogin: () => ipcRenderer.invoke("spotify:login"),
+  spotifyRefresh: token => ipcRenderer.invoke("spotify:refresh", token),
+  spotifyOpenTrack: trackId => ipcRenderer.invoke("spotify:open-track", trackId),
 });
