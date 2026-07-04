@@ -108,7 +108,6 @@ export function setupIntervalTimer() {
 
   // ── Alarm helpers ─────────────────────────────────────────
   async function playAlarm(duration) {
-    console.log("[DIAG] playAlarm requested duration:", duration, "full alarmSettings:", JSON.stringify(alarmSettings));
     try {
       await alarmManager.play(duration);
       isAlarmPlaying = true;
@@ -126,9 +125,8 @@ export function setupIntervalTimer() {
     alarmPaused = false;
   }
 
-  // Timer'ın kendi Pause/Continue butonlarıyla eşleşir — şu an sadece
-  // Spotify gerçek duraklat/devam ettir destekliyor (AlarmManager provider
-  // capability'sine göre no-op yapar), local/YouTube için etkisiz.
+  // Timer'ın kendi Pause/Continue butonlarıyla eşleşir — local, YouTube ve
+  // Spotify provider'larının hepsi artık gerçek pause/resume destekliyor.
   async function pauseAlarm() {
     if (!isAlarmPlaying || alarmPaused) return;
     alarmPaused = true;

@@ -77,7 +77,6 @@ export class LocalAlarmProvider extends BaseAlarmProvider {
     this._audio.currentTime = 0;
     await this._audio.play();
 
-    console.log("[DIAG] LocalAlarmProvider.play arming stop timeout for", duration, "seconds");
     if (duration > 0) {
       this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
     }
@@ -104,6 +103,30 @@ export class LocalAlarmProvider extends BaseAlarmProvider {
       } catch (e) {
         // Zaten durmuş olabilir — güvenle yutuyoruz
       }
+    }
+  }
+
+  /**
+   * Alarmı geçici olarak duraklatır (Timer'ın kendi Pause/Continue
+   * butonları için) — stop()'un aksine pozisyonu sıfırlamaz.
+   */
+  async pause() {
+    this._clearTimeout();
+    if (this._audio) {
+      try {
+        this._audio.pause();
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * pause() ile duraklatılmış sesi kaldığı yerden devam ettirir.
+   */
+  async resume() {
+    if (this._audio) {
+      try {
+        await this._audio.play();
+      } catch (e) {}
     }
   }
 

@@ -71,13 +71,48 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
   }
 
   /**
-   * Videoyu durdurur.
+   * Videoyu tamamen durdurur ve pozisyonu sıfırlar. Reset gibi kullanıcı
+   * eylemlerinde ve kaynak değişiminde çağrılır — bir sonraki play()
+   * videoyu baştan başlatmalı.
    */
   async stop() {
     this._clearTimeout();
     if (this._player) {
       try {
         this._player.stopVideo();
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * Faz geçişleri arasında sesi keser ama pozisyonu korur — pauseVideo()
+   * kullanır, stopVideo() DEĞİL (o video'yu unload edip sıfırlıyor).
+   * Böylece bir sonraki play() kaldığı yerden devam eder.
+   */
+  _pauseForContinuity() {
+    this._timeoutId = null;
+    if (this._player) {
+      try {
+        this._player.pauseVideo();
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * Alarmı geçici olarak duraklatır (Timer'ın kendi Pause/Continue
+   * butonları için) — _pauseForContinuity ile aynı, pozisyon korunur.
+   */
+  async pause() {
+    this._pauseForContinuity();
+  }
+
+  /**
+   * pause() ile duraklatılmış videoyu kaldığı yerden devam ettirir.
+   */
+  async resume() {
+    if (this._player) {
+      try {
+        this._player.playVideo();
       } catch (e) {}
     }
   }
@@ -93,14 +128,14 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
     this._clearPlayingListener();
 
     if (this._player.getPlayerState?.() === window.YT.PlayerState.PLAYING) {
-      this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
+      this._timeoutId = setTimeout(() => this._pauseForContinuity(), duration * 1000);
       return;
     }
 
     this._onPlayingForTimer = event => {
       if (event.data === window.YT.PlayerState.PLAYING) {
         this._clearPlayingListener();
-        this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
+        this._timeoutId = setTimeout(() => this._pauseForContinuity(), duration * 1000);
       }
     };
     this._player.addEventListener("onStateChange", this._onPlayingForTimer);

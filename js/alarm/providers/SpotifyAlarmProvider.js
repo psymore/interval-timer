@@ -26,6 +26,7 @@ export class SpotifyAlarmProvider extends BaseAlarmProvider {
     this._trackId = null;
     this._ready = false;
     this._timeoutId = null;
+    this._hasStarted = false; // ← OS launch bir kez yeter, sonrası Web API resume
   }
 
   async load(source) {
@@ -42,6 +43,7 @@ export class SpotifyAlarmProvider extends BaseAlarmProvider {
       );
     }
 
+    this._hasStarted = false;
     this._ready = true;
   }
 
@@ -51,19 +53,52 @@ export class SpotifyAlarmProvider extends BaseAlarmProvider {
     }
     this._clearTimeout();
 
-    await window.electronAPI.spotifyOpenTrack(this._trackId);
+    // İlk çalışta track'i OS launch ile en baştan açıyoruz. Sonraki faz
+    // geçişlerinde — track zaten önceki stop() ile duraklatıldığından —
+    // Web API resume() ile kaldığı yerden devam ettiriyoruz; aksi halde
+    // spotifyOpenTrack() her seferinde track'i sıfırdan başlatıyordu.
+    // resume() başarısız olursa (uygulama kapanmış, cihaz aktif değil)
+    // OS launch'a düşüyoruz.
+    const resumed = this._hasStarted && (await this.resume());
+
+    if (!resumed) {
+      await window.electronAPI.spotifyOpenTrack(this._trackId);
+      this._hasStarted = true;
+    }
 
     if (duration > 0) {
-      this._timeoutId = setTimeout(() => {
-        this._timeoutId = setTimeout(() => this.stop(), duration * 1000);
-      }, PLAYBACK_START_GRACE_MS);
+      if (resumed) {
+        this._timeoutId = setTimeout(() => this._pauseForContinuity(), duration * 1000);
+      } else {
+        this._timeoutId = setTimeout(() => {
+          this._timeoutId = setTimeout(() => this._pauseForContinuity(), duration * 1000);
+        }, PLAYBACK_START_GRACE_MS);
+      }
     }
   }
 
+  /**
+   * Alarmı tamamen durdurur. _hasStarted'ı sıfırlar — Reset gibi kullanıcı
+   * eylemlerinde ve kaynak değişiminde çağrılır; bir sonraki play() track'i
+   * resume ile değil, OS launch ile baştan başlatmalı.
+   */
   async stop() {
     this._clearTimeout();
-    if (!this._accessToken) return;
+    this._hasStarted = false;
+    await this._pausePlayback();
+  }
 
+  /**
+   * Faz geçişleri arasında sesi keser ama _hasStarted'ı korur — bir
+   * sonraki play() Web API resume ile kaldığı yerden devam etsin diye.
+   */
+  async _pauseForContinuity() {
+    this._clearTimeout();
+    await this._pausePlayback();
+  }
+
+  async _pausePlayback() {
+    if (!this._accessToken) return;
     try {
       await fetch("https://api.spotify.com/v1/me/player/pause", {
         method: "PUT",
@@ -76,27 +111,31 @@ export class SpotifyAlarmProvider extends BaseAlarmProvider {
   }
 
   /**
-   * Alarmı geçici olarak duraklatır. Spotify Web API'de pause/resume ayrı
-   * endpoint'ler değil — pause() stop() ile aynı çağrıyı yapar (Spotify
-   * pozisyonu kendi tarafında tutar); resume() ile devam ettirilebilir.
+   * Alarmı geçici olarak duraklatır (Timer'ın kendi Pause/Continue
+   * butonları için) — _hasStarted korunur ki Continue sonrası resume()
+   * kaldığı yerden devam etsin, OS launch'a düşmesin.
    */
   async pause() {
-    await this.stop();
+    await this._pauseForContinuity();
   }
 
   /**
    * pause() ile duraklatılmış track'i kaldığı yerden devam ettirir.
    * Body'siz PUT .../play, aktif cihazdaki mevcut context'i resume eder.
+   * @returns {Promise<boolean>} resume gerçekten başarılı oldu mu — play()
+   *   bunu OS launch'a düşüp düşmeyeceğine karar vermek için kullanıyor.
    */
   async resume() {
-    if (!this._accessToken) return;
+    if (!this._accessToken) return false;
     try {
-      await fetch("https://api.spotify.com/v1/me/player/play", {
+      const res = await fetch("https://api.spotify.com/v1/me/player/play", {
         method: "PUT",
         headers: { Authorization: `Bearer ${this._accessToken}` },
       });
+      return res.ok;
     } catch (e) {
       // Free hesap / aktif cihaz yok / token süresi dolmuş — sessizce yut.
+      return false;
     }
   }
 
