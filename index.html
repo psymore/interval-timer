@@ -39,9 +39,15 @@
             <button data-tab="timer">Timer</button>
         </div>
         <div class="modal-buttons">
-            <button id="settingsIcon" class="icon-btn" aria-label="Open settings">⚙️</button>
-            <button id="alarmFolderBtn" class="icon-btn" aria-label="Choose alarm sound">🔔</button>
-            <button id="alwaysOnTopBtn" class="icon-btn" aria-label="Pin window on top" aria-pressed="false">📍</button>
+            <button id="settingsIcon" class="icon-btn" aria-label="Open settings">
+                <img src="assets/adjust.png" alt="" class="icon-img" />
+            </button>
+            <button id="alarmFolderBtn" class="icon-btn" aria-label="Choose alarm sound">
+                <img src="assets/alarm-clock.png" alt="" class="icon-img" />
+            </button>
+            <button id="alwaysOnTopBtn" class="icon-btn" aria-label="Pin window on top" aria-pressed="false">
+                <img src="assets/pinned.png" alt="" class="icon-img" />
+            </button>
 
         </div>
     </div>
@@ -109,17 +115,21 @@
                 </p>
             </div>
 
+            <!-- Spotify account -->
+            <div class="alarm-section">
+                <p class="alarm-section-label">Spotify</p>
+                <div class="alarm-spotify-status" id="spotifyStatusRow">
+                    <span id="spotifyStatusLabel">Not connected</span>
+                    <button id="spotifyConnectBtn" class="btn-subtle">Connect Spotify</button>
+                    <button id="spotifyLogoutBtn" class="btn-subtle hidden">Disconnect</button>
+                </div>
+            </div>
+
             <!-- Preview -->
             <div class="alarm-actions">
                 <button id="previewAlarmBtn" aria-label="Preview alarm sound">
                     ▶ Preview
                 </button>
-                <div class="alarm-spotify-status" id="spotifyStatusRow">
-                    <span class="alarm-section-label">Spotify</span>
-                    <span id="spotifyStatusLabel">Not connected</span>
-                    <button id="spotifyConnectBtn" class="btn-subtle">Connect Spotify</button>
-                    <button id="spotifyLogoutBtn" class="btn-subtle hidden">Disconnect</button>
-                </div>
                 <button id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
             </div>
 

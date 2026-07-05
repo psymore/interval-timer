@@ -24,26 +24,26 @@ export function renderIntervalView() {
 
       <!-- Inputs -->
       <div class="input-group">
-        <div>
-          <label for="workMinutes">Work Minutes:</label>
+        <label for="workMinutes">
+          <span>Work Minutes:</span>
           <input type="number" id="workMinutes" min="0" value="25" />
-        </div>
-        <div>
-          <label for="workSeconds">Work Seconds:</label>
+        </label>
+        <label for="workSeconds">
+          <span>Work Seconds:</span>
           <input type="number" id="workSeconds" min="0" max="59" value="0" />
-        </div>
-        <div>
-          <label for="breakMinutes">Break Minutes:</label>
+        </label>
+        <label for="breakMinutes">
+          <span>Break Minutes:</span>
           <input type="number" id="breakMinutes" min="0" value="5" />
-        </div>
-        <div>
-          <label for="breakSeconds">Break Seconds:</label>
+        </label>
+        <label for="breakSeconds">
+          <span>Break Seconds:</span>
           <input type="number" id="breakSeconds" min="0" max="59" value="0" />
-        </div>
-        <div>
-          <label for="loopCount">Number of Loops:</label>
+        </label>
+        <label for="loopCount">
+          <span>Number of Loops:</span>
           <input type="number" id="loopCount" min="1" value="4" />
-        </div>
+        </label>
       </div>
 
       <div class="currentLoop">

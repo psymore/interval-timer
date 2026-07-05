@@ -3,14 +3,14 @@ export function renderTimerView() {
     <div class="timer-container">
 
       <div class="input-group">
-        <div>
-          <label for="minutes">Minutes:</label>
+        <label for="minutes">
+          <span>Minutes:</span>
           <input type="number" id="minutes" min="0" value="0" />
-        </div>
-        <div>
-          <label for="seconds">Seconds:</label>
+        </label>
+        <label for="seconds">
+          <span>Seconds:</span>
           <input type="number" id="seconds" min="0" max="59" value="0" />
-        </div>
+        </label>
       </div>
 
       <h2 id="countdown">00:00</h2>

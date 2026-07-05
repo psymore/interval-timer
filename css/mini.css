@@ -6,9 +6,9 @@
 }
 
 @font-face {
-  font-family: "JetBrains Mono";
-  src: url("../assets/fonts/JetBrainsMono[wght].woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Recursive";
+  src: url("../assets/fonts/Recursive-Regular.ttf") format("truetype");
+  font-weight: 400;
   font-display: swap;
 }
 
@@ -22,7 +22,7 @@
   --ink: #f5f3f0;
   --ink-muted: #b0b0b0; /* ← #888'den yükseltildi, 5.2:1 */
   --font-ui: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono: "Recursive", monospace;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 

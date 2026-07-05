@@ -1,3 +1,5 @@
+import { enhanceNumberInputs } from "./numberStepper.js";
+
 const MAX_PRESETS = 20;
 
 export async function setupPresets(onPresetLoad) {
@@ -288,6 +290,7 @@ function showPresetForm(existingPreset, onRefresh) {
   `;
 
   document.body.appendChild(overlay);
+  enhanceNumberInputs(overlay);
 
   const nameInput = overlay.querySelector("#pf-name");
   const errEl = overlay.querySelector("#pfError");

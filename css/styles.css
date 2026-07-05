@@ -8,9 +8,9 @@
 }
 
 @font-face {
-  font-family: "JetBrains Mono";
-  src: url("../assets/fonts/JetBrainsMono[wght].woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Recursive";
+  src: url("../assets/fonts/Recursive-Regular.ttf") format("truetype");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
@@ -35,7 +35,7 @@
 
   /* Typography */
   --font-ui: "Inter", system-ui, Arial, sans-serif;
-  --font-mono: "JetBrains Mono", "Courier New", monospace;
+  --font-mono: "Recursive", "Courier New", monospace;
 
   /* Type scale */
   --text-xs: 0.75rem;
@@ -135,12 +135,19 @@ body {
   font-weight: 600;
   letter-spacing: 0.03em;
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   color: var(--ink-muted);
   padding: var(--sp-3) var(--sp-5);
   cursor: pointer;
   position: relative;
-  transition: color var(--dur-normal) var(--ease-out);
+  transition:
+    color var(--dur-normal) var(--ease-out),
+    border-color var(--dur-normal) var(--ease-out);
+}
+
+.tab-buttons button:hover {
+  border-color: var(--border-hover);
 }
 
 .tab-buttons button::after {
@@ -181,7 +188,7 @@ body {
 
 .icon-btn {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   color: var(--ink-muted);
   font-size: 1.2rem;
   cursor: pointer;
@@ -192,18 +199,33 @@ body {
   justify-content: center;
   transition:
     color var(--dur-fast) var(--ease-out),
-    background-color var(--dur-fast) var(--ease-out);
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
   line-height: 1;
 }
 
 .icon-btn:hover {
   color: var(--accent);
   background-color: var(--accent-dim);
+  border-color: var(--border-hover);
 }
 
 .icon-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  opacity: 0.75;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.icon-btn:hover .icon-img,
+.icon-btn.active .icon-img {
+  opacity: 1;
 }
 
 /* ── App container ───────────────────────────────────────────── */
@@ -244,30 +266,30 @@ body {
   gap: var(--sp-2);
 }
 
-.input-group div {
+.input-group label {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  cursor: pointer;
   transition:
     background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out);
 }
 
-.input-group div:hover {
+.input-group label:hover {
   background-color: var(--accent-dim);
   border-color: var(--border-hover);
 }
 
-.input-group label {
+.input-group label span {
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--accent);
   letter-spacing: 0.03em;
-  cursor: pointer;
   user-select: none;
   flex: 1;
 }
@@ -287,12 +309,78 @@ input[type="number"] {
   transition:
     border-color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 input[type="number"]:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* ── Custom number stepper (replaces native spin buttons) ──────── */
+.number-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.number-stepper__btns {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 72px;
+  height: 54px;
+  flex-shrink: 0;
+}
+
+.number-stepper__btn {
+  flex: 1;
+  min-height: 14px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+  white-space: normal;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.number-stepper__btns .number-stepper__btn:hover,
+.number-stepper__btns .number-stepper__btn:active {
+  border-color: var(--border-hover);
+  color: var(--accent);
+  background-color: var(--accent-dim);
+  transform: none;
+  box-shadow: none;
+}
+
+.number-stepper__btn::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.number-stepper__up::before {
+  border-bottom: 5px solid currentColor;
+}
+
+.number-stepper__down::before {
+  border-top: 5px solid currentColor;
 }
 
 /* ── Countdown ───────────────────────────────────────────────── */
@@ -579,7 +667,7 @@ button:disabled {
     font-size: var(--text-xl);
   }
 
-  .input-group div {
+  .input-group label {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--sp-2);
@@ -1273,6 +1361,29 @@ button:disabled {
   background: var(--accent);
   padding: 2px 6px;
   border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Spotify status row ──────────────────────────────────────── */
+.alarm-spotify-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--input-bg);
+  border: 1px solid #383838;
+  border-radius: var(--radius-sm);
+}
+
+.alarm-spotify-status #spotifyStatusLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.alarm-spotify-status button {
   flex-shrink: 0;
 }
 

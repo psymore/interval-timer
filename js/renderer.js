@@ -3,6 +3,7 @@ import { renderIntervalView } from "./views/intervalTimerView.js";
 import { setupTimer } from "./timer.js";
 import { setupIntervalTimer } from "./intervalTimer.js";
 import { setupTabListeners } from "./tabs.js";
+import { enhanceNumberInputs } from "./numberStepper.js";
 
 const app = document.getElementById("app");
 
@@ -29,6 +30,10 @@ app.innerHTML = `
 // Setup both controllers once — they wire up to already-existing DOM
 setupIntervalTimer();
 setupTimer();
+
+// Replace native number-input spin buttons with themed ones
+// (covers the timer/interval views above plus the static settings modal)
+enhanceNumberInputs(document);
 
 // ── Tab switching — show/hide only, no re-render ──────────────
 export function switchTab(tab) {
@@ -136,7 +141,6 @@ if (aotBtn) {
       "aria-label",
       alwaysOnTop ? "Unpin window" : "Pin window on top",
     );
-    aotBtn.textContent = alwaysOnTop ? "📌" : "📍";
   });
 }
 
@@ -190,7 +194,6 @@ window.electronAPI.onMiniClosed(() => {
     aotBtn.classList.remove("active");
     aotBtn.setAttribute("aria-pressed", "false");
     aotBtn.setAttribute("aria-label", "Pin window on top");
-    aotBtn.textContent = "📍";
   }
 });
 
@@ -222,6 +225,14 @@ const settingsModal = document.getElementById("settingsModal");
 const alarmModal = document.getElementById("alarmFolderModal");
 trapFocus(settingsModal);
 trapFocus(alarmModal);
+
+// Close modals when clicking the backdrop (outside modal-content)
+settingsModal.addEventListener("click", e => {
+  if (e.target === settingsModal) settingsModal.classList.add("hidden");
+});
+alarmModal.addEventListener("click", e => {
+  if (e.target === alarmModal) alarmModal.classList.add("hidden");
+});
 
 // Auto-focus first button when modal opens
 const settingsObserver = new MutationObserver(() => {
