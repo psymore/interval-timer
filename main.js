@@ -129,9 +129,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ── Spotify Credentials ───────────────────────────────────────
-// Spotify Dashboard'dan alınan değerleri buraya gir:
-const SPOTIFY_CLIENT_ID = "***REMOVED-SEE-SECURITY-HISTORY***";
-const SPOTIFY_CLIENT_SECRET = "***REMOVED-SEE-SECURITY-HISTORY***";
+// Gitignored local file — copy spotify-credentials.example.json to
+// spotify-credentials.json and fill in the values from the Spotify
+// Dashboard. Never commit spotify-credentials.json.
+function loadSpotifyCredentials() {
+  const credentialsPath = path.join(__dirname, "spotify-credentials.json");
+  try {
+    const raw = fs.readFileSync(credentialsPath, "utf-8");
+    const { clientId, clientSecret } = JSON.parse(raw);
+    return { clientId: clientId ?? "", clientSecret: clientSecret ?? "" };
+  } catch {
+    console.warn(
+      "spotify-credentials.json not found or invalid — Spotify features will be unavailable. " +
+        "Copy spotify-credentials.example.json to spotify-credentials.json and fill in your app's credentials.",
+    );
+    return { clientId: "", clientSecret: "" };
+  }
+}
+
+const { clientId: SPOTIFY_CLIENT_ID, clientSecret: SPOTIFY_CLIENT_SECRET } =
+  loadSpotifyCredentials();
 const SPOTIFY_REDIRECT_URI = "http://127.0.0.1:8888/callback";
 const SPOTIFY_SCOPES = [
   "streaming",
@@ -471,7 +488,9 @@ ipcMain.handle("presets:set-active", (_event, id) => {
  */
 ipcMain.handle("spotify:login", async () => {
   if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-    throw new Error("Spotify Client ID or Secret is missing in main.js.");
+    throw new Error(
+      "Spotify Client ID or Secret is missing — see spotify-credentials.example.json.",
+    );
   }
 
   const authUrl = new URL("https://accounts.spotify.com/authorize");
