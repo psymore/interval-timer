@@ -22,6 +22,10 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
     this._container = null; // iframe container div
     this._timeoutId = null;
     this._onPlayingForTimer = null; // pending onStateChange listener, if any
+    this._hasDurationCap = false; // play()'a duration > 0 verildi mi?
+    this._remainingMs = 0; // kalan otomatik-durdurma süresi
+    this._segmentStartedAt = null; // mevcut çalma segmentinin başladığı an
+    this._isActive = false; // play() ile başladı, stop() ile bitti mi?
   }
 
   /**
@@ -65,9 +69,10 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
     this._player.setVolume(100);
     this._player.playVideo();
 
-    if (duration > 0) {
-      this._armDurationTimer(duration);
-    }
+    this._isActive = true;
+    this._hasDurationCap = duration > 0;
+    this._remainingMs = this._hasDurationCap ? duration * 1000 : 0;
+    if (this._hasDurationCap) this._armDurationTimer(this._remainingMs);
   }
 
   /**
@@ -77,6 +82,10 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
    */
   async stop() {
     this._clearTimeout();
+    this._hasDurationCap = false;
+    this._remainingMs = 0;
+    this._segmentStartedAt = null;
+    this._isActive = false;
     if (this._player) {
       try {
         this._player.stopVideo();
@@ -100,20 +109,46 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
 
   /**
    * Alarmı geçici olarak duraklatır (Timer'ın kendi Pause/Continue
-   * butonları için) — _pauseForContinuity ile aynı, pozisyon korunur.
+   * butonları için) — pozisyon korunur. Duration sınırı varsa, bu
+   * segmentte geçen süreyi kalan süreden düşer ki resume() sonrası
+   * orijinal duration hâlâ geçerli olsun.
+   *
+   * Alarm zaten kendi duration'ını doldurup doğal olarak durmuşsa
+   * (_isActive false) burada yapacak bir şey yok — aksi halde resume()
+   * onu sıfırdan yeniden başlatırdı.
    */
   async pause() {
+    if (!this._isActive) return;
+
+    if (this._hasDurationCap && this._segmentStartedAt !== null) {
+      const elapsed = Date.now() - this._segmentStartedAt;
+      this._remainingMs = Math.max(0, this._remainingMs - elapsed);
+      this._segmentStartedAt = null;
+    }
+    this._clearTimeout();
     this._pauseForContinuity();
   }
 
   /**
    * pause() ile duraklatılmış videoyu kaldığı yerden devam ettirir.
+   * Duration sınırı varsa, kalan süre için otomatik-durdurma
+   * zamanlayıcısını yeniden kurar — aksi halde alarm, orijinal duration'ı
+   * unutup video bitene kadar çalmaya devam eder.
+   *
+   * Alarm pause() çağrılmadan ÖNCE zaten doğal olarak durmuşsa (_isActive
+   * false) burada hiçbir şey yapılmaz — aksi halde Continue, bitmiş bir
+   * videoyu sıfırdan yeniden başlatırdı.
    */
   async resume() {
+    if (!this._isActive) return;
+
     if (this._player) {
       try {
         this._player.playVideo();
       } catch (e) {}
+    }
+    if (this._hasDurationCap) {
+      this._armDurationTimer(this._remainingMs);
     }
   }
 
@@ -123,19 +158,30 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
    * gecikmesi olabiliyor — sayaç play() anından başlarsa duration'ın
    * büyük kısmı sessiz beklemeye gidip alarm kısa çalıyormuş gibi
    * hissettiriyordu.
+   * @param {number} ms - kalan süre, milisaniye
    */
-  _armDurationTimer(duration) {
+  _armDurationTimer(ms) {
     this._clearPlayingListener();
 
     if (this._player.getPlayerState?.() === window.YT.PlayerState.PLAYING) {
-      this._timeoutId = setTimeout(() => this._pauseForContinuity(), duration * 1000);
+      this._segmentStartedAt = Date.now();
+      this._timeoutId = setTimeout(() => {
+        this._remainingMs = 0;
+        this._isActive = false;
+        this._pauseForContinuity();
+      }, ms);
       return;
     }
 
     this._onPlayingForTimer = event => {
       if (event.data === window.YT.PlayerState.PLAYING) {
         this._clearPlayingListener();
-        this._timeoutId = setTimeout(() => this._pauseForContinuity(), duration * 1000);
+        this._segmentStartedAt = Date.now();
+        this._timeoutId = setTimeout(() => {
+          this._remainingMs = 0;
+          this._isActive = false;
+          this._pauseForContinuity();
+        }, ms);
       }
     };
     this._player.addEventListener("onStateChange", this._onPlayingForTimer);
