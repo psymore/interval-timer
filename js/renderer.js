@@ -144,6 +144,26 @@ if (aotBtn) {
   });
 }
 
+// ── Quit ───────────────────────────────────────────────────────
+document.getElementById("quitAppBtn").onclick = () => {
+  const intervalStatus =
+    document.getElementById("intervalStatus")?.textContent ?? "";
+  const timerStatus =
+    document.getElementById("timerStatus")?.textContent ?? "";
+  const isTimerActive = [intervalStatus, timerStatus].some(
+    text => text.includes("Running") || text.includes("Paused"),
+  );
+
+  if (isTimerActive) {
+    const confirmed = window.confirm(
+      "A timer is currently running. Quit anyway?",
+    );
+    if (!confirmed) return;
+  }
+
+  window.electronAPI.quitApp();
+};
+
 // ── Timer state → mini window yayını ─────────────────────────
 // Her tab'ın onTick'i bu fonksiyonu çağıracak
 export function broadcastTimerState(state) {
