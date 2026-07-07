@@ -15,9 +15,13 @@
     "appId": "com.psymore.intervaltimer",
     "win": {
       "target": "nsis",
-      "signAndEditExecutable": false
+      "icon": "build/icon.ico",
+      "signExecutable": false
     },
     "mac": null
+  },
+  "overrides": {
+    "@noble/hashes": "1.8.0"
   },
   "keywords": [],
   "author": "",

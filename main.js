@@ -128,6 +128,10 @@ function startLocalServer() {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Framed/taskbar-visible windows only — frameless windows (mini) have no
+// titlebar to show it in, and skip the taskbar entirely.
+const APP_ICON_PATH = path.join(__dirname, "build", "icon.ico");
+
 // ── Spotify Credentials ───────────────────────────────────────
 // Gitignored local file — copy spotify-credentials.example.json to
 // spotify-credentials.json and fill in the values from the Spotify
@@ -205,6 +209,7 @@ let miniWindow = null;
 let tray = null;
 let blockerId = null;
 let isQuitting = false;
+let miniTopmostInterval = null;
 
 // ── Throttling prevention ─────────────────────────────────────
 app.commandLine.appendSwitch("disable-background-timer-throttling");
@@ -232,6 +237,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    icon: APP_ICON_PATH,
     webPreferences: {
       contextIsolation: true,
       enableRemoteModule: false,
@@ -288,6 +294,28 @@ function createMiniWindow() {
     },
   });
 
+  // Plain `alwaysOnTop: true` puts the window at Windows' default topmost
+  // z-band, which other apps' own topmost windows can still cover — and
+  // which Windows' fullscreen-optimization behavior hides outright when
+  // another app goes fullscreen. "screen-saver" is the highest z-band
+  // Electron exposes and is what reliably stays above fullscreen apps.
+  miniWindow.setAlwaysOnTop(true, "screen-saver");
+
+  // Belt-and-suspenders: some apps re-assert their own topmost status
+  // (fullscreen video, games, presentation mode) which can still bump the
+  // mini window down in the topmost stack even at "screen-saver" level.
+  // Periodically re-assert ours so it recovers within a couple seconds
+  // instead of staying hidden until manually refocused.
+  miniTopmostInterval = setInterval(() => {
+    if (miniWindow && !miniWindow.isDestroyed()) {
+      miniWindow.setAlwaysOnTop(true, "screen-saver");
+    }
+  }, 2000);
+
+  miniWindow.on("show", () => {
+    miniWindow.setAlwaysOnTop(true, "screen-saver");
+  });
+
   miniWindow.loadFile(miniPath);
 
   miniWindow.webContents.on("did-finish-load", () => {
@@ -298,6 +326,10 @@ function createMiniWindow() {
 
   miniWindow.on("closed", () => {
     miniWindow = null;
+    if (miniTopmostInterval) {
+      clearInterval(miniTopmostInterval);
+      miniTopmostInterval = null;
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("mini-closed");
     }
@@ -504,6 +536,7 @@ ipcMain.handle("spotify:login", async () => {
     const authWindow = new BrowserWindow({
       width: 480,
       height: 680,
+      icon: APP_ICON_PATH,
       alwaysOnTop: true,
       resizable: false,
       title: "Login with Spotify",
