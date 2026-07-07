@@ -233,7 +233,7 @@ body {
 .quit-btn:hover {
   color: var(--danger);
   background-color: var(--danger-dim);
-  border-color: var(--border-hover);
+  border-color: var(--danger);
 }
 
 .icon-img {
