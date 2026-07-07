@@ -342,7 +342,7 @@ function closeMiniWindow() {
 
 // ── Tray ──────────────────────────────────────────────────────
 function createTray() {
-  const iconPath = path.join(__dirname, "assets", "tray-icon.png");
+  const iconPath = path.join(__dirname, "assets", "stopwatch-main.png");
   const icon = fs.existsSync(iconPath)
     ? nativeImage.createFromPath(iconPath)
     : nativeImage.createEmpty();
