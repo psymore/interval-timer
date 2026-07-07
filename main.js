@@ -340,6 +340,12 @@ function closeMiniWindow() {
   if (miniWindow && !miniWindow.isDestroyed()) miniWindow.destroy();
 }
 
+// ── Quit ──────────────────────────────────────────────────────
+function quitApp() {
+  isQuitting = true;
+  app.quit();
+}
+
 // ── Tray ──────────────────────────────────────────────────────
 function createTray() {
   const iconPath = path.join(__dirname, "assets", "stopwatch-main.png");
@@ -363,10 +369,7 @@ function createTray() {
     { type: "separator" },
     {
       label: "Quit",
-      click: () => {
-        isQuitting = true;
-        app.quit();
-      },
+      click: quitApp,
     },
   ]);
 
@@ -418,6 +421,9 @@ ipcMain.handle("get-file-path", async () => {
   if (result.canceled || result.filePaths.length === 0) return null;
   return result.filePaths[0];
 });
+
+// ── Quit IPC ────────────────────────────────────────────────
+ipcMain.handle("app:quit", () => quitApp());
 
 // ── Always on Top / Mini IPC ──────────────────────────────────
 ipcMain.handle("set-always-on-top", (_event, value) => {

@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  // App
+  quitApp: () => ipcRenderer.invoke("app:quit"),
+
   // Dosya
   getFilePath: () => ipcRenderer.invoke("get-file-path"),
 
