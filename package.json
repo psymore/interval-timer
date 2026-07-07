@@ -27,7 +27,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^35.1.5",
+    "electron": "^41.10.1",
     "electron-builder": "^26.15.6",
     "rimraf": "^5.0.5"
   },
