@@ -22,6 +22,22 @@ export function renderIntervalView() {
         </div>
       </div>
 
+      <div class="currentLoop">
+        <label>Current Loop:</label>
+        <span id="currentLoop">0</span>
+      </div>
+
+      <h1 id="intervalCountdown">00:00</h1>
+      <p id="intervalStatus">Status: Ready</p>
+      <p id="intervalPhase">Phase: -</p>
+
+      <div class="button-group">
+        <button id="startLoopBtn">Start</button>
+        <button id="pauseLoopBtn">Pause</button>
+        <button id="continueLoopBtn">Continue</button>
+        <button id="resetIntervalBtn">Reset</button>
+      </div>
+
       <!-- Inputs -->
       <div class="input-group">
         <label for="workMinutes">
@@ -44,22 +60,6 @@ export function renderIntervalView() {
           <span>Number of Loops:</span>
           <input type="number" id="loopCount" min="1" value="4" />
         </label>
-      </div>
-
-      <div class="currentLoop">
-        <label>Current Loop:</label>
-        <span id="currentLoop">0</span>
-      </div>
-
-      <h1 id="intervalCountdown">00:00</h1>
-      <p id="intervalStatus">Status: Ready</p>
-      <p id="intervalPhase">Phase: -</p>
-
-      <div class="button-group">
-        <button id="startLoopBtn">Start</button>
-        <button id="pauseLoopBtn">Pause</button>
-        <button id="continueLoopBtn">Continue</button>
-        <button id="resetIntervalBtn">Reset</button>
       </div>
 
     </div>
