@@ -27,6 +27,8 @@
   --accent-dim: #ff7a1a22;
   --accent-glow: rgba(255, 122, 26, 0.35);
   --accent-b: #ee0979;
+  --danger: #ff4d4f;
+  --danger-dim: #ff4d4f22;
   --ink: #f5f3f0;
   --ink-muted: #c8c8c8;
   --input-bg: #2e2e2e;
@@ -213,6 +215,25 @@ body {
 .icon-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.quit-btn {
+  margin-left: var(--sp-3);
+  padding-left: var(--sp-3);
+  border-left: 1px solid #333;
+  border-radius: 0;
+  width: auto;
+  gap: var(--sp-1);
+  color: var(--danger);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.quit-btn:hover {
+  color: var(--danger);
+  background-color: var(--danger-dim);
+  border-color: var(--border-hover);
 }
 
 .icon-img {
