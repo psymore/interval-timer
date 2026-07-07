@@ -1,125 +1,80 @@
-An Electron-based desktop application for managing interval timers and countdown timers. This app is designed to help users efficiently manage work and break intervals, making it ideal for productivity techniques like the Pomodoro Technique.
+# Interval Timer
+
+A desktop interval/countdown timer for Windows, built with Electron. Designed for
+work/break cycles (Pomodoro-style), with alarms that can play a local sound file,
+a YouTube video, or a Spotify track.
+
+**[Download the latest release](https://github.com/psymore/interval-timer/releases/latest)** · [Landing page](https://psymore.github.io/interval-timer/)
+
+## Screenshot
+
+<p align="center">
+  <img src="docs/assets/screenshot.png" alt="Interval Timer app screenshot" width="420" />
+</p>
 
 ## Features
 
-- **Interval Timer**: Set work and break intervals with customizable durations and loop counts.
-- **Countdown Timer**: A simple timer for single countdowns.
-- **Pause and Resume**: Pause and resume timers without losing progress.
-- **Custom Alarm Settings**: Configure alarm durations for work, break, and countdown timers.
-- **Tab Navigation**: Switch between the Interval Timer and Countdown Timer views.
-- **Responsive UI**: A clean and user-friendly interface with responsive design.
-
-## Screenshots
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/0557966c-1f66-4777-9895-165fbcbc31ba" alt="image" />
-</p>
+- **Interval Timer** — configurable work/break durations and loop count, with a running phase/status display.
+- **Countdown Timer** — a simple one-shot timer, separate from the interval loop.
+- **Presets** — save and switch between named timer configurations; three seeded defaults plus up to 20 of your own.
+- **Alarm sources** — a local audio file, a YouTube video/URL, or a Spotify track, with automatic fallback to the local alarm if a source fails to load or play.
+- **Pause / Continue** — every alarm source resumes correctly rather than losing its duration cap or restarting from zero.
+- **Mini window** — a small always-on-top window that mirrors and controls the active timer, and stays above other apps even when they go fullscreen.
+- **System tray** — runs in the tray; keeps ticking in the background thanks to disabled timer throttling and a power-save blocker.
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/interval-timer.git
-   cd interval-timer
-   ```
+### Download (recommended)
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Grab the installer from the [latest release](https://github.com/psymore/interval-timer/releases/latest) and run it. No Node.js or build tools required.
 
-3. Start the application:
-   ```bash
-   npm start
-   ```
+### Build from source
 
-## Usage
+```bash
+git clone https://github.com/psymore/interval-timer.git
+cd interval-timer
+npm install
+npm start          # run the app (electron .)
+```
 
-1. **Interval Timer**:
-   - Navigate to the "Interval Timer" tab.
-   - Set work and break durations, and the number of loops.
-   - Click "Start Loop" to begin the timer.
+Other scripts:
 
-2. **Countdown Timer**:
-   - Navigate to the "Timer" tab.
-   - Set the desired countdown duration.
-   - Click "Start" to begin the countdown.
+```bash
+npm run dist        # clean dist/ and build a Windows x64 installer (nsis)
+npm run build        # clean dist/ and package with electron-builder
+npm run clean        # remove dist/
+```
 
-3. **Pause/Resume**:
-   - Use the "Pause" and "Continue" buttons to manage the timer's state.
+There is no test suite or lint script configured.
 
-4. **Reset**:
-   - Click "Reset" to stop and reset the timer.
+#### Spotify alarms (optional, source builds only)
 
-5. **Settings**:
-   - Click the ⚙️ icon to open the settings modal.
-   - Configure alarm durations for work, break, and countdown timers.
+Spotify alarm support needs your own Spotify app credentials. Copy `spotify-credentials.example.json` to `spotify-credentials.json` and fill in the client ID/secret from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). This file is gitignored and never bundled into releases.
 
-## Project Structure
+## Project structure
 
 ```
 interval-timer/
-├── assets/                # Static assets (e.g., alarm sound, screenshots)
-├── css/                   # Stylesheets
-│   └── styles.css
-├── js/                    # JavaScript source files
-│   ├── intervalTimer.js   # Logic for the interval timer
-│   ├── timer.js           # Logic for the countdown timer
-│   ├── renderer.js        # Main renderer logic
-│   ├── tabs.js            # Tab navigation logic
-│   └── views/             # View templates
-│       ├── intervalTimerView.js
-│       └── timerView.js
-├── index.html             # Main HTML file
-├── main.js                # Electron main process
-├── package.json           # Project metadata and scripts
-└── .gitignore             # Ignored files and directories
+├── main.js                          # Electron main process — windows, tray, local HTTP server, Spotify OAuth
+├── preload.cjs                      # contextBridge bridge exposing window.electronAPI
+├── index.html / mini.html           # Renderer entry points (main window / always-on-top mini window)
+├── css/styles.css
+├── js/
+│   ├── logic/                       # Pure timer state machines (Timer.js, IntervalTimer.js)
+│   ├── alarm/
+│   │   ├── AlarmManager.js          # Singleton entry point — source-agnostic
+│   │   ├── AlarmProviderFactory.js  # Detects source type, builds the right provider
+│   │   └── providers/               # Local / YouTube / Spotify implementations
+│   ├── views/                       # DOM templates for each tab
+│   ├── renderer.js, timer.js, intervalTimer.js, mini.js, presets.js, tabs.js, ...
+├── docs/                            # GitHub Pages landing page (served from /docs on main)
+└── build/                           # electron-builder assets (app icon)
 ```
-
-## Development
-
-To modify or extend the application:
-
-1. Make changes to the JavaScript files in the js directory.
-2. Update styles in styles.css.
-3. Test the application by running:
-   ```bash
-   npm start
-   ```
-
-## Build
-
-To package the application for distribution:
-
-1. Install `electron-builder`:
-   ```bash
-   npm install electron-builder --save-dev
-   ```
-
-2. Build the application:
-   ```bash
-   npm run build
-   ```
-
-3. The packaged application will be available in the `dist/` directory.
-
-## Dependencies
-
-- [Electron](https://www.electronjs.org/) - Build cross-platform desktop apps with JavaScript, HTML, and CSS.
 
 ## License
 
-This project is licensed under the ISC License. See the LICENSE file for details.
+ISC — see the `license` field in `package.json`.
 
 ## Contributing
 
-Contributions are welcome! Feel free to open issues or submit pull requests to improve the project.
-
-## Acknowledgments
-
-- Inspired by productivity techniques like the Pomodoro Technique.
-- UI design inspired by modern minimalistic styles.
-
----
-
-Enjoy using **Interval Timer** to boost your productivity! 🚀
+Issues and pull requests are welcome.
