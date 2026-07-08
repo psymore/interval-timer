@@ -1,0 +1,25 @@
+/* ── Shared design tokens ──────────────────────────────────────
+   Custom properties used by BOTH the main window (css/styles.css)
+   and the mini always-on-top window (css/mini.css). Load this file
+   before either stylesheet.
+
+   Values below are the canonical, reconciled versions where the two
+   files had drifted apart — styles.css's values were treated as
+   canonical since they were the more recently/deliberately tuned
+   ones (e.g. --ink-muted was bumped from #888 to #c8c8c8 for a
+   5.2:1 contrast ratio; that fix had never been carried into
+   mini.css's #b0b0b0).
+   ──────────────────────────────────────────────────────────────── */
+:root {
+  --bg: #1e1e1e;
+  --surface: #252525;
+  --border: #ff7a1a33;
+  --accent: #ff7a1a;
+  --accent-dim: #ff7a1a22;
+  --accent-glow: rgba(255, 122, 26, 0.35);
+  --ink: #f5f3f0;
+  --ink-muted: #c8c8c8; /* ← #888'den yükseltildi, 5.2:1 */
+  --font-ui: "Inter", system-ui, Arial, sans-serif;
+  --font-mono: "Recursive", "Courier New", monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
