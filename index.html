@@ -2,16 +2,6 @@
 <html lang="en">
 
 <head>
-    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self';
-           script-src 'self' https://www.youtube.com https://sdk.scdn.co;
-           frame-src https://www.youtube.com;
-           style-src 'self' 'unsafe-inline';
-           font-src 'self';
-           img-src 'self' data: https://i.ytimg.com;
-           connect-src 'self' https://api.spotify.com;
-           media-src 'self' file: blob: data: https://p.scdn.co;
-           worker-src blob:"> -->
-
     <meta http-equiv="Content-Security-Policy" content="default-src 'self';
            script-src 'self' https://www.youtube.com https://sdk.scdn.co;
            frame-src https://www.youtube.com https://www.youtube-nocookie.com https://accounts.spotify.com https://sdk.scdn.co;
@@ -35,20 +25,20 @@
 
     <div class="top-bar">
         <div class="tab-buttons">
-            <button class="active" data-tab="interval">Interval Timer</button>
-            <button data-tab="timer">Timer</button>
+            <button type="button" class="active" data-tab="interval">Interval Timer</button>
+            <button type="button" data-tab="timer">Timer</button>
         </div>
         <div class="modal-buttons">
-            <button id="settingsIcon" class="icon-btn" aria-label="Open settings">
+            <button type="button" id="settingsIcon" class="icon-btn" aria-label="Open settings">
                 <img src="assets/adjust.png" alt="" class="icon-img" />
             </button>
-            <button id="alarmFolderBtn" class="icon-btn" aria-label="Choose alarm sound">
+            <button type="button" id="alarmFolderBtn" class="icon-btn" aria-label="Choose alarm sound">
                 <img src="assets/alarm-clock.png" alt="" class="icon-img" />
             </button>
-            <button id="alwaysOnTopBtn" class="icon-btn" aria-label="Pin window on top" aria-pressed="false">
+            <button type="button" id="alwaysOnTopBtn" class="icon-btn" aria-label="Pin window on top" aria-pressed="false">
                 <img src="assets/pinned.png" alt="" class="icon-img" />
             </button>
-            <button id="quitAppBtn" class="icon-btn quit-btn" aria-label="Quit application">
+            <button type="button" id="quitAppBtn" class="icon-btn quit-btn" aria-label="Quit application">
                 <img src="assets/power.png" alt="" class="icon-img" />
                 Quit
             </button>
@@ -79,8 +69,8 @@
                 </label>
             </div>
             <div class="button-group">
-                <button id="saveSettingsBtn">Save</button>
-                <button id="closeSettingsBtn">Close</button>
+                <button type="button" id="saveSettingsBtn">Save</button>
+                <button type="button" id="closeSettingsBtn">Close</button>
             </div>
         </div>
     </div>
@@ -100,7 +90,7 @@
             <!-- Local dosya seçimi -->
             <div class="alarm-section">
                 <p class="alarm-section-label">Local file</p>
-                <button id="chooseAlarmBtn" class="btn-primary">Choose file…</button>
+                <button type="button" id="chooseAlarmBtn" class="btn-primary">Choose file…</button>
             </div>
 
             <!-- URL ile yükleme -->
@@ -109,7 +99,7 @@
                 <div class="alarm-url-row">
                     <input id="alarmUrlInput" type="url" placeholder="https://youtube.com/watch?v=… or spotify link"
                         autocomplete="off" spellcheck="false" />
-                    <button id="alarmUrlLoadBtn">Load</button>
+                    <button type="button" id="alarmUrlLoadBtn">Load</button>
                 </div>
                 <p class="alarm-url-hint">
                     Paste a YouTube video or Spotify track URL. Spotify links
@@ -124,17 +114,17 @@
                 <p class="alarm-section-label">Spotify</p>
                 <div class="alarm-spotify-status" id="spotifyStatusRow">
                     <span id="spotifyStatusLabel">Not connected</span>
-                    <button id="spotifyConnectBtn" class="btn-subtle">Connect Spotify</button>
-                    <button id="spotifyLogoutBtn" class="btn-subtle hidden">Disconnect</button>
+                    <button type="button" id="spotifyConnectBtn" class="btn-subtle">Connect Spotify</button>
+                    <button type="button" id="spotifyLogoutBtn" class="btn-subtle hidden">Disconnect</button>
                 </div>
             </div>
 
             <!-- Preview -->
             <div class="alarm-actions">
-                <button id="previewAlarmBtn" aria-label="Preview alarm sound">
+                <button type="button" id="previewAlarmBtn" aria-label="Preview alarm sound">
                     ▶ Preview
                 </button>
-                <button id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
+                <button type="button" id="closeAlarmFolderBtn" class="btn-subtle">Done</button>
             </div>
 
             <!-- Feedback -->

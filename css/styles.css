@@ -665,7 +665,7 @@ button:disabled {
   animation: completion-glow 600ms var(--ease-out) forwards;
 }
 
-/* ── Reduced motion ──────────────────────────────────────────── */
+/* ── Reduced motion — core ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1296,7 +1296,7 @@ button:disabled {
   color: #e05c5c;
 }
 
-/* ── Reduced motion ──────────────────────────────────────────── */
+/* ── Reduced motion — presets ──────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .preset-trigger__chevron {
     transition: none;

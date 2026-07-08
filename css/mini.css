@@ -66,11 +66,7 @@ body {
   justify-content: space-between;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
-  cursor: grab;
-}
-
-.mini-header:active {
-  cursor: grabbing;
+  /* cursor grab kaldırıldı — native drag kullanıyor */
 }
 
 .mini-label {
@@ -197,17 +193,6 @@ body {
 .mini-loop,
 .mini-controls {
   -webkit-app-region: no-drag;
-}
-
-/* ── Header ──────────────────────────────────────────────────── */
-.mini-header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-  /* cursor grab kaldırıldı — native drag kullanıyor */
 }
 
 /* ── Loop bilgisi ────────────────────────────────────────────── */
