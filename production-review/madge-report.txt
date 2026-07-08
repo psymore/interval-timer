@@ -1,0 +1,59 @@
+- Finding files
+Processed 19 files (7.1s) 
+
+✖ Found 3 circular dependencies!
+
+1) js/intervalTimer.js > js/renderer.js
+2) js/renderer.js > js/tabs.js
+3) js/renderer.js > js/timer.js
+
+--- full dependency tree ---
+- Finding files
+Processed 19 files (2.3s) 
+
+js/alarm/AlarmManager.js
+  js/alarm/AlarmProviderFactory.js
+  js/alarm/providers/LocalAlarmProvider.js
+js/alarm/AlarmProviderFactory.js
+  js/alarm/providers/LocalAlarmProvider.js
+  js/alarm/providers/SpotifyAlarmProvider.js
+  js/alarm/providers/YouTubeAlarmProvider.js
+js/alarm/providers/BaseAlarmProvider.js
+js/alarm/providers/LocalAlarmProvider.js
+  js/alarm/providers/BaseAlarmProvider.js
+js/alarm/providers/SpotifyAlarmProvider.js
+  js/alarm/providers/BaseAlarmProvider.js
+js/alarm/providers/YouTubeAlarmProvider.js
+  js/alarm/providers/BaseAlarmProvider.js
+js/alarmModal.js
+  js/alarm/AlarmManager.js
+  js/alarm/AlarmProviderFactory.js
+js/intervalTimer.js
+  js/alarm/AlarmManager.js
+  js/alarmModal.js
+  js/logic/IntervalTimer.js
+  js/presets.js
+  js/renderer.js
+js/logic/IntervalTimer.js
+js/logic/Timer.js
+js/mini.js
+js/numberStepper.js
+js/presets.js
+  js/numberStepper.js
+js/renderer.js
+  js/intervalTimer.js
+  js/numberStepper.js
+  js/tabs.js
+  js/timer.js
+  js/views/intervalTimerView.js
+  js/views/timerView.js
+js/tabs.js
+  js/renderer.js
+js/timer.js
+  js/logic/Timer.js
+  js/renderer.js
+js/views/intervalTimerView.js
+js/views/timerView.js
+main.js
+
+EXIT=0

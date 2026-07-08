@@ -1,0 +1,10 @@
+[93m[4mUnused devDependencies[24m[39m (2)
+@biomejs/biome  package.json:30:6
+madge           package.json:34:6
+[93m[4mUnused exports[24m[39m (1)
+AlarmManager  class  js/alarm/AlarmManager.js:4:14
+[33m[4mConfiguration hints[24m (3)[39m
+dist/**     knip.json  [90mRemove from [97mignore[90m[39m            
+build/**    knip.json  [90mRemove from [97mignore[90m[39m            
+main.js     knip.json  [90mRemove redundant [97mentry[90m pattern[39m
+EXIT=1

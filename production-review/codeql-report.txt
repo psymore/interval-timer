@@ -1,0 +1,71 @@
+STEP 4 — CODEQL
+================
+
+Status: CodeQL CLI is NOT installed and was NOT installed for this audit.
+
+Rationale for not installing:
+- The CodeQL CLI bundle is a large download (500MB+ including query packs) and
+  is designed to be run as part of CI (GitHub Actions / GitHub Advanced
+  Security), not as an ad-hoc local dev tool. Per the tool-installation policy
+  ("install only what's needed, dev-only, no bloat"), a one-off local CodeQL
+  install for a single small Electron app provides little marginal signal
+  over the Semgrep scan already run (semgrep-report.txt) with the
+  p/security-audit / p/javascript / auto rule sets, which cover the same
+  OWASP-style JS vulnerability classes CodeQL's default JS/TS query pack
+  targets (XSS, injection, prototype pollution, insecure randomness, etc.).
+- This repository does not currently have a GitHub Actions workflow at all
+  (no .github/workflows directory), so there is no existing CI surface to
+  attach CodeQL to without first standing up a workflow pipeline — a
+  decision that affects the project's CI strategy and should be a deliberate
+  choice by the maintainer, not something silently added by an audit script.
+
+How to enable CodeQL via GitHub Actions (recommended path):
+
+1. In the GitHub repo, go to Settings -> Code security and analysis ->
+   "Code scanning" -> Set up -> "Default" (GitHub will auto-generate and
+   manage a workflow) OR "Advanced" to commit a custom workflow file.
+
+2. Advanced/custom workflow — create .github/workflows/codeql.yml:
+
+   name: "CodeQL"
+   on:
+     push:
+       branches: [ "main" ]
+     pull_request:
+       branches: [ "main" ]
+     schedule:
+       - cron: '0 6 * * 1'   # weekly
+   jobs:
+     analyze:
+       name: Analyze
+       runs-on: ubuntu-latest
+       permissions:
+         actions: read
+         contents: read
+         security-events: write
+       strategy:
+         matrix:
+           language: [ 'javascript-typescript' ]
+       steps:
+         - uses: actions/checkout@v4
+         - uses: github/codeql-action/init@v3
+           with:
+             languages: ${{ matrix.language }}
+         - uses: github/codeql-action/autobuild@v3
+         - uses: github/codeql-action/analyze@v3
+
+3. Since this project has no build step required for static analysis of
+   plain JS (no TypeScript compile, no bundler), the "autobuild" step is a
+   no-op and analysis runs directly against the vanilla JS/ESM source in
+   js/, main.js, and preload.cjs.
+
+4. Findings appear under the repo's "Security" -> "Code scanning alerts" tab
+   and as PR check annotations. This requires the repository to have GitHub
+   Advanced Security available — for public repos this is free.
+
+5. Once a CI pipeline exists, this same workflow file is also the natural
+   place to wire in `npm audit --audit-level=high` and (optionally) the
+   Semgrep GitHub Action, so all static analysis runs automatically on every
+   PR instead of manually via this local audit.
+
+No source files were modified to produce this document.
