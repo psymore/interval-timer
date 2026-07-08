@@ -230,7 +230,7 @@ body {
   font-weight: 600;
 }
 
-.quit-btn:hover {
+.quit-btn:hover:not(:disabled) {
   color: var(--danger);
   background-color: var(--danger-dim);
   border-color: var(--danger);
