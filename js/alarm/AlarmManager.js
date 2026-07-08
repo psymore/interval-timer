@@ -1,7 +1,6 @@
 import { AlarmProviderFactory } from "./AlarmProviderFactory.js";
-import { LocalAlarmProvider } from "./providers/LocalAlarmProvider.js";
 
-export class AlarmManager {
+class AlarmManager {
   constructor() {
     this._provider = null;
     this._fallbackSource = null;
@@ -113,6 +112,10 @@ export class AlarmManager {
 
     try {
       await provider.load(source);
+      // Tear down the outgoing provider's external resources (e.g. a
+      // YouTube YT.Player instance) before it's discarded — otherwise
+      // switching alarm sources repeatedly leaks players.
+      this._provider?.destroy?.();
       this._provider = provider;
       this._providerType = type;
       this._currentSource = source;
@@ -144,9 +147,8 @@ export class AlarmManager {
     if (this._providerType === "spotify") {
       try {
         await this._refreshSpotifyTokenIfNeeded();
-        this._provider.setAccessToken(
-          localStorage.getItem("spotify_access_token"),
-        );
+        const tokens = await window.electronAPI.spotifyGetTokens();
+        this._provider.setAccessToken(tokens?.accessToken ?? null);
       } catch (e) {
         console.warn("AlarmManager: Spotify token refresh failed:", e.message);
       }
@@ -199,9 +201,8 @@ export class AlarmManager {
     if (this._providerType === "spotify") {
       try {
         await this._refreshSpotifyTokenIfNeeded();
-        this._provider.setAccessToken(
-          localStorage.getItem("spotify_access_token"),
-        );
+        const tokens = await window.electronAPI.spotifyGetTokens();
+        this._provider.setAccessToken(tokens?.accessToken ?? null);
       } catch (e) {
         console.warn("AlarmManager: Spotify token refresh failed:", e.message);
       }
@@ -235,12 +236,10 @@ export class AlarmManager {
    * local alarm fallback'ine düşürür.
    */
   async _buildSpotifyOpts() {
-    const refreshToken = localStorage.getItem("spotify_refresh_token");
-    const expiresAt = parseInt(
-      localStorage.getItem("spotify_expires_at") ?? "0",
-      10,
-    );
-    const accessToken = localStorage.getItem("spotify_access_token");
+    const stored = await window.electronAPI.spotifyGetTokens();
+    const refreshToken = stored?.refreshToken;
+    const expiresAt = stored?.expiresAt ?? 0;
+    const accessToken = stored?.accessToken;
 
     if (accessToken && Date.now() < expiresAt) {
       return { accessToken };
@@ -249,11 +248,11 @@ export class AlarmManager {
     if (refreshToken) {
       try {
         const tokens = await window.electronAPI.spotifyRefresh(refreshToken);
-        this._saveSpotifyTokens(tokens);
+        await this._saveSpotifyTokens(tokens);
         return { accessToken: tokens.accessToken };
       } catch (e) {
         console.warn("AlarmManager: Refresh token failed:", e.message);
-        this._clearSpotifyTokens();
+        await this._clearSpotifyTokens();
       }
     }
 
@@ -267,17 +266,15 @@ export class AlarmManager {
    * Süresi dolmak üzereyse sessizce refresh eder.
    */
   async _refreshSpotifyTokenIfNeeded() {
-    const expiresAt = parseInt(
-      localStorage.getItem("spotify_expires_at") ?? "0",
-      10,
-    );
-    const refreshToken = localStorage.getItem("spotify_refresh_token");
+    const stored = await window.electronAPI.spotifyGetTokens();
+    const expiresAt = stored?.expiresAt ?? 0;
+    const refreshToken = stored?.refreshToken;
 
     // 60 saniyeden az kaldıysa refresh et
     if (refreshToken && Date.now() > expiresAt - 60_000) {
       try {
         const tokens = await window.electronAPI.spotifyRefresh(refreshToken);
-        this._saveSpotifyTokens(tokens);
+        await this._saveSpotifyTokens(tokens);
         console.log("AlarmManager: Spotify token silently refreshed.");
       } catch (e) {
         console.warn("AlarmManager: Silent token refresh failed:", e.message);
@@ -285,18 +282,12 @@ export class AlarmManager {
     }
   }
 
-  _saveSpotifyTokens({ accessToken, refreshToken, expiresAt }) {
-    if (accessToken) localStorage.setItem("spotify_access_token", accessToken);
-    if (refreshToken)
-      localStorage.setItem("spotify_refresh_token", refreshToken);
-    if (expiresAt)
-      localStorage.setItem("spotify_expires_at", String(expiresAt));
+  async _saveSpotifyTokens(tokens) {
+    await window.electronAPI.spotifySaveTokens(tokens);
   }
 
-  _clearSpotifyTokens() {
-    localStorage.removeItem("spotify_access_token");
-    localStorage.removeItem("spotify_refresh_token");
-    localStorage.removeItem("spotify_expires_at");
+  async _clearSpotifyTokens() {
+    await window.electronAPI.spotifyClearTokens();
   }
 
   // ── Private ────────────────────────────────────────────────
@@ -310,8 +301,9 @@ export class AlarmManager {
       return { type: "local", usedFallback: true };
     }
 
-    const fallback = new LocalAlarmProvider();
+    const fallback = AlarmProviderFactory.create("local");
     await fallback.load(this._fallbackSource);
+    this._provider?.destroy?.();
     this._provider = fallback;
     this._providerType = "local";
     return { type: "local", usedFallback: true };

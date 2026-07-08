@@ -59,4 +59,11 @@ export class BaseAlarmProvider {
   getName() {
     return this.constructor.name;
   }
+
+  /**
+   * Provider bir daha kullanılmayacaksa (kaynak değişimi ile değiştirildiğinde)
+   * çağrılır — dış kaynakları (ör. YT.Player instance'ı) serbest bırakmak
+   * için override edilebilir. Çoğu provider için no-op'tur.
+   */
+  destroy() {}
 }

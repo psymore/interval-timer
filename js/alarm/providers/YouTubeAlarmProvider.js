@@ -333,6 +333,25 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
     });
   }
 
+  /**
+   * Bu provider bir daha kullanılmayacaksa (alarm kaynağı değiştirildiğinde)
+   * çağrılır. _setupContainer() sadece container <div>'i DOM'dan kaldırıyordu
+   * — YT.Player instance'ının kendisi hiç destroy edilmiyordu, bu da art arda
+   * farklı YouTube URL'leri denendiğinde biriken player'lara yol açıyordu.
+   */
+  destroy() {
+    this._clearTimeout();
+    if (this._player) {
+      try {
+        this._player.destroy();
+      } catch (e) {}
+      this._player = null;
+    }
+    this._container?.remove();
+    this._container = null;
+    this._ready = false;
+  }
+
   _clearTimeout() {
     this._clearPlayingListener();
     if (this._timeoutId) {

@@ -9,7 +9,9 @@ import {
   Tray,
   Menu,
   nativeImage,
+  safeStorage,
   screen,
+  session,
   shell,
 } from "electron";
 import fs from "fs";
@@ -60,7 +62,20 @@ function handleLocalAudioRequest(req, res) {
     return;
   }
 
-  fs.readFile(filePath, (err, data) => {
+  // Serve only the file the user actually picked via the native file-picker
+  // dialog (recorded in `get-file-path`'s handler), never an arbitrary
+  // absolute path — otherwise any local process or web page hitting this
+  // fixed port could read any .mp3/.wav/.ogg file on disk. Case-insensitive
+  // compare since this ships Windows-only (NTFS is case-insensitive).
+  const resolved = path.resolve(filePath);
+  const allowed = store.get("allowedLocalAudioPath");
+  if (!allowed || resolved.toLowerCase() !== path.resolve(allowed).toLowerCase()) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
+
+  fs.readFile(resolved, (err, data) => {
     if (err) {
       res.writeHead(404);
       res.end("Not found");
@@ -77,19 +92,29 @@ function handleLocalServerRequest(req, res) {
     return;
   }
 
-  let filePath = path.join(
-    __dirname,
-    decodeURIComponent(req.url.split("?")[0]),
-  );
-  if (req.url === "/") filePath = path.join(__dirname, "index.html");
+  const requestedPath =
+    req.url === "/" ? "index.html" : decodeURIComponent(req.url.split("?")[0]);
+  const resolved = path.resolve(path.join(__dirname, requestedPath));
+  const appRoot = path.resolve(__dirname);
 
-  fs.readFile(filePath, (err, data) => {
+  // path.join alone does not stop ".." from walking above __dirname — verify
+  // the resolved path is still contained in the app directory before ever
+  // reading it, otherwise a request like "/../../../Windows/win.ini" reads
+  // arbitrary files off disk (this server is reachable by anything on the
+  // local machine — see CLAUDE.md's port-binding rationale).
+  if (resolved !== appRoot && !resolved.startsWith(appRoot + path.sep)) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
+
+  fs.readFile(resolved, (err, data) => {
     if (err) {
       res.writeHead(404);
       res.end("Not found");
       return;
     }
-    const ext = path.extname(filePath);
+    const ext = path.extname(resolved);
     res.writeHead(200, {
       "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
     });
@@ -241,14 +266,46 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       enableRemoteModule: false,
+      sandbox: true,
       preload: preloadPath,
       backgroundThrottling: false,
       autoplayPolicy: "no-user-gesture-required",
     },
   });
 
+  const homeUrl = `http://127.0.0.1:${serverPort}/index.html`;
+  const homeOrigin = `http://127.0.0.1:${serverPort}/`;
+
+  // Keep the window on its own local-server origin — if a bug ever let the
+  // renderer navigate away, it would otherwise carry the real preload's
+  // window.electronAPI (quitApp, presets, Spotify login) to wherever it went.
+  mainWindow.webContents.on("will-navigate", (e, url) => {
+    if (!url.startsWith(homeOrigin)) e.preventDefault();
+  });
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (_event, errorCode, errorDescription) => {
+      console.error(
+        `Main window failed to load: ${errorDescription} (${errorCode})`,
+      );
+    },
+  );
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("Main window renderer process gone:", details.reason);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload();
+    }
+  });
+  mainWindow.webContents.on("unresponsive", () => {
+    console.warn("Main window renderer became unresponsive.");
+  });
+
   // file:// yerine http:// kullan
-  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/index.html`);
+  mainWindow.loadURL(homeUrl).catch(err => {
+    console.error("Main window initial load failed:", err);
+  });
 
   mainWindow.on("close", e => {
     if (!isQuitting) {
@@ -289,9 +346,16 @@ function createMiniWindow() {
     webPreferences: {
       contextIsolation: true,
       enableRemoteModule: false,
+      sandbox: true,
       preload: preloadPath,
       backgroundThrottling: false,
     },
+  });
+
+  miniWindow.webContents.on("will-navigate", e => e.preventDefault());
+  miniWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  miniWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("Mini window renderer process gone:", details.reason);
   });
 
   // Plain `alwaysOnTop: true` puts the window at Windows' default topmost
@@ -385,11 +449,22 @@ function createTray() {
 app
   .whenReady()
   .then(async () => {
+    // Deny every permission request by default — this app doesn't need
+    // camera/mic/geolocation/notifications, and the embedded YouTube
+    // iframe/Spotify origins shouldn't get anything beyond that implicitly.
+    session.defaultSession.setPermissionRequestHandler(
+      (_webContents, _permission, callback) => callback(false),
+    );
+
     await createWindow(); // ← await eklendi
     createTray();
     blockerId = powerSaveBlocker.start("prevent-app-suspension");
     app.on("activate", async () => {
-      if (BrowserWindow.getAllWindows().length === 0) await createWindow();
+      try {
+        if (BrowserWindow.getAllWindows().length === 0) await createWindow();
+      } catch (err) {
+        console.error("Activate error:", err);
+      }
     });
   })
   .catch(err => console.error("App init error:", err));
@@ -419,7 +494,13 @@ ipcMain.handle("get-file-path", async () => {
     filters: [{ name: "Audio Files", extensions: ["mp3", "wav", "ogg"] }],
   });
   if (result.canceled || result.filePaths.length === 0) return null;
-  return result.filePaths[0];
+
+  const filePath = result.filePaths[0];
+  // Record this as the one path `/local-audio/` is allowed to serve — see
+  // handleLocalAudioRequest. Persisted (not just in-memory) so the
+  // previously-selected alarm still plays after an app restart.
+  store.set("allowedLocalAudioPath", path.resolve(filePath));
+  return filePath;
 });
 
 // ── Quit IPC ────────────────────────────────────────────────
@@ -472,7 +553,25 @@ ipcMain.handle("presets:get-active", () => {
   }
 });
 
+function isValidPreset(preset) {
+  if (!preset || typeof preset !== "object") return false;
+  if (typeof preset.id !== "string" || !preset.id) return false;
+  if (typeof preset.name !== "string" || preset.name.length > 100) return false;
+  const isSmallNonNegInt = n =>
+    Number.isInteger(n) && n >= 0 && n <= 999;
+  return (
+    isSmallNonNegInt(preset.workMinutes) &&
+    isSmallNonNegInt(preset.workSeconds) &&
+    isSmallNonNegInt(preset.breakMinutes) &&
+    isSmallNonNegInt(preset.breakSeconds) &&
+    isSmallNonNegInt(preset.loops)
+  );
+}
+
 ipcMain.handle("presets:save", (_event, preset) => {
+  if (!isValidPreset(preset)) {
+    return { error: "Invalid preset data." };
+  }
   try {
     const presets = store.get("presets");
     const index = presets.findIndex(p => p.id === preset.id);
@@ -599,13 +698,18 @@ ipcMain.handle("spotify:login", async () => {
     authWindow.webContents.on("will-redirect", handleUrlChange);
     authWindow.webContents.on("will-navigate", handleUrlChange);
 
-    // ── Beyaz ekran debug: yükleme hatalarını yakala ──────────
+    // ── Yükleme hatalarını yakala ve reddet (aksi halde promise hiç
+    // ── settle olmaz ve "Connecting…" sonsuza kadar asılı kalır) ──
     authWindow.webContents.on(
       "did-fail-load",
-      (event, errorCode, errorDescription, validatedURL) => {
+      (_event, _errorCode, errorDescription, validatedURL) => {
+        if (settled) return;
         console.error(
           `Spotify auth window failed to load: ${errorDescription} (${validatedURL})`,
         );
+        settled = true;
+        authWindow.close();
+        reject(new Error(`Spotify login failed to load: ${errorDescription}`));
       },
     );
 
@@ -630,14 +734,59 @@ ipcMain.handle("spotify:refresh", async (_event, refreshToken) => {
   return refreshAccessToken(refreshToken);
 });
 
+// ── Spotify token storage (main process only) ─────────────────
+// Access/refresh tokens used to live in the renderer's localStorage as
+// plaintext — anything with filesystem access to the app's profile
+// directory could read a durable Spotify credential from there. Encrypt at
+// rest with safeStorage (OS-keychain-backed) instead, same trust boundary
+// the client secret already gets.
+function saveSpotifyTokens(tokens) {
+  if (!tokens || typeof tokens !== "object") return;
+  if (!safeStorage.isEncryptionAvailable()) {
+    console.warn(
+      "safeStorage encryption unavailable — Spotify session will not persist.",
+    );
+    return;
+  }
+  const encrypted = safeStorage
+    .encryptString(JSON.stringify(tokens))
+    .toString("base64");
+  store.set("spotifyTokens", encrypted);
+}
+
+function getSpotifyTokens() {
+  const encrypted = store.get("spotifyTokens");
+  if (!encrypted || !safeStorage.isEncryptionAvailable()) return null;
+  try {
+    return JSON.parse(
+      safeStorage.decryptString(Buffer.from(encrypted, "base64")),
+    );
+  } catch (e) {
+    console.error("Failed to decrypt stored Spotify tokens:", e);
+    return null;
+  }
+}
+
+function clearSpotifyTokens() {
+  store.delete("spotifyTokens");
+}
+
+ipcMain.handle("spotify:get-tokens", () => getSpotifyTokens());
+ipcMain.handle("spotify:save-tokens", (_event, tokens) =>
+  saveSpotifyTokens(tokens),
+);
+ipcMain.handle("spotify:clear-tokens", () => clearSpotifyTokens());
+
 /**
  * spotify:open-track
  * OS URI ile Spotify masaüstü uygulamasını açar, track'i tam olarak çalar.
  * Token gerekmez — shell.openExternal işletim sistemine devrediyor.
  */
 ipcMain.handle("spotify:open-track", async (_event, trackId) => {
-  if (!trackId) {
-    throw new Error("spotify:open-track: No track ID provided.");
+  // Re-validate here rather than trusting the renderer's own regex check
+  // (SpotifyAlarmProvider._extractTrackId) — this is the trusted boundary.
+  if (typeof trackId !== "string" || !/^[a-zA-Z0-9]{22}$/.test(trackId)) {
+    throw new Error("spotify:open-track: Invalid track ID.");
   }
   await shell.openExternal(`spotify:track:${trackId}`);
 });
@@ -704,4 +853,8 @@ async function refreshAccessToken(refreshToken) {
 
 process.on("uncaughtException", error => {
   console.error("Uncaught exception:", error);
+});
+
+process.on("unhandledRejection", reason => {
+  console.error("Unhandled rejection:", reason);
 });

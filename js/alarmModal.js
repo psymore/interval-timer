@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ── Başlangıç yükleme ─────────────────────────────────────
   await alarmManager.initialize(DEFAULT_ALARM);
-  updateSpotifyAuthUI();
+  await updateSpotifyAuthUI();
 
   const savedSource = localStorage.getItem("selectedAlarmPath");
   if (savedSource) {
@@ -242,15 +242,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ── Spotify auth UI ────────────────────────────────────────
-  function hasSpotifySession() {
-    return Boolean(
-      localStorage.getItem("spotify_access_token") ||
-        localStorage.getItem("spotify_refresh_token"),
-    );
+  async function hasSpotifySession() {
+    const tokens = await window.electronAPI.spotifyGetTokens();
+    return Boolean(tokens?.accessToken || tokens?.refreshToken);
   }
 
-  function updateSpotifyAuthUI() {
-    const connected = hasSpotifySession();
+  async function updateSpotifyAuthUI() {
+    const connected = await hasSpotifySession();
     if (spotifyStatusLabel) {
       spotifyStatusLabel.textContent = connected ? "Connected" : "Not connected";
     }
@@ -264,8 +262,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       spotifyConnectBtn.textContent = "Connecting…";
       try {
         const tokens = await window.electronAPI.spotifyLogin();
-        alarmManager._saveSpotifyTokens(tokens);
-        updateSpotifyAuthUI();
+        await alarmManager._saveSpotifyTokens(tokens);
+        await updateSpotifyAuthUI();
         showFeedback("Spotify connected.", "success");
       } catch (err) {
         console.error("Spotify login error:", err);
@@ -282,9 +280,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (spotifyLogoutBtn) {
     spotifyLogoutBtn.addEventListener("click", async () => {
-      localStorage.removeItem("spotify_access_token");
-      localStorage.removeItem("spotify_refresh_token");
-      localStorage.removeItem("spotify_expires_at");
+      await alarmManager._clearSpotifyTokens();
 
       // Spotify was the active alarm source — the loaded provider now holds
       // a dead session (OS launch needs no token so Preview would still
@@ -304,9 +300,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       showFeedback("Spotify disconnected.", "success");
       updateProviderTag("local");
-      updateSpotifyAuthUI();
+      await updateSpotifyAuthUI();
     });
   }
 
-  updateSpotifyAuthUI();
+  await updateSpotifyAuthUI();
 });

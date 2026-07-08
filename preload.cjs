@@ -27,4 +27,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   spotifyLogin: () => ipcRenderer.invoke("spotify:login"),
   spotifyRefresh: token => ipcRenderer.invoke("spotify:refresh", token),
   spotifyOpenTrack: trackId => ipcRenderer.invoke("spotify:open-track", trackId),
+
+  // Spotify token storage — encrypted at rest in the main process
+  // (safeStorage), never held in the renderer's localStorage.
+  spotifyGetTokens: () => ipcRenderer.invoke("spotify:get-tokens"),
+  spotifySaveTokens: tokens => ipcRenderer.invoke("spotify:save-tokens", tokens),
+  spotifyClearTokens: () => ipcRenderer.invoke("spotify:clear-tokens"),
 });
