@@ -16,28 +16,19 @@
 }
 
 /* ── Design Tokens ───────────────────────────────────────────── */
+/* Shared tokens (--bg, --surface, --border, --accent, --accent-dim,
+   --accent-glow, --ink, --ink-muted, --font-ui, --font-mono,
+   --ease-out) live in css/tokens.css, loaded before this file. */
 :root {
-  /* Colors */
-  --bg: #1e1e1e;
-  --surface: #252525;
+  /* Colors (main-window-only) */
   --surface-alt: #2b2b2b;
-  --border: #ff7a1a33;
   --border-hover: #ff7a1a;
-  --accent: #ff7a1a;
-  --accent-dim: #ff7a1a22;
-  --accent-glow: rgba(255, 122, 26, 0.35);
   --accent-b: #ee0979;
   --danger: #ff4d4f;
   --danger-dim: #ff4d4f22;
-  --ink: #f5f3f0;
-  --ink-muted: #c8c8c8;
   --input-bg: #2e2e2e;
   --modal-bg: #2b2b2b;
   --modal-border: #383838;
-
-  /* Typography */
-  --font-ui: "Inter", system-ui, Arial, sans-serif;
-  --font-mono: "Recursive", "Courier New", monospace;
 
   /* Type scale */
   --text-xs: 0.75rem;
@@ -71,7 +62,6 @@
   /* Motion */
   --dur-fast: 150ms;
   --dur-normal: 250ms;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── Reset ───────────────────────────────────────────────────── */
@@ -757,29 +747,29 @@ button:disabled {
 
 /* Primary button variant */
 .btn-primary {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-  font-weight: 700 !important;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--accent) !important;
-  color: #111 !important;
+  background-color: var(--accent);
+  color: #111;
 }
 
 /* Subtle button variant */
 .btn-subtle {
-  border-color: transparent !important;
-  color: var(--ink-muted) !important;
-  font-size: var(--text-xs) !important;
+  border-color: transparent;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
 }
 
 .btn-subtle:hover:not(:disabled) {
-  border-color: var(--border) !important;
-  color: var(--ink) !important;
-  background: none !important;
-  box-shadow: none !important;
-  transform: none !important;
+  border-color: var(--border);
+  color: var(--ink);
+  background: none;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Feedback mesajı */
@@ -1080,32 +1070,32 @@ button:disabled {
 }
 
 .preset-item__btn--yes {
-  color: #e05c5c !important;
-  border-color: rgba(224, 92, 92, 0.35) !important;
-  width: auto !important;
-  padding: 0 var(--sp-2) !important;
-  font-size: 0.7rem !important;
+  color: #e05c5c;
+  border-color: rgba(224, 92, 92, 0.35);
+  width: auto;
+  padding: 0 var(--sp-2);
+  font-size: 0.7rem;
 }
 
 .preset-item__btn--yes:hover:not(:disabled) {
-  background: rgba(224, 92, 92, 0.15) !important;
-  border-color: #e05c5c !important;
-  transform: none !important;
-  box-shadow: none !important;
+  background: rgba(224, 92, 92, 0.15);
+  border-color: #e05c5c;
+  transform: none;
+  box-shadow: none;
 }
 
 .preset-item__btn--no {
-  width: auto !important;
-  padding: 0 var(--sp-2) !important;
-  font-size: 0.7rem !important;
+  width: auto;
+  padding: 0 var(--sp-2);
+  font-size: 0.7rem;
 }
 
 .preset-item__btn--no:hover:not(:disabled) {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.06);
   border-color: #444;
-  transform: none !important;
-  box-shadow: none !important;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ── Dropdown footer ─────────────────────────────────────────── */

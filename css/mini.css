@@ -12,19 +12,11 @@
   font-display: swap;
 }
 
-:root {
-  --bg: #1a1a1a;
-  --surface: #242424;
-  --border: #333;
-  --accent: #ff7a1a;
-  --accent-dim: rgba(255, 122, 26, 0.12);
-  --accent-glow: rgba(255, 122, 26, 0.35);
-  --ink: #f5f3f0;
-  --ink-muted: #b0b0b0; /* ← #888'den yükseltildi, 5.2:1 */
-  --font-ui: "Inter", system-ui, sans-serif;
-  --font-mono: "Recursive", monospace;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-}
+/* All tokens this file used to declare here (--bg, --surface,
+   --border, --accent, --accent-dim, --accent-glow, --ink,
+   --ink-muted, --font-ui, --font-mono, --ease-out) are shared with
+   the main window and now live in css/tokens.css, loaded before
+   this file. */
 
 *,
 *::before,
