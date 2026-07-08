@@ -1,4 +1,7 @@
 import { AlarmProviderFactory } from "./AlarmProviderFactory.js";
+import { createLogger } from "../../lib/logger.js";
+
+const log = createLogger("AlarmManager");
 
 class AlarmManager {
   constructor() {
@@ -31,7 +34,7 @@ class AlarmManager {
       try {
         await this.load(defaultSource);
       } catch (e) {
-        console.error("AlarmManager: Default source failed:", e.message);
+        log.error("AlarmManager: Default source failed:", e.message);
       }
       return;
     }
@@ -55,14 +58,14 @@ class AlarmManager {
         await this.load(sourceToLoad);
       }
     } catch (e) {
-      console.warn(
+      log.warn(
         `AlarmManager: Saved source [${detectedType}] failed, ` +
           `falling back to default. Error: ${e.message}`,
       );
       try {
         await this.load(defaultSource);
       } catch (e2) {
-        console.error("AlarmManager: Default source also failed:", e2.message);
+        log.error("AlarmManager: Default source also failed:", e2.message);
       }
     }
   }
@@ -97,11 +100,11 @@ class AlarmManager {
       try {
         const spotifyOpts = await this._buildSpotifyOpts();
         opts = { ...spotifyOpts, ...opts };
-        console.log("AlarmManager: Spotify opts prepared:", {
+        log.info("AlarmManager: Spotify opts prepared:", {
           hasToken: !!opts.accessToken,
         });
       } catch (e) {
-        console.error("AlarmManager: Spotify token prep FAILED:", e.message); // ← warn yerine error, daha görünür
+        log.error("AlarmManager: Spotify token prep FAILED:", e.message); // ← warn yerine error, daha görünür
       }
     }
 
@@ -119,10 +122,10 @@ class AlarmManager {
       this._provider = provider;
       this._providerType = type;
       this._currentSource = source;
-      console.log(`AlarmManager: Loaded [${type}] — "${source}"`);
+      log.info(`AlarmManager: Loaded [${type}] — "${source}"`);
       return { type, usedFallback: false };
     } catch (loadError) {
-      console.error(`AlarmManager: [${type}] load failed:`, loadError.message);
+      log.error(`AlarmManager: [${type}] load failed:`, loadError.message);
       this._emit("onError", { error: loadError, type, source });
 
       if (type !== "local") {
@@ -150,7 +153,7 @@ class AlarmManager {
         const tokens = await window.electronAPI.spotifyGetTokens();
         this._provider.setAccessToken(tokens?.accessToken ?? null);
       } catch (e) {
-        console.warn("AlarmManager: Spotify token refresh failed:", e.message);
+        log.warn("AlarmManager: Spotify token refresh failed:", e.message);
       }
     }
 
@@ -158,7 +161,7 @@ class AlarmManager {
       await this._provider.play(duration);
       this._emit("onPlay", { type: this._providerType, duration });
     } catch (playError) {
-      console.error(
+      log.error(
         `AlarmManager: [${this._providerType}] play failed:`,
         playError.message,
       );
@@ -204,7 +207,7 @@ class AlarmManager {
         const tokens = await window.electronAPI.spotifyGetTokens();
         this._provider.setAccessToken(tokens?.accessToken ?? null);
       } catch (e) {
-        console.warn("AlarmManager: Spotify token refresh failed:", e.message);
+        log.warn("AlarmManager: Spotify token refresh failed:", e.message);
       }
     }
 
@@ -251,7 +254,7 @@ class AlarmManager {
         await this._saveSpotifyTokens(tokens);
         return { accessToken: tokens.accessToken };
       } catch (e) {
-        console.warn("AlarmManager: Refresh token failed:", e.message);
+        log.warn("AlarmManager: Refresh token failed:", e.message);
         await this._clearSpotifyTokens();
       }
     }
@@ -275,9 +278,9 @@ class AlarmManager {
       try {
         const tokens = await window.electronAPI.spotifyRefresh(refreshToken);
         await this._saveSpotifyTokens(tokens);
-        console.log("AlarmManager: Spotify token silently refreshed.");
+        log.info("AlarmManager: Spotify token silently refreshed.");
       } catch (e) {
-        console.warn("AlarmManager: Silent token refresh failed:", e.message);
+        log.warn("AlarmManager: Silent token refresh failed:", e.message);
       }
     }
   }
@@ -293,11 +296,11 @@ class AlarmManager {
   // ── Private ────────────────────────────────────────────────
 
   async _activateFallback(reason) {
-    console.warn(`AlarmManager: Fallback triggered — ${reason}`);
+    log.warn(`AlarmManager: Fallback triggered — ${reason}`);
     this._emit("onFallback", { reason });
 
     if (!this._fallbackSource) {
-      console.error("AlarmManager: No fallback source configured.");
+      log.error("AlarmManager: No fallback source configured.");
       return { type: "local", usedFallback: true };
     }
 
@@ -330,7 +333,7 @@ class AlarmManager {
       try {
         cb(data);
       } catch (e) {
-        console.error(`AlarmManager: ${event} callback error:`, e);
+        log.error(`AlarmManager: ${event} callback error:`, e);
       }
     }
   }

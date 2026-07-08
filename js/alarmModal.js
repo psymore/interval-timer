@@ -1,5 +1,8 @@
 import { alarmManager } from "./alarm/AlarmManager.js";
 import { AlarmProviderFactory } from "./alarm/AlarmProviderFactory.js";
+import { createLogger } from "../lib/logger.js";
+
+const log = createLogger("alarmModal");
 
 // ── Path helpers ──────────────────────────────────────────────
 // Renderer http:// origin'inden yüklendiği için file:// kaynaklar artık
@@ -30,7 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const spotifyLogoutBtn = document.getElementById("spotifyLogoutBtn");
 
   if (!chooseAlarmBtn) {
-    console.error("alarmModal: #chooseAlarmBtn not found.");
+    log.error("alarmModal: #chooseAlarmBtn not found.");
     return;
   }
 
@@ -88,7 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ── AlarmManager callbacks ────────────────────────────────
   alarmManager.setCallbacks({
     onFallback: ({ reason }) => {
-      console.warn("Alarm fallback:", reason);
+      log.warn("Alarm fallback:", reason);
       showFeedback(
         "External alarm unavailable. Using local fallback.",
         "error",
@@ -96,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateProviderTag("local");
     },
     onError: ({ error, type }) => {
-      console.error(`Alarm error [${type}]:`, error?.message);
+      log.error(`Alarm error [${type}]:`, error?.message);
     },
     onStop: () => resetPreviewBtn(),
   });
@@ -145,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       resetPreviewBtn();
       showFeedback(`"${getFileName(filePath)}" loaded as alarm.`, "success");
     } catch (err) {
-      console.error("File pick error:", err);
+      log.error("File pick error:", err);
       showFeedback("Could not load audio file.", "error");
     }
   });
@@ -194,7 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       resetPreviewBtn();
       urlInput.value = "";
     } catch (err) {
-      console.error("URL load error:", err);
+      log.error("URL load error:", err);
       showFeedback(
         `Failed to load: ${err.message ?? "Unknown error"}`,
         "error",
@@ -224,7 +227,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         previewAlarmBtn.textContent = "⏹ Stop";
         previewAlarmBtn.setAttribute("aria-label", "Stop preview");
       } catch (err) {
-        console.warn("Preview failed:", err);
+        log.warn("Preview failed:", err);
         showFeedback("Could not play alarm. Check the source.", "error");
         resetPreviewBtn();
       }
@@ -266,7 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await updateSpotifyAuthUI();
         showFeedback("Spotify connected.", "success");
       } catch (err) {
-        console.error("Spotify login error:", err);
+        log.error("Spotify login error:", err);
         showFeedback(
           `Spotify connection failed: ${err.message ?? "Unknown error"}`,
           "error",
@@ -294,7 +297,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           localStorage.removeItem("selectedAlarmPath");
           updateCurrentFile("alarm.mp3 (default)");
         } catch (e) {
-          console.error("Failed to revert to default alarm after Spotify disconnect:", e);
+          log.error("Failed to revert to default alarm after Spotify disconnect:", e);
         }
       }
 
