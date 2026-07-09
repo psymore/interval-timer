@@ -66,6 +66,7 @@ export async function initLanguage() {
     currentLanguage = DEFAULT_LANGUAGE;
   }
   applyTranslations(document);
+  listeners.forEach(cb => cb(currentLanguage));
   window.electronAPI.onLanguageChanged(lang => {
     if (!translations[lang] || lang === currentLanguage) return;
     currentLanguage = lang;
