@@ -13,6 +13,7 @@
   },
   "build": {
     "appId": "com.psymore.intervaltimer",
+    "productName": "Interval Timer",
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico",
