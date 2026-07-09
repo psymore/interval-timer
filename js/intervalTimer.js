@@ -7,6 +7,13 @@ import {
   formatDuration,
 } from "./timerStateBroadcast.js";
 import { toFileUrl } from "./alarmModal.js";
+import { t, onLanguageChange } from "./i18n/i18n.js";
+
+let stateBroadcaster = null;
+
+export function getIntervalStatus() {
+  return stateBroadcaster?.getStatus() ?? "ready";
+}
 
 // `alarmSettings` is passed in by renderer.js rather than imported from it —
 // importing it back from renderer.js would recreate the renderer.js <->
@@ -60,20 +67,27 @@ export function setupIntervalTimer(alarmSettings) {
   let totalLoops = 0;
   let pausedTime = 0;
   let isCompleted = false;
+  let currentPhase = "";
 
   let isAlarmPlaying = false;
   let alarmPaused = false;
 
+  function phaseDisplay(phase) {
+    return phase ? `${t("phase.label")}: ${t(`phase.${phase}`)}` : t("phase.empty");
+  }
+
+  function renderPhaseLabel() {
+    const ph = document.getElementById("intervalPhase");
+    if (ph) ph.textContent = phaseDisplay(currentPhase);
+  }
+
   // ── State yayını — her değişimde çağrılır ─────────────────
-  const stateBroadcaster = createTimerStateBroadcaster({
+  stateBroadcaster = createTimerStateBroadcaster({
     statusElementId: "intervalStatus",
     getBaseState: status => ({
       time:
         document.getElementById("intervalCountdown")?.textContent ?? "00:00",
-      phase:
-        document
-          .getElementById("intervalPhase")
-          ?.textContent?.replace("Phase: ", "") ?? "",
+      phase: currentPhase,
       status,
       tab: "interval",
       loop: currentLoop,
@@ -82,10 +96,10 @@ export function setupIntervalTimer(alarmSettings) {
   });
 
   function updateDisplay(remaining, phase) {
+    currentPhase = phase;
     const cd = document.getElementById("intervalCountdown");
-    const ph = document.getElementById("intervalPhase");
     if (cd) cd.textContent = formatDuration(remaining);
-    if (ph) ph.textContent = `Phase: ${phase}`;
+    renderPhaseLabel();
   }
 
   // ── Alarm helpers ─────────────────────────────────────────
@@ -142,8 +156,8 @@ export function setupIntervalTimer(alarmSettings) {
       cd.classList.add("countdown-complete");
       cd.textContent = "00:00";
     }
-    const ph = document.getElementById("intervalPhase");
-    if (ph) ph.textContent = "Phase: -";
+    currentPhase = "";
+    renderPhaseLabel();
 
     stateBroadcaster.setStatus("completed"); // broadcast içinde çağrılıyor
   }
@@ -262,17 +276,19 @@ export function setupIntervalTimer(alarmSettings) {
     currentLoop = 0;
     pausedTime = 0;
     totalLoops = 0;
+    currentPhase = "";
 
     const loopEl = document.getElementById("currentLoop");
     const cd = document.getElementById("intervalCountdown");
-    const ph = document.getElementById("intervalPhase");
     if (loopEl) loopEl.textContent = 0;
     if (cd) {
       cd.textContent = "00:00";
       cd.classList.remove("countdown-pulse", "countdown-complete");
     }
-    if (ph) ph.textContent = "Phase: -";
+    renderPhaseLabel();
 
     stateBroadcaster.setStatus("ready"); // broadcast tetiklenir — mini UI güncellenir
   };
+
+  onLanguageChange(() => renderPhaseLabel());
 }

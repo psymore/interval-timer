@@ -1,10 +1,10 @@
 import { renderTimerView } from "./views/timerView.js";
 import { renderIntervalView } from "./views/intervalTimerView.js";
-import { setupTimer } from "./timer.js";
-import { setupIntervalTimer } from "./intervalTimer.js";
+import { setupTimer, getTimerStatus } from "./timer.js";
+import { setupIntervalTimer, getIntervalStatus } from "./intervalTimer.js";
 import { setupTabListeners, switchTab } from "./tabs.js";
 import { enhanceNumberInputs } from "./numberStepper.js";
-import { initLanguage, setLanguage, getLanguage } from "./i18n/i18n.js";
+import { initLanguage, setLanguage, getLanguage, t } from "./i18n/i18n.js";
 
 const app = document.getElementById("app");
 
@@ -128,18 +128,13 @@ if (aotBtn) {
 
 // ── Quit ───────────────────────────────────────────────────────
 document.getElementById("quitAppBtn").onclick = () => {
-  const intervalStatus =
-    document.getElementById("intervalStatus")?.textContent ?? "";
-  const timerStatus =
-    document.getElementById("timerStatus")?.textContent ?? "";
-  const isTimerActive = [intervalStatus, timerStatus].some(
-    text => text.includes("Running") || text.includes("Paused"),
-  );
+  const activeStatuses = ["running", "paused"];
+  const isTimerActive =
+    activeStatuses.includes(getTimerStatus()) ||
+    activeStatuses.includes(getIntervalStatus());
 
   if (isTimerActive) {
-    const confirmed = window.confirm(
-      "A timer is currently running. Quit anyway?",
-    );
+    const confirmed = window.confirm(t("confirm.quitRunning"));
     if (!confirmed) return;
   }
 

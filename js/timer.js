@@ -33,6 +33,10 @@ window.addEventListener("request-timer-snapshot", () => {
   stateBroadcaster.broadcast();
 });
 
+export function getTimerStatus() {
+  return stateBroadcaster.getStatus();
+}
+
 export function setupTimer(settings) {
   alarmSettings = settings;
   document.getElementById("startBtn").onclick = startTimer;
