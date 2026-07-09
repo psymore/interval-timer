@@ -220,6 +220,15 @@ body {
   font-weight: 600;
 }
 
+.lang-btn {
+  width: auto;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 .quit-btn:hover:not(:disabled) {
   color: var(--danger);
   background-color: var(--danger-dim);
