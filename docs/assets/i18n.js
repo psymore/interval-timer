@@ -77,7 +77,30 @@ function storeLanguage(lang) {
 }
 
 function syncGiscusLanguage(lang) {
-  // Implemented in Task 3.
+  const wrap = document.querySelector(".giscus-wrap");
+  if (!wrap) return;
+
+  const sendConfig = (iframe) => {
+    iframe.contentWindow.postMessage(
+      { giscus: { setConfig: { lang } } },
+      "https://giscus.app"
+    );
+  };
+
+  const existing = wrap.querySelector("iframe.giscus-frame");
+  if (existing) {
+    sendConfig(existing);
+    return;
+  }
+
+  const observer = new MutationObserver(() => {
+    const iframe = wrap.querySelector("iframe.giscus-frame");
+    if (iframe) {
+      sendConfig(iframe);
+      observer.disconnect();
+    }
+  });
+  observer.observe(wrap, { childList: true, subtree: true });
 }
 
 function applyLanguage(lang) {
