@@ -18,6 +18,7 @@ import {
   isAppQuitting,
 } from "./lib/windows.js";
 import { registerPresetsIpc } from "./lib/presetsIpc.js";
+import { registerSettingsIpc } from "./lib/settingsIpc.js";
 import { initSpotifyAuth, registerSpotifyIpc } from "./lib/spotifyAuth.js";
 
 const log = createLogger("main");
@@ -62,6 +63,7 @@ const store = new Store({
       },
     ],
     activePresetId: "default-pomodoro",
+    language: "en",
   },
 });
 
@@ -83,6 +85,7 @@ initSpotifyAuth({
 registerLocalServerIpc();
 registerWindowIpc();
 registerPresetsIpc(store);
+registerSettingsIpc(store);
 registerSpotifyIpc();
 
 // ── App lifecycle ─────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { enhanceNumberInputs } from "./numberStepper.js";
+import { t, format, onLanguageChange } from "./i18n/i18n.js";
 
 const MAX_PRESETS = 20;
 
@@ -65,14 +66,14 @@ export async function setupPresets(onPresetLoad) {
     // Trigger label'ı aktif preset adıyla güncelle
     const triggerLabel = document.getElementById("presetTriggerLabel");
     if (triggerLabel) {
-      triggerLabel.textContent = active?.name ?? "Presets";
+      triggerLabel.textContent = active?.name ?? t("interval.presetsDefault");
     }
 
     // Empty state
     if (!presets || presets.length === 0) {
       const li = document.createElement("li");
       li.className = "preset-empty";
-      li.textContent = "No presets yet.";
+      li.textContent = t("presets.emptyState");
       container.appendChild(li);
       addBtn.disabled = false;
       return;
@@ -93,7 +94,7 @@ export async function setupPresets(onPresetLoad) {
     addBtn.disabled = presets.length >= MAX_PRESETS;
     addBtn.title =
       presets.length >= MAX_PRESETS
-        ? `Maximum ${MAX_PRESETS} presets reached`
+        ? format(t("presets.maxReachedTitle"), { max: MAX_PRESETS })
         : "";
   }
 
@@ -104,6 +105,11 @@ export async function setupPresets(onPresetLoad) {
   });
 
   await renderPresets();
+
+  onLanguageChange(() => {
+    document.getElementById("presetFormOverlay")?.remove();
+    renderPresets();
+  });
 }
 
 // ── Preset item ───────────────────────────────────────────────
@@ -120,7 +126,7 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
   const loopLabel = `${preset.loops} loop${preset.loops !== 1 ? "s" : ""}`;
 
   li.innerHTML = `
-    <button class="preset-item__load" aria-label="Load ${escapeHtml(preset.name)}">
+    <button class="preset-item__load" aria-label="${format(t("presets.loadAriaLabel"), { name: escapeHtml(preset.name) })}">
       <span class="preset-item__name">${escapeHtml(preset.name)}</span>
       <span class="preset-item__meta">
         ⏱ ${workLabel}
@@ -132,18 +138,18 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
     </button>
     <div class="preset-item__actions">
       <button class="preset-item__btn preset-item__btn--edit"
-        aria-label="Edit ${escapeHtml(preset.name)}"
-        title="Edit"
+        aria-label="${format(t("presets.editAriaLabel"), { name: escapeHtml(preset.name) })}"
+        title="${t("presets.editTitle")}"
         ${isDefault ? "disabled" : ""}>✎</button>
       <button class="preset-item__btn preset-item__btn--delete"
-        aria-label="Delete ${escapeHtml(preset.name)}"
-        title="${isDefault ? "Cannot delete default" : "Delete"}"
+        aria-label="${format(t("presets.deleteAriaLabel"), { name: escapeHtml(preset.name) })}"
+        title="${isDefault ? t("presets.cannotDeleteDefaultTitle") : t("presets.deleteTitle")}"
         ${isDefault ? "disabled" : ""}>✕</button>
     </div>
     <div class="preset-item__confirm hidden">
-      <span>Delete?</span>
-      <button class="preset-item__btn preset-item__btn--yes">Yes</button>
-      <button class="preset-item__btn preset-item__btn--no">No</button>
+      <span>${t("presets.deleteConfirm")}</span>
+      <button class="preset-item__btn preset-item__btn--yes">${t("presets.confirmYes")}</button>
+      <button class="preset-item__btn preset-item__btn--no">${t("presets.confirmNo")}</button>
     </div>
   `;
 
@@ -234,25 +240,25 @@ function showPresetForm(existingPreset, onRefresh) {
     <div class="preset-form" role="dialog" aria-modal="true"
       aria-labelledby="pfTitle">
       <h3 class="preset-form__title" id="pfTitle">
-        ${isEdit ? "Edit Preset" : "New Preset"}
+        ${isEdit ? t("presets.editFormTitle") : t("presets.newFormTitle")}
       </h3>
 
       <div class="preset-form__field">
-        <label for="pf-name">Name</label>
+        <label for="pf-name">${t("presets.nameLabel")}</label>
         <input id="pf-name" type="text" maxlength="32"
           value="${escapeHtml(p.name)}"
-          placeholder="e.g. Morning Focus"
+          placeholder="${t("presets.namePlaceholder")}"
           autocomplete="off" />
       </div>
 
       <div class="preset-form__row">
         <div class="preset-form__field">
-          <label for="pf-wm">Work min</label>
+          <label for="pf-wm">${t("presets.workMinLabel")}</label>
           <input id="pf-wm" type="number" min="0" max="99"
             value="${p.workMinutes}" />
         </div>
         <div class="preset-form__field">
-          <label for="pf-ws">Work sec</label>
+          <label for="pf-ws">${t("presets.workSecLabel")}</label>
           <input id="pf-ws" type="number" min="0" max="59"
             value="${p.workSeconds}" />
         </div>
@@ -260,19 +266,19 @@ function showPresetForm(existingPreset, onRefresh) {
 
       <div class="preset-form__row">
         <div class="preset-form__field">
-          <label for="pf-bm">Break min</label>
+          <label for="pf-bm">${t("presets.breakMinLabel")}</label>
           <input id="pf-bm" type="number" min="0" max="99"
             value="${p.breakMinutes}" />
         </div>
         <div class="preset-form__field">
-          <label for="pf-bs">Break sec</label>
+          <label for="pf-bs">${t("presets.breakSecLabel")}</label>
           <input id="pf-bs" type="number" min="0" max="59"
             value="${p.breakSeconds}" />
         </div>
       </div>
 
       <div class="preset-form__field">
-        <label for="pf-loops">Loops</label>
+        <label for="pf-loops">${t("presets.loopsLabel")}</label>
         <input id="pf-loops" type="number" min="1" max="99"
           value="${p.loops}" />
       </div>
@@ -282,9 +288,9 @@ function showPresetForm(existingPreset, onRefresh) {
 
       <div class="preset-form__btns">
         <button id="pfSaveBtn" class="btn-primary">
-          ${isEdit ? "Save changes" : "Create preset"}
+          ${isEdit ? t("presets.saveChanges") : t("presets.createPreset")}
         </button>
-        <button id="pfCancelBtn">Cancel</button>
+        <button id="pfCancelBtn">${t("presets.cancel")}</button>
       </div>
     </div>
   `;
@@ -324,12 +330,12 @@ function showPresetForm(existingPreset, onRefresh) {
     const loops = parseInt(overlay.querySelector("#pf-loops").value, 10) || 1;
 
     if (!name) {
-      showError("Please enter a name.");
+      showError(t("presets.errorNameRequired"));
       nameInput.focus();
       return;
     }
     if (workMinutes === 0 && workSeconds === 0) {
-      showError("Work duration must be greater than 0.");
+      showError(t("presets.errorWorkDuration"));
       return;
     }
 
@@ -338,7 +344,7 @@ function showPresetForm(existingPreset, onRefresh) {
       pr => pr.name.toLowerCase() === name.toLowerCase() && pr.id !== p.id,
     );
     if (duplicate) {
-      showError(`A preset named "${name}" already exists.`);
+      showError(format(t("presets.errorDuplicateName"), { name }));
       nameInput.focus();
       return;
     }

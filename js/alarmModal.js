@@ -1,6 +1,7 @@
 import { alarmManager } from "./alarm/AlarmManager.js";
 import { AlarmProviderFactory } from "./alarm/AlarmProviderFactory.js";
 import { createLogger } from "../lib/logger.js";
+import { t, format, onLanguageChange } from "./i18n/i18n.js";
 
 const log = createLogger("alarmModal");
 
@@ -50,11 +51,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function updateCurrentFile(label) {
     if (!alarmCurrentFile) return;
-    alarmCurrentFile.textContent = label || "Default alarm";
+    alarmCurrentFile.textContent = label || t("alarm.defaultLabel");
   }
 
   function updateProviderTag(type) {
     if (urlProviderTag) {
+      // Provider brand names — not translated (see design spec).
       const labels = { youtube: "YouTube", spotify: "Spotify" };
       const label = labels[type];
       if (label) {
@@ -69,7 +71,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const disablePreview = type === "spotify";
       previewAlarmBtn.disabled = disablePreview;
       previewAlarmBtn.title = disablePreview
-        ? "Preview isn't available for Spotify — playing opens the Spotify app directly."
+        ? t("alarm.previewDisabledTitle")
         : "";
     }
   }
@@ -77,25 +79,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   function resetPreviewBtn() {
     isPreviewing = false;
     if (previewAlarmBtn) {
-      previewAlarmBtn.textContent = "▶ Preview";
-      previewAlarmBtn.setAttribute("aria-label", "Preview alarm sound");
+      previewAlarmBtn.textContent = t("alarm.preview");
+      previewAlarmBtn.setAttribute("aria-label", t("alarm.previewAriaLabel"));
     }
   }
 
   function setUrlLoadBtnState(loading) {
     if (!urlLoadBtn) return;
     urlLoadBtn.disabled = loading;
-    urlLoadBtn.textContent = loading ? "Loading…" : "Load";
+    urlLoadBtn.textContent = loading ? t("alarm.urlLoading") : t("alarm.urlLoad");
   }
 
   // ── AlarmManager callbacks ────────────────────────────────
   alarmManager.setCallbacks({
     onFallback: ({ reason }) => {
       log.warn("Alarm fallback:", reason);
-      showFeedback(
-        "External alarm unavailable. Using local fallback.",
-        "error",
-      );
+      showFeedback(t("alarm.feedback.fallback"), "error");
       updateProviderTag("local");
     },
     onError: ({ error, type }) => {
@@ -107,6 +106,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ── Başlangıç yükleme ─────────────────────────────────────
   await alarmManager.initialize(DEFAULT_ALARM);
   await updateSpotifyAuthUI();
+
+  // Tracks whether the current-file label is showing the translated
+  // default (vs. a custom filename/URL) — used by the onLanguageChange
+  // handler below to re-render only the default label, not a real
+  // custom source name (see design spec's documented scope boundary
+  // on why custom-source labels don't re-sync on toggle).
+  let usingDefaultAlarm = false;
 
   const savedSource = localStorage.getItem("selectedAlarmPath");
   if (savedSource) {
@@ -123,7 +129,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateProviderTag(alarmManager.getProviderType());
     }
   } else {
-    updateCurrentFile("alarm.mp3 (default)");
+    usingDefaultAlarm = true;
+    updateCurrentFile(t("alarm.defaultFile"));
   }
 
   // ── Local dosya seç ───────────────────────────────────────
@@ -131,7 +138,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const filePath = await window.electronAPI.getFilePath();
       if (!filePath) {
-        showFeedback("No file selected.", "error");
+        showFeedback(t("alarm.feedback.noFileSelected"), "error");
         return;
       }
 
@@ -143,13 +150,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Ham path'i kaydet (file:// olmadan) — initialize doğru tespit etsin
       localStorage.setItem("selectedAlarmPath", filePath);
 
+      usingDefaultAlarm = false;
       updateCurrentFile(getFileName(filePath));
       updateProviderTag("local");
       resetPreviewBtn();
-      showFeedback(`"${getFileName(filePath)}" loaded as alarm.`, "success");
+      showFeedback(
+        format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
+        "success",
+      );
     } catch (err) {
       log.error("File pick error:", err);
-      showFeedback("Could not load audio file.", "error");
+      showFeedback(t("alarm.feedback.fileLoadError"), "error");
     }
   });
 
@@ -157,14 +168,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   urlLoadBtn.addEventListener("click", async () => {
     const rawUrl = urlInput.value.trim();
     if (!rawUrl) {
-      showFeedback("Please enter a YouTube or Spotify URL.", "error");
+      showFeedback(t("alarm.feedback.enterUrl"), "error");
       urlInput.focus();
       return;
     }
 
     const detectedType = AlarmProviderFactory.detect(rawUrl);
     if (detectedType === "local") {
-      showFeedback("Please enter a valid YouTube or Spotify URL.", "error");
+      showFeedback(t("alarm.feedback.invalidUrl"), "error");
       return;
     }
 
@@ -177,19 +188,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         const providerLabel =
           detectedType === "youtube" ? "YouTube" : "Spotify";
         showFeedback(
-          `${providerLabel} unavailable. Using local alarm as fallback.`,
+          format(t("alarm.feedback.providerFallback"), { provider: providerLabel }),
           "error",
         );
         updateProviderTag("local");
-        updateCurrentFile("alarm.mp3 (fallback)");
+        updateCurrentFile(t("alarm.fallbackFile"));
       } else {
         const providerLabel =
           detectedType === "youtube" ? "YouTube" : "Spotify";
-        showFeedback(`${providerLabel} alarm loaded.`, "success");
+        showFeedback(
+          format(t("alarm.feedback.providerLoaded"), { provider: providerLabel }),
+          "success",
+        );
         updateProviderTag(detectedType);
 
         const displayLabel =
           rawUrl.length > 40 ? rawUrl.slice(0, 37) + "…" : rawUrl;
+        usingDefaultAlarm = false;
         updateCurrentFile(displayLabel);
         localStorage.setItem("selectedAlarmPath", rawUrl);
       }
@@ -199,7 +214,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (err) {
       log.error("URL load error:", err);
       showFeedback(
-        `Failed to load: ${err.message ?? "Unknown error"}`,
+        format(t("alarm.feedback.loadFailed"), { message: err.message ?? "Unknown error" }),
         "error",
       );
     } finally {
@@ -217,18 +232,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (!alarmManager.isReady()) {
-        showFeedback("No alarm loaded. Choose a file or URL first.", "error");
+        showFeedback(t("alarm.feedback.noAlarmLoaded"), "error");
         return;
       }
 
       try {
         await alarmManager.play(0);
         isPreviewing = true;
-        previewAlarmBtn.textContent = "⏹ Stop";
-        previewAlarmBtn.setAttribute("aria-label", "Stop preview");
+        previewAlarmBtn.textContent = t("alarm.stopPreview");
+        previewAlarmBtn.setAttribute("aria-label", t("alarm.stopPreviewAriaLabel"));
       } catch (err) {
         log.warn("Preview failed:", err);
-        showFeedback("Could not play alarm. Check the source.", "error");
+        showFeedback(t("alarm.feedback.playFailed"), "error");
         resetPreviewBtn();
       }
     });
@@ -253,7 +268,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function updateSpotifyAuthUI() {
     const connected = await hasSpotifySession();
     if (spotifyStatusLabel) {
-      spotifyStatusLabel.textContent = connected ? "Connected" : "Not connected";
+      spotifyStatusLabel.textContent = connected
+        ? t("alarm.spotifyConnected")
+        : t("alarm.spotifyNotConnected");
     }
     if (spotifyConnectBtn) spotifyConnectBtn.classList.toggle("hidden", connected);
     if (spotifyLogoutBtn) spotifyLogoutBtn.classList.toggle("hidden", !connected);
@@ -262,21 +279,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (spotifyConnectBtn) {
     spotifyConnectBtn.addEventListener("click", async () => {
       spotifyConnectBtn.disabled = true;
-      spotifyConnectBtn.textContent = "Connecting…";
+      spotifyConnectBtn.textContent = t("alarm.spotifyConnecting");
       try {
         const tokens = await window.electronAPI.spotifyLogin();
         await alarmManager._saveSpotifyTokens(tokens);
         await updateSpotifyAuthUI();
-        showFeedback("Spotify connected.", "success");
+        showFeedback(t("alarm.feedback.spotifyConnected"), "success");
       } catch (err) {
         log.error("Spotify login error:", err);
         showFeedback(
-          `Spotify connection failed: ${err.message ?? "Unknown error"}`,
+          format(t("alarm.feedback.spotifyConnectFailed"), { message: err.message ?? "Unknown error" }),
           "error",
         );
       } finally {
         spotifyConnectBtn.disabled = false;
-        spotifyConnectBtn.textContent = "Connect Spotify";
+        spotifyConnectBtn.textContent = t("alarm.spotifyConnect");
       }
     });
   }
@@ -295,17 +312,24 @@ document.addEventListener("DOMContentLoaded", async () => {
           await alarmManager.load(DEFAULT_ALARM);
           alarmManager.setFallbackSource(DEFAULT_ALARM);
           localStorage.removeItem("selectedAlarmPath");
-          updateCurrentFile("alarm.mp3 (default)");
+          usingDefaultAlarm = true;
+          updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
           log.error("Failed to revert to default alarm after Spotify disconnect:", e);
         }
       }
 
-      showFeedback("Spotify disconnected.", "success");
+      showFeedback(t("alarm.feedback.spotifyDisconnected"), "success");
       updateProviderTag("local");
       await updateSpotifyAuthUI();
     });
   }
 
   await updateSpotifyAuthUI();
+
+  onLanguageChange(() => {
+    if (!isPreviewing) resetPreviewBtn();
+    updateSpotifyAuthUI();
+    if (usingDefaultAlarm) updateCurrentFile(t("alarm.defaultFile"));
+  });
 });

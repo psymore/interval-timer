@@ -12,6 +12,8 @@
 // tick (once for the visible countdown, once again for the broadcast
 // payload). This module centralizes all three.
 
+import { t, onLanguageChange } from "./i18n/i18n.js";
+
 // ── mm:ss formatting ───────────────────────────────────────────
 export function formatDuration(ms) {
   const mins = String(Math.floor(ms / 60000)).padStart(2, "0");
@@ -20,16 +22,16 @@ export function formatDuration(ms) {
 }
 
 // ── Status label text ──────────────────────────────────────────
-const STATUS_LABELS = {
-  ready: "Status: Ready",
-  running: "Status: Running",
-  paused: "Status: Paused",
-  stopped: "Status: Stopped",
-  completed: "Status: Completed",
+const STATUS_KEYS = {
+  ready: "status.ready",
+  running: "status.running",
+  paused: "status.paused",
+  stopped: "status.stopped",
+  completed: "status.completed",
 };
 
 export function statusLabel(status) {
-  return STATUS_LABELS[status] ?? `Status: ${status}`;
+  return STATUS_KEYS[status] ? t(STATUS_KEYS[status]) : `Status: ${status}`;
 }
 
 // ── Raw IPC send to the mini window ─────────────────────────────
@@ -52,16 +54,25 @@ export function createTimerStateBroadcaster({ statusElementId, getBaseState }) {
     broadcastTimerState({ ...getBaseState(status), ...overrides });
   }
 
-  function setStatus(newStatus) {
-    status = newStatus;
+  function refreshStatusLabel() {
     const el = document.getElementById(statusElementId);
     if (el) el.textContent = statusLabel(status);
+  }
+
+  function setStatus(newStatus) {
+    status = newStatus;
+    refreshStatusLabel();
     broadcast();
   }
 
   function getStatus() {
     return status;
   }
+
+  onLanguageChange(() => {
+    refreshStatusLabel();
+    broadcast();
+  });
 
   return { broadcast, setStatus, getStatus };
 }
