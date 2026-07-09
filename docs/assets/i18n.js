@@ -5,7 +5,7 @@ const translations = {
     "nav.source": "Source",
     "hero.eyebrow": "Free · Windows · No account needed",
     "hero.h1": "Work. Break. Repeat.<br />Wake up to <em>your</em> music, not a beep.",
-    "hero.lede": "An interval &amp; countdown timer whose alarm can be a local file, a YouTube video, or a real Spotify track — plus a background-safe tick loop that keeps counting even while the window is minimized.",
+    "hero.lede": "An interval & countdown timer whose alarm can be a local file, a YouTube video, or a real Spotify track — plus a background-safe tick loop that keeps counting even while the window is minimized.",
     "hero.download": "⬇ Download for Windows",
     "hero.releases": "See all releases",
     "hero.stat": "free · open source · unsigned installer (SmartScreen may warn once)",
