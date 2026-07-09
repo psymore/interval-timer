@@ -18,7 +18,19 @@
       "icon": "build/icon.ico",
       "signExecutable": false
     },
-    "mac": null
+    "mac": null,
+    "files": [
+      "**/*",
+      "!spotify-credentials.example.json",
+      "!docs/**",
+      "!.claude/**",
+      "!.superpowers/**",
+      "!markdown/**",
+      "!production-review/**",
+      "!README.md",
+      "!CLAUDE.md",
+      "!*.md"
+    ]
   },
   "overrides": {
     "@noble/hashes": "1.8.0"
