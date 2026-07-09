@@ -122,8 +122,8 @@ function applyLanguage(lang) {
     if (strings[key] !== undefined) el.setAttribute("alt", strings[key]);
   });
 
-  const toggle = document.getElementById("lang-toggle");
-  if (toggle) toggle.textContent = lang === "en" ? "TR" : "EN";
+  const toggleLabel = document.getElementById("lang-toggle-label");
+  if (toggleLabel) toggleLabel.textContent = lang === "en" ? "TR" : "EN";
 
   storeLanguage(lang);
   syncGiscusLanguage(lang);
