@@ -107,6 +107,24 @@
       color: var(--accent);
     }
 
+    .lang-toggle {
+      background: none;
+      border: 1px solid var(--border-quiet);
+      color: var(--ink-muted);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 150ms ease, color 150ms ease;
+    }
+
+    .lang-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     /* ---- hero ---- */
     .hero {
       padding: 72px 0 88px;
@@ -416,6 +434,7 @@
         <a href="#features" data-i18n="nav.features">Features</a>
         <a href="#feedback" data-i18n="nav.feedback">Feedback</a>
         <a href="https://github.com/psymore/interval-timer" data-i18n="nav.source">Source</a>
+        <button id="lang-toggle" class="lang-toggle" type="button" aria-label="Switch language">TR</button>
       </div>
     </div>
   </nav>
@@ -520,6 +539,7 @@
     </div>
   </footer>
 
+  <script src="assets/i18n.js" defer></script>
 </body>
 
 </html>

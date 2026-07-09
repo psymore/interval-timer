@@ -58,3 +58,63 @@ const translations = {
     "footer.discussions": "Tartışmalar"
   }
 };
+
+function getStoredLanguage() {
+  try {
+    return localStorage.getItem("interval-timer-lang");
+  } catch {
+    return null;
+  }
+}
+
+function storeLanguage(lang) {
+  try {
+    localStorage.setItem("interval-timer-lang", lang);
+  } catch {
+    // localStorage unavailable (privacy mode, disabled storage) — the
+    // toggle still works for this page view, it just won't persist.
+  }
+}
+
+function syncGiscusLanguage(lang) {
+  // Implemented in Task 3.
+}
+
+function applyLanguage(lang) {
+  document.documentElement.lang = lang;
+  const strings = translations[lang];
+
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (strings[key] !== undefined) el.textContent = strings[key];
+  });
+
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-html");
+    if (strings[key] !== undefined) el.innerHTML = strings[key];
+  });
+
+  document.querySelectorAll("[data-i18n-alt]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-alt");
+    if (strings[key] !== undefined) el.setAttribute("alt", strings[key]);
+  });
+
+  const toggle = document.getElementById("lang-toggle");
+  if (toggle) toggle.textContent = lang === "en" ? "TR" : "EN";
+
+  storeLanguage(lang);
+  syncGiscusLanguage(lang);
+}
+
+function initLanguage() {
+  const stored = getStoredLanguage();
+  const lang = stored === "tr" ? "tr" : "en";
+  applyLanguage(lang);
+
+  document.getElementById("lang-toggle").addEventListener("click", () => {
+    const current = document.documentElement.lang === "tr" ? "tr" : "en";
+    applyLanguage(current === "en" ? "tr" : "en");
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initLanguage);
