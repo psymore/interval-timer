@@ -17,7 +17,7 @@ a YouTube video, or a Spotify track.
 - **Interval Timer** — configurable work/break durations and loop count, with a running phase/status display.
 - **Countdown Timer** — a simple one-shot timer, separate from the interval loop.
 - **Presets** — save and switch between named timer configurations; three seeded defaults plus up to 20 of your own.
-- **Alarm sources** — a local audio file, a YouTube video/URL, or a Spotify track, with automatic fallback to the local alarm if a source fails to load or play.
+- **Alarm sources** — a local audio file, a YouTube video/URL, or a Spotify track, with automatic fallback to the local alarm if a source fails to load or play. Spotify alarms currently have no reliable preview clip playback — full-track playback needs Widevine support that stock Electron doesn't ship, and Spotify's non-DRM preview-clip API isn't available for every track.
 - **Pause / Continue** — every alarm source resumes correctly rather than losing its duration cap or restarting from zero.
 - **Mini window** — a small always-on-top window that mirrors and controls the active timer, and stays above other apps even when they go fullscreen.
 - **System tray** — runs in the tray; keeps ticking in the background thanks to disabled timer throttling and a power-save blocker.
@@ -47,9 +47,11 @@ npm run clean        # remove dist/
 
 There is no test suite or lint script configured.
 
-#### Spotify alarms (optional, source builds only)
+#### Spotify alarms
 
-Spotify alarm support needs your own Spotify app credentials. Copy `spotify-credentials.example.json` to `spotify-credentials.json` and fill in the client ID/secret from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). This file is gitignored and never bundled into releases.
+Downloaded releases ship with the maintainer's own Spotify app credentials, so Spotify alarm selection works out of the box — no setup needed. Every user authenticates their own Spotify account separately (via the in-app login), so this only identifies the app to Spotify's API, not any individual user's account. See `RELEASE_VALIDATION_REPORT.md` for the tradeoffs of this approach.
+
+If you're building from source and want to use your own Spotify app instead, copy `spotify-credentials.example.json` to `spotify-credentials.json` and fill in the client ID/secret from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). This file is gitignored, so a source checkout won't have one until you create it.
 
 ## Project structure
 
