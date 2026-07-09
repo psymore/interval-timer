@@ -33,4 +33,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   spotifyGetTokens: () => ipcRenderer.invoke("spotify:get-tokens"),
   spotifySaveTokens: tokens => ipcRenderer.invoke("spotify:save-tokens", tokens),
   spotifyClearTokens: () => ipcRenderer.invoke("spotify:clear-tokens"),
+
+  // Language
+  languageGet: () => ipcRenderer.invoke("settings:get-language"),
+  languageSet: lang => ipcRenderer.invoke("settings:set-language", lang),
+  onLanguageChanged: cb =>
+    ipcRenderer.on("language-changed", (_e, lang) => cb(lang)),
 });
