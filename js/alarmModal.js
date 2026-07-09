@@ -107,6 +107,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   await alarmManager.initialize(DEFAULT_ALARM);
   await updateSpotifyAuthUI();
 
+  // Tracks whether the current-file label is showing the translated
+  // default (vs. a custom filename/URL) — used by the onLanguageChange
+  // handler below to re-render only the default label, not a real
+  // custom source name (see design spec's documented scope boundary
+  // on why custom-source labels don't re-sync on toggle).
+  let usingDefaultAlarm = false;
+
   const savedSource = localStorage.getItem("selectedAlarmPath");
   if (savedSource) {
     const type = AlarmProviderFactory.detect(savedSource);
@@ -122,7 +129,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateProviderTag(alarmManager.getProviderType());
     }
   } else {
-    updateCurrentFile("alarm.mp3 (default)");
+    usingDefaultAlarm = true;
+    updateCurrentFile(t("alarm.defaultFile"));
   }
 
   // ── Local dosya seç ───────────────────────────────────────
@@ -142,6 +150,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Ham path'i kaydet (file:// olmadan) — initialize doğru tespit etsin
       localStorage.setItem("selectedAlarmPath", filePath);
 
+      usingDefaultAlarm = false;
       updateCurrentFile(getFileName(filePath));
       updateProviderTag("local");
       resetPreviewBtn();
@@ -195,6 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const displayLabel =
           rawUrl.length > 40 ? rawUrl.slice(0, 37) + "…" : rawUrl;
+        usingDefaultAlarm = false;
         updateCurrentFile(displayLabel);
         localStorage.setItem("selectedAlarmPath", rawUrl);
       }
@@ -302,7 +312,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           await alarmManager.load(DEFAULT_ALARM);
           alarmManager.setFallbackSource(DEFAULT_ALARM);
           localStorage.removeItem("selectedAlarmPath");
-          updateCurrentFile("alarm.mp3 (default)");
+          usingDefaultAlarm = true;
+          updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
           log.error("Failed to revert to default alarm after Spotify disconnect:", e);
         }
@@ -319,5 +330,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   onLanguageChange(() => {
     if (!isPreviewing) resetPreviewBtn();
     updateSpotifyAuthUI();
+    if (usingDefaultAlarm) updateCurrentFile(t("alarm.defaultFile"));
   });
 });

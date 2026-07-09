@@ -4,7 +4,7 @@ import { setupTimer, getTimerStatus } from "./timer.js";
 import { setupIntervalTimer, getIntervalStatus } from "./intervalTimer.js";
 import { setupTabListeners, switchTab } from "./tabs.js";
 import { enhanceNumberInputs } from "./numberStepper.js";
-import { initLanguage, setLanguage, getLanguage, t } from "./i18n/i18n.js";
+import { initLanguage, setLanguage, getLanguage, t, onLanguageChange } from "./i18n/i18n.js";
 
 const app = document.getElementById("app");
 
@@ -114,16 +114,27 @@ let alwaysOnTop = false;
 
 const aotBtn = document.getElementById("alwaysOnTopBtn");
 if (aotBtn) {
+  const refreshAotAriaLabel = () => {
+    aotBtn.setAttribute(
+      "aria-label",
+      t(
+        alwaysOnTop
+          ? "topbar.pinBtn.ariaLabel.unpin"
+          : "topbar.pinBtn.ariaLabel.pin",
+      ),
+    );
+  };
+
   aotBtn.addEventListener("click", () => {
     alwaysOnTop = !alwaysOnTop;
     window.electronAPI.setAlwaysOnTop(alwaysOnTop);
     aotBtn.classList.toggle("active", alwaysOnTop);
     aotBtn.setAttribute("aria-pressed", alwaysOnTop);
-    aotBtn.setAttribute(
-      "aria-label",
-      alwaysOnTop ? "Unpin window" : "Pin window on top",
-    );
+    refreshAotAriaLabel();
   });
+
+  refreshAotAriaLabel();
+  onLanguageChange(refreshAotAriaLabel);
 }
 
 // ── Quit ───────────────────────────────────────────────────────
