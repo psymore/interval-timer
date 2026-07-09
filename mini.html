@@ -20,7 +20,8 @@
 
         <div class="mini-header">
             <span class="mini-label" id="miniLabel">TIMER</span>
-            <button type="button" class="mini-close" id="miniCloseBtn" aria-label="Close mini view">✕</button>
+            <button type="button" class="mini-close" id="miniCloseBtn" aria-label="Close mini view"
+                data-i18n-aria-label="mini.closeAriaLabel">✕</button>
         </div>
 
         <div class="mini-countdown" id="miniCountdown">00:00</div>
@@ -29,15 +30,15 @@
 
         <div class="mini-controls">
             <button type="button" class="mini-btn" id="miniPauseBtn" data-action="pause" aria-label="Pause timer"
-                title="Pause">⏸</button>
+                data-i18n-aria-label="mini.pauseAriaLabel" data-i18n-title="mini.pauseTitle" title="Pause">⏸</button>
             <button type="button" class="mini-btn" id="miniContinueBtn" data-action="continue" aria-label="Continue timer"
                 title="Continue">▶</button>
             <button type="button" class="mini-btn" id="miniResetBtn" data-action="reset" aria-label="Reset timer"
-                title="Reset">↺</button>
+                data-i18n-aria-label="mini.resetAriaLabel" data-i18n-title="mini.resetTitle" title="Reset">↺</button>
         </div>
 
     </div>
-    <script src="js/mini.js"></script>
+    <script type="module" src="js/mini.js"></script>
 </body>
 
 </html>
