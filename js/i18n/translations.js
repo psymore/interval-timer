@@ -125,6 +125,9 @@ export const translations = {
     "presets.errorWorkDuration": "Work duration must be greater than 0.",
     "presets.errorDuplicateName": "A preset named \"{name}\" already exists.",
     "confirm.quitRunning": "A timer is currently running. Quit anyway?",
+    "updates.banner.message": "A new version is available ({version})",
+    "updates.banner.download": "Download",
+    "updates.banner.dismiss.ariaLabel": "Dismiss update notification",
   },
   tr: {
     "app.title": "Zamanlayıcı Uygulaması",
@@ -252,5 +255,8 @@ export const translations = {
     "presets.errorWorkDuration": "Çalışma süresi 0'dan büyük olmalı.",
     "presets.errorDuplicateName": "\"{name}\" isimli bir hazır ayar zaten var.",
     "confirm.quitRunning": "Şu anda bir sayaç çalışıyor. Yine de çıkılsın mı?",
+    "updates.banner.message": "Yeni bir sürüm mevcut ({version})",
+    "updates.banner.download": "İndir",
+    "updates.banner.dismiss.ariaLabel": "Güncelleme bildirimini kapat",
   },
 };

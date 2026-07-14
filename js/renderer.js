@@ -5,6 +5,7 @@ import { setupIntervalTimer, getIntervalStatus } from "./intervalTimer.js";
 import { setupTabListeners, switchTab } from "./tabs.js";
 import { enhanceNumberInputs } from "./numberStepper.js";
 import { initLanguage, setLanguage, getLanguage, t, onLanguageChange } from "./i18n/i18n.js";
+import { setupUpdateChecker } from "./updates.js";
 
 const app = document.getElementById("app");
 
@@ -28,6 +29,9 @@ setupTimer(alarmSettings);
 // Replace native number-input spin buttons with themed ones
 // (covers the timer/interval views above plus the static settings modal)
 enhanceNumberInputs(document);
+
+// ── Updates ────────────────────────────────────────────────────
+setupUpdateChecker();
 
 // ── Language ───────────────────────────────────────────────────
 const languageBtn = document.getElementById("languageBtn");
