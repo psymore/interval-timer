@@ -20,6 +20,7 @@ import {
 import { registerPresetsIpc } from "./lib/presetsIpc.js";
 import { registerSettingsIpc } from "./lib/settingsIpc.js";
 import { initSpotifyAuth, registerSpotifyIpc } from "./lib/spotifyAuth.js";
+import { initUpdateChecker, registerUpdateIpc } from "./lib/updateChecker.js";
 
 const log = createLogger("main");
 
@@ -64,6 +65,7 @@ const store = new Store({
     ],
     activePresetId: "default-pomodoro",
     language: "en",
+    dismissedUpdateVersion: null,
   },
 });
 
@@ -87,6 +89,7 @@ registerWindowIpc();
 registerPresetsIpc(store);
 registerSettingsIpc(store);
 registerSpotifyIpc();
+registerUpdateIpc(store);
 
 // ── App lifecycle ─────────────────────────────────────────────
 app
@@ -100,6 +103,7 @@ app
     );
 
     await createWindow(); // ← await eklendi
+    initUpdateChecker({ store });
     createTray();
     blockerId = powerSaveBlocker.start("prevent-app-suspension");
     app.on("activate", async () => {
