@@ -1423,3 +1423,78 @@ button:disabled {
 .alarm-actions button {
   flex: 1;
 }
+
+/* ── Update banner ───────────────────────────────────────────── */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  z-index: var(--z-toast);
+}
+
+.update-banner.hidden {
+  display: none;
+}
+
+.update-banner__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-banner__download {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  min-width: auto;
+  padding: var(--sp-1) var(--sp-4);
+}
+
+.update-banner__download:hover:not(:disabled) {
+  background-color: var(--accent);
+  color: #111;
+}
+
+.update-banner__dismiss {
+  min-width: auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: var(--text-lg);
+  line-height: 1;
+  border-color: transparent;
+}
+
+.update-banner__dismiss:hover:not(:disabled) {
+  background-color: var(--danger-dim);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ── Update check row (settings modal) ──────────────────────── */
+.update-check-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.update-check-row button {
+  min-width: auto;
+}
+
+.update-check-status {
+  margin: calc(-1 * var(--sp-2)) 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  min-height: 1em;
+}
