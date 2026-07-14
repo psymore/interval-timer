@@ -76,6 +76,11 @@
                     <input type="number" id="breakAlarmLength" min="1" value="5" />
                 </label>
             </div>
+            <div class="settings-group update-check-row">
+                <span data-i18n="settings.updates.label">Updates</span>
+                <button type="button" id="checkUpdatesBtn" data-i18n="settings.updates.checkBtn">Check for updates</button>
+            </div>
+            <p id="updateCheckStatus" class="update-check-status" aria-live="polite"></p>
             <div class="button-group">
                 <button type="button" id="saveSettingsBtn" data-i18n="settings.save">Save</button>
                 <button type="button" id="closeSettingsBtn" data-i18n="settings.close">Close</button>

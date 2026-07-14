@@ -128,6 +128,10 @@ export const translations = {
     "updates.banner.message": "A new version is available ({version})",
     "updates.banner.download": "Download",
     "updates.banner.dismiss.ariaLabel": "Dismiss update notification",
+    "settings.updates.label": "Updates",
+    "settings.updates.checkBtn": "Check for updates",
+    "settings.updates.upToDate": "You're up to date ({version})",
+    "settings.updates.error": "Couldn't check for updates",
   },
   tr: {
     "app.title": "Zamanlayıcı Uygulaması",
@@ -258,5 +262,9 @@ export const translations = {
     "updates.banner.message": "Yeni bir sürüm mevcut ({version})",
     "updates.banner.download": "İndir",
     "updates.banner.dismiss.ariaLabel": "Güncelleme bildirimini kapat",
+    "settings.updates.label": "Güncellemeler",
+    "settings.updates.checkBtn": "Güncellemeleri kontrol et",
+    "settings.updates.upToDate": "Güncelsiniz ({version})",
+    "settings.updates.error": "Güncellemeler kontrol edilemedi",
   },
 };

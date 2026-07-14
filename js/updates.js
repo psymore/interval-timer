@@ -36,4 +36,32 @@ export function setupUpdateChecker() {
     renderBanner();
   });
   onLanguageChange(renderBanner);
+
+  const checkBtn = document.getElementById("checkUpdatesBtn");
+  const statusEl = document.getElementById("updateCheckStatus");
+  if (!checkBtn || !statusEl) return;
+
+  checkBtn.addEventListener("click", async () => {
+    checkBtn.disabled = true;
+    statusEl.textContent = "";
+
+    const result = await window.electronAPI.updatesCheck();
+
+    checkBtn.disabled = false;
+
+    if (result.error) {
+      statusEl.textContent = t("settings.updates.error");
+      return;
+    }
+
+    if (result.updateAvailable) {
+      currentUpdate = { version: result.latestVersion, url: result.releaseUrl };
+      renderBanner();
+      statusEl.textContent = "";
+    } else {
+      statusEl.textContent = format(t("settings.updates.upToDate"), {
+        version: result.currentVersion,
+      });
+    }
+  });
 }
