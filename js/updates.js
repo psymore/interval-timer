@@ -14,10 +14,14 @@ function renderBanner() {
 
   banner.classList.remove("hidden");
   banner.innerHTML = `
-    <span class="update-banner__text">${format(t("updates.banner.message"), { version: currentUpdate.version })}</span>
+    <span class="update-banner__text"></span>
     <button type="button" class="update-banner__download">${t("updates.banner.download")}</button>
     <button type="button" class="update-banner__dismiss" aria-label="${t("updates.banner.dismiss.ariaLabel")}">&times;</button>
   `;
+
+  banner.querySelector(".update-banner__text").textContent = format(t("updates.banner.message"), {
+    version: currentUpdate.version,
+  });
 
   banner.querySelector(".update-banner__download").addEventListener("click", () => {
     window.electronAPI.updatesOpenReleases(currentUpdate.url);
@@ -57,7 +61,7 @@ export function setupUpdateChecker() {
     if (result.updateAvailable) {
       currentUpdate = { version: result.latestVersion, url: result.releaseUrl };
       renderBanner();
-      statusEl.textContent = "";
+      statusEl.textContent = format(t("updates.banner.message"), { version: result.latestVersion });
     } else {
       statusEl.textContent = format(t("settings.updates.upToDate"), {
         version: result.currentVersion,
