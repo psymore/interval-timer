@@ -39,4 +39,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   languageSet: lang => ipcRenderer.invoke("settings:set-language", lang),
   onLanguageChanged: cb =>
     ipcRenderer.on("language-changed", (_e, lang) => cb(lang)),
+
+  // Updates
+  updatesCheck: () => ipcRenderer.invoke("updates:check"),
+  updatesDismiss: version => ipcRenderer.invoke("updates:dismiss", version),
+  updatesOpenReleases: url => ipcRenderer.invoke("updates:open-releases", url),
+  onUpdateAvailable: cb =>
+    ipcRenderer.on("updates:available", (_e, info) => cb(info)),
 });
