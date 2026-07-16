@@ -35,15 +35,16 @@ setupUpdateChecker();
 
 // ── Language ───────────────────────────────────────────────────
 const languageBtn = document.getElementById("languageBtn");
+const languageBtnLabel = document.getElementById("languageBtnLabel");
 initLanguage().then(() => {
-  if (languageBtn) languageBtn.textContent = getLanguage().toUpperCase();
+  if (languageBtnLabel) languageBtnLabel.textContent = getLanguage().toUpperCase();
 });
 
 if (languageBtn) {
   languageBtn.addEventListener("click", async () => {
     const next = getLanguage() === "en" ? "tr" : "en";
     await setLanguage(next);
-    languageBtn.textContent = next.toUpperCase();
+    if (languageBtnLabel) languageBtnLabel.textContent = next.toUpperCase();
   });
 }
 

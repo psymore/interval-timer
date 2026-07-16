@@ -4,7 +4,7 @@ export function renderIntervalView() {
 
       <!-- Preset dropdown trigger -->
       <div class="preset-dropdown-wrapper">
-        <button class="preset-trigger" id="presetTriggerBtn"
+        <button class="preset-trigger no-hover-lift" id="presetTriggerBtn"
           aria-haspopup="listbox" aria-expanded="false"
           aria-label="Select preset" data-i18n-aria-label="interval.selectPresetAriaLabel">
           <span class="preset-trigger__label" id="presetTriggerLabel">Presets</span>
@@ -15,7 +15,7 @@ export function renderIntervalView() {
           role="listbox" aria-label="Presets" data-i18n-aria-label="interval.presetsListAriaLabel" hidden>
           <ul class="preset-dropdown__list" id="presetsContainer"></ul>
           <div class="preset-dropdown__footer">
-            <button id="addPresetBtn" class="preset-dropdown__add" data-i18n="interval.addPreset">
+            <button id="addPresetBtn" class="preset-dropdown__add no-hover-lift" data-i18n="interval.addPreset">
               + New preset
             </button>
           </div>

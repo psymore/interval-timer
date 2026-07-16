@@ -126,7 +126,7 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
   const loopLabel = `${preset.loops} loop${preset.loops !== 1 ? "s" : ""}`;
 
   li.innerHTML = `
-    <button class="preset-item__load" aria-label="${format(t("presets.loadAriaLabel"), { name: escapeHtml(preset.name) })}">
+    <button class="preset-item__load no-hover-lift" aria-label="${format(t("presets.loadAriaLabel"), { name: escapeHtml(preset.name) })}">
       <span class="preset-item__name">${escapeHtml(preset.name)}</span>
       <span class="preset-item__meta">
         ⏱ ${workLabel}
@@ -137,19 +137,19 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
       </span>
     </button>
     <div class="preset-item__actions">
-      <button class="preset-item__btn preset-item__btn--edit"
+      <button class="preset-item__btn preset-item__btn--edit no-hover-lift"
         aria-label="${format(t("presets.editAriaLabel"), { name: escapeHtml(preset.name) })}"
         title="${t("presets.editTitle")}"
         ${isDefault ? "disabled" : ""}>✎</button>
-      <button class="preset-item__btn preset-item__btn--delete"
+      <button class="preset-item__btn preset-item__btn--delete no-hover-lift"
         aria-label="${format(t("presets.deleteAriaLabel"), { name: escapeHtml(preset.name) })}"
         title="${isDefault ? t("presets.cannotDeleteDefaultTitle") : t("presets.deleteTitle")}"
         ${isDefault ? "disabled" : ""}>✕</button>
     </div>
     <div class="preset-item__confirm hidden">
       <span>${t("presets.deleteConfirm")}</span>
-      <button class="preset-item__btn preset-item__btn--yes">${t("presets.confirmYes")}</button>
-      <button class="preset-item__btn preset-item__btn--no">${t("presets.confirmNo")}</button>
+      <button class="preset-item__btn preset-item__btn--yes no-hover-lift">${t("presets.confirmYes")}</button>
+      <button class="preset-item__btn preset-item__btn--no no-hover-lift">${t("presets.confirmNo")}</button>
     </div>
   `;
 

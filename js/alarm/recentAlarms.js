@@ -6,6 +6,10 @@ export function addRecentPath(recentPaths, newPath) {
   return [newPath, ...withoutDup].slice(0, MAX_RECENT);
 }
 
+export function removeRecentPath(recentPaths, pathToRemove) {
+  return recentPaths.filter(p => p !== pathToRemove);
+}
+
 export function loadRecentPaths() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

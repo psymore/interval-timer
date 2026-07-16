@@ -11,13 +11,13 @@ export function enhanceNumberInputs(root = document) {
 
     const up = document.createElement("button");
     up.type = "button";
-    up.className = "number-stepper__btn number-stepper__up";
+    up.className = "number-stepper__btn number-stepper__up no-hover-lift";
     up.setAttribute("aria-label", "Increase value");
     up.tabIndex = -1;
 
     const down = document.createElement("button");
     down.type = "button";
-    down.className = "number-stepper__btn number-stepper__down";
+    down.className = "number-stepper__btn number-stepper__down no-hover-lift";
     down.setAttribute("aria-label", "Decrease value");
     down.tabIndex = -1;
 

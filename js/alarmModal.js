@@ -1,6 +1,11 @@
 import { alarmManager } from "./alarm/AlarmManager.js";
 import { AlarmProviderFactory } from "./alarm/AlarmProviderFactory.js";
-import { addRecentPath, loadRecentPaths, saveRecentPaths } from "./alarm/recentAlarms.js";
+import {
+  addRecentPath,
+  loadRecentPaths,
+  removeRecentPath,
+  saveRecentPaths,
+} from "./alarm/recentAlarms.js";
 import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
@@ -106,12 +111,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         toggles.forEach(other => {
           other.setAttribute("aria-expanded", "false");
-          const body = document.getElementById(other.getAttribute("aria-controls"));
+          const body = document.getElementById(
+            other.getAttribute("aria-controls"),
+          );
           if (body) body.classList.add("hidden");
         });
 
         toggle.setAttribute("aria-expanded", "true");
-        const body = document.getElementById(toggle.getAttribute("aria-controls"));
+        const body = document.getElementById(
+          toggle.getAttribute("aria-controls"),
+        );
         if (body) body.classList.remove("hidden");
       });
     });
@@ -206,7 +215,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const existsResults = await window.electronAPI.alarmCheckPathsExist(recentPaths);
+    const existsResults =
+      await window.electronAPI.alarmCheckPathsExist(recentPaths);
     const currentPath = localStorage.getItem("selectedAlarmPath");
 
     alarmRecentList.innerHTML = recentPaths
@@ -224,18 +234,37 @@ document.addEventListener("DOMContentLoaded", async () => {
         return `<li class="${classes.join(" ")}" data-path="${encodeURIComponent(p)}">
           <span class="alarm-recent-name">${escapeHtml(getFileName(p))}</span>
           ${tag}
+          <button type="button" class="alarm-recent-remove no-hover-lift" aria-label="${t("alarm.recentRemoveAriaLabel")}">&times;</button>
         </li>`;
       })
       .join("");
 
-    alarmRecentList.querySelectorAll(".alarm-recent-item:not(.missing)").forEach(item => {
-      item.addEventListener("click", async () => {
-        try {
-          await applyLocalFile(decodeURIComponent(item.dataset.path));
-        } catch (err) {
-          log.error("Recent file reselect error:", err);
-          showFeedback(t("alarm.feedback.fileLoadError"), "error");
-        }
+    alarmRecentList
+      .querySelectorAll(".alarm-recent-item:not(.missing)")
+      .forEach(item => {
+        item.addEventListener("click", async () => {
+          try {
+            await applyLocalFile(decodeURIComponent(item.dataset.path));
+          } catch (err) {
+            log.error("Recent file reselect error:", err);
+            showFeedback(t("alarm.feedback.fileLoadError"), "error");
+          }
+        });
+      });
+
+    // Attached to every entry (missing ones too, per .missing's CSS override
+    // re-enabling pointer-events on this button) — removing a stale entry
+    // from the list doesn't require it to still be selectable.
+    alarmRecentList.querySelectorAll(".alarm-recent-remove").forEach(btn => {
+      btn.addEventListener("click", async e => {
+        e.stopPropagation();
+        const li = btn.closest(".alarm-recent-item");
+        recentPaths = removeRecentPath(
+          recentPaths,
+          decodeURIComponent(li.dataset.path),
+        );
+        saveRecentPaths(recentPaths);
+        await renderRecentList();
       });
     });
   }
@@ -263,7 +292,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const applied = await applyLocalFile(filePath);
       if (applied) {
         showFeedback(
-          format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
+          format(t("alarm.feedback.fileLoaded"), {
+            name: getFileName(filePath),
+          }),
           "success",
         );
       }
@@ -291,6 +322,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       e.preventDefault();
       alarmDropzone.classList.remove("dragover");
 
+      // webkitGetAsEntry().isDirectory is a real filesystem-entry check, not
+      // a name guess — catches a dropped folder even if it's named to look
+      // like an audio file (e.g. a folder literally named "trap.mp3"),
+      // which an extension check alone would miss. The main-process
+      // alarm:use-local-path handler enforces this too (defense in depth),
+      // but checking here avoids an IPC round trip for the common case.
+      const entry = e.dataTransfer.items?.[0]?.webkitGetAsEntry?.();
+      if (entry?.isDirectory) {
+        showFeedback(t("alarm.feedback.folderNotSupported"), "error");
+        return;
+      }
+
       const file = e.dataTransfer.files[0];
       if (!file) return;
 
@@ -305,7 +348,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const applied = await applyLocalFile(filePath);
         if (applied) {
           showFeedback(
-            format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
+            format(t("alarm.feedback.fileLoaded"), {
+              name: getFileName(filePath),
+            }),
             "success",
           );
         }
@@ -353,7 +398,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (detectedType !== expectedType) {
       const providerLabel = detectedType === "youtube" ? "YouTube" : "Spotify";
       showFeedback(
-        format(t("alarm.feedback.wrongServiceLink"), { provider: providerLabel }),
+        format(t("alarm.feedback.wrongServiceLink"), {
+          provider: providerLabel,
+        }),
         "error",
       );
       return;
@@ -367,14 +414,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (result.usedFallback) {
         showFeedback(
-          format(t("alarm.feedback.providerFallback"), { provider: providerLabel }),
+          format(t("alarm.feedback.providerFallback"), {
+            provider: providerLabel,
+          }),
           "error",
         );
         updateCurrentIcon("local");
         updateCurrentFile(t("alarm.fallbackFile"));
       } else {
         showFeedback(
-          format(t("alarm.feedback.providerLoaded"), { provider: providerLabel }),
+          format(t("alarm.feedback.providerLoaded"), {
+            provider: providerLabel,
+          }),
           "success",
         );
         updateCurrentIcon(expectedType);
@@ -391,7 +442,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (err) {
       log.error("URL load error:", err);
       showFeedback(
-        format(t("alarm.feedback.loadFailed"), { message: err.message ?? "Unknown error" }),
+        format(t("alarm.feedback.loadFailed"), {
+          message: err.message ?? "Unknown error",
+        }),
         "error",
       );
     } finally {
@@ -400,10 +453,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   youtubeUrlLoadBtn.addEventListener("click", () =>
-    handleUrlLoad({ expectedType: "youtube", input: youtubeUrlInput, loadBtn: youtubeUrlLoadBtn }),
+    handleUrlLoad({
+      expectedType: "youtube",
+      input: youtubeUrlInput,
+      loadBtn: youtubeUrlLoadBtn,
+    }),
   );
   spotifyUrlLoadBtn.addEventListener("click", () =>
-    handleUrlLoad({ expectedType: "spotify", input: spotifyUrlInput, loadBtn: spotifyUrlLoadBtn }),
+    handleUrlLoad({
+      expectedType: "spotify",
+      input: spotifyUrlInput,
+      loadBtn: spotifyUrlLoadBtn,
+    }),
   );
 
   // ── Preview ───────────────────────────────────────────────
@@ -424,7 +485,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         await alarmManager.play(0);
         isPreviewing = true;
         previewAlarmBtn.textContent = t("alarm.stopPreview");
-        previewAlarmBtn.setAttribute("aria-label", t("alarm.stopPreviewAriaLabel"));
+        previewAlarmBtn.setAttribute(
+          "aria-label",
+          t("alarm.stopPreviewAriaLabel"),
+        );
       } catch (err) {
         log.warn("Preview failed:", err);
         showFeedback(t("alarm.feedback.playFailed"), "error");
@@ -456,8 +520,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         ? t("alarm.spotifyConnected")
         : t("alarm.spotifyNotConnected");
     }
-    if (spotifyConnectBtn) spotifyConnectBtn.classList.toggle("hidden", connected);
-    if (spotifyLogoutBtn) spotifyLogoutBtn.classList.toggle("hidden", !connected);
+    if (spotifyConnectBtn)
+      spotifyConnectBtn.classList.toggle("hidden", connected);
+    if (spotifyLogoutBtn)
+      spotifyLogoutBtn.classList.toggle("hidden", !connected);
     if (spotifyUrlRow) spotifyUrlRow.classList.toggle("hidden", !connected);
   }
 
@@ -473,7 +539,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       } catch (err) {
         log.error("Spotify login error:", err);
         showFeedback(
-          format(t("alarm.feedback.spotifyConnectFailed"), { message: err.message ?? "Unknown error" }),
+          format(t("alarm.feedback.spotifyConnectFailed"), {
+            message: err.message ?? "Unknown error",
+          }),
           "error",
         );
       } finally {
@@ -500,7 +568,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           usingDefaultAlarm = true;
           updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
-          log.error("Failed to revert to default alarm after Spotify disconnect:", e);
+          log.error(
+            "Failed to revert to default alarm after Spotify disconnect:",
+            e,
+          );
         }
       }
 

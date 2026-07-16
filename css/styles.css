@@ -29,6 +29,7 @@
   --input-bg: #2e2e2e;
   --modal-bg: #2b2b2b;
   --modal-border: #383838;
+  --update-badge: #ddef0c;
 
   /* Type scale */
   --text-xs: 0.75rem;
@@ -179,6 +180,7 @@ body {
 }
 
 .icon-btn {
+  position: relative;
   background: none;
   border: 1px solid transparent;
   color: var(--ink-muted);
@@ -194,6 +196,32 @@ body {
     background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out);
   line-height: 1;
+}
+
+/* Sketch: persistent badge for "an update is available", independent of
+   the dismissible .update-banner — see js/updates.js. Download-arrow
+   glyph reads more clearly as "update" than a plain dot. */
+.icon-btn--has-update::after {
+  content: "↓";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--update-badge);
+  box-shadow: 2px -2px 12px 1px greenyellow;
+  color: #1a1a1a;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 13px;
+  text-align: center;
+}
+
+.icon-btn--has-update::after:hover {
+  background-color: var(--accent-dim);
+  border-color: var(--border-hover);
 }
 
 .icon-btn:hover {
@@ -223,10 +251,14 @@ body {
 .lang-btn {
   width: auto;
   padding: var(--sp-2) var(--sp-3);
+  gap: var(--sp-1);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.03em;
+}
+.lang-btn:hover:not(:disabled) {
+  border: 1px solid var(--accent-glow);
 }
 
 .quit-btn:hover:not(:disabled) {
@@ -386,8 +418,6 @@ input[type="number"]:focus-visible {
   border-color: var(--border-hover);
   color: var(--accent);
   background-color: var(--accent-dim);
-  transform: none;
-  box-shadow: none;
 }
 
 .number-stepper__btn::before {
@@ -507,12 +537,21 @@ button {
 button:hover:not(:disabled) {
   background-color: var(--accent-dim);
   border-color: var(--accent);
-  transform: translateY(-2px);
+  /* transform: translateY(-2px); */
   box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 button:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Opt out of the global hover-lift above — specificity (class + 2
+   pseudo-classes) beats `button:hover:not(:disabled)` regardless of
+   source order, so this works no matter where the button's own rules
+   sit in the file. */
+.no-hover-lift:hover:not(:disabled) {
+  transform: none;
   box-shadow: none;
 }
 
@@ -574,6 +613,14 @@ button:disabled {
   min-width: 320px;
   max-width: 90vw;
   z-index: var(--z-modal);
+}
+
+/* Locks the alarm modal to a stable width so switching between the
+   Local/YouTube/Spotify accordion sections doesn't reflow the whole
+   modal — without this it shrink-wraps to whichever section's content
+   (e.g. Spotify's longer hint text) happens to be widest. */
+.alarm-modal-content {
+  width: 480px;
 }
 
 .modal-content h2 {
@@ -768,17 +815,14 @@ button:disabled {
 
 /* Subtle button variant */
 .btn-subtle {
-  border-color: transparent;
   color: var(--ink-muted);
   font-size: var(--text-xs);
 }
 
 .btn-subtle:hover:not(:disabled) {
-  border-color: var(--border);
+  border-color: var(--border-hover);
   color: var(--ink);
   background: none;
-  box-shadow: none;
-  transform: none;
 }
 
 /* Feedback mesajı */
@@ -835,8 +879,6 @@ button:disabled {
   border-color: var(--accent);
   color: var(--ink);
   background: var(--accent-dim);
-  transform: none !important;
-  box-shadow: none;
 }
 
 .preset-trigger--open,
@@ -961,8 +1003,6 @@ button:disabled {
 .preset-item__load:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--accent);
-  transform: none !important;
-  box-shadow: none;
 }
 
 .preset-item__load:focus-visible {
@@ -1030,11 +1070,6 @@ button:disabled {
     border-color var(--dur-fast) var(--ease-out);
 }
 
-.preset-item__btn:hover:not(:disabled) {
-  transform: none;
-  box-shadow: none;
-}
-
 .preset-item__btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -1092,8 +1127,6 @@ button:disabled {
 .preset-item__btn--yes:hover:not(:disabled) {
   background: rgba(224, 92, 92, 0.15);
   border-color: #e05c5c;
-  transform: none;
-  box-shadow: none;
 }
 
 .preset-item__btn--no {
@@ -1106,8 +1139,6 @@ button:disabled {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.06);
   border-color: #444;
-  transform: none;
-  box-shadow: none;
 }
 
 /* ── Dropdown footer ─────────────────────────────────────────── */
@@ -1137,8 +1168,6 @@ button:disabled {
 
 .preset-dropdown__add:hover:not(:disabled) {
   background: var(--accent-dim);
-  transform: none;
-  box-shadow: none;
   border: none;
 }
 
@@ -1326,7 +1355,27 @@ button:disabled {
   border: 1px solid var(--modal-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
 }
+
+/* Tints the whole card (header + body), not just the toggle strip, when
+   its section is open. */
+.alarm-section:has(.alarm-section-toggle[aria-expanded="true"]) {
+  background: var(--surface-alt);
+  border-color: var(--accent-glow);
+}
+
+/* Colors (main-window-only) */
+/* --surface-alt: #2b2b2b;
+  --border-hover: #ff7a1a;
+  --accent-b: #ee0979;
+  --danger: #ff4d4f;
+  --danger-dim: #ff4d4f22;
+  --input-bg: #2e2e2e;
+  --modal-bg: #2b2b2b;
+  --modal-border: #383838; */
 
 .alarm-section-toggle {
   display: flex;
@@ -1335,18 +1384,29 @@ button:disabled {
   width: 100%;
   padding: var(--sp-3) var(--sp-4);
   background: var(--input-bg);
-  border: none;
+  border: 1px solid var(--accent-glow);
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-out);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.alarm-section-toggle:hover {
-  background: var(--surface-alt);
+/* Matches .preset-trigger:hover's accent-tinted hover treatment. */
+.alarm-section-toggle:hover:not(:disabled) {
+  background: var(--accent-dim);
+  color: var(--ink);
+  border: 1px solid;
+  border-color: var(--border-hover);
+}
+
+/* The currently-open section's toggle — background only; the accent
+   border ring now comes from the parent .alarm-section:has(...) rule,
+   which tints the whole card instead of just this strip. */
+.alarm-section-toggle[aria-expanded="true"] {
+  background: var(--accent-dim);
 }
 
 .alarm-section-icon {
@@ -1398,11 +1458,13 @@ button:disabled {
 /* ── URL row ─────────────────────────────────────────────────── */
 .alarm-url-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--sp-2);
 }
 
 .alarm-url-row input[type="url"] {
   flex: 1;
+  min-width: 200px;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   padding: var(--sp-2) var(--sp-3);
@@ -1633,6 +1695,13 @@ button:disabled {
   pointer-events: none;
 }
 
+/* Removing a missing entry should still work even though the row itself
+   has pointer-events: none above — re-enable just the button. */
+.alarm-recent-item.missing .alarm-recent-remove {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .alarm-recent-item.active {
   border-color: var(--accent);
 }
@@ -1654,6 +1723,36 @@ button:disabled {
   text-transform: uppercase;
   color: var(--accent);
   flex-shrink: 0;
+}
+
+/* Remove button — matches .preset-item__btn--delete's hover treatment. */
+.alarm-recent-remove {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  min-width: unset;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  line-height: 1;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.alarm-recent-remove:hover {
+  color: #e05c5c;
+  background: rgba(224, 92, 92, 0.12);
+  border-color: rgba(224, 92, 92, 0.3);
 }
 
 .alarm-recent-tag.missing {

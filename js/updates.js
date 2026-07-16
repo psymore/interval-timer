@@ -2,7 +2,15 @@ import { t, format, onLanguageChange } from "./i18n/i18n.js";
 
 let currentUpdate = null;
 
+function renderSettingsBadge() {
+  const settingsIcon = document.getElementById("settingsIcon");
+  if (settingsIcon)
+    settingsIcon.classList.toggle("icon-btn--has-update", !currentUpdate);
+}
+
 function renderBanner() {
+  renderSettingsBadge();
+
   const banner = document.getElementById("updateBanner");
   if (!banner) return;
 
@@ -19,19 +27,26 @@ function renderBanner() {
     <button type="button" class="update-banner__dismiss" aria-label="${t("updates.banner.dismiss.ariaLabel")}">&times;</button>
   `;
 
-  banner.querySelector(".update-banner__text").textContent = format(t("updates.banner.message"), {
-    version: currentUpdate.version,
-  });
+  banner.querySelector(".update-banner__text").textContent = format(
+    t("updates.banner.message"),
+    {
+      version: currentUpdate.version,
+    },
+  );
 
-  banner.querySelector(".update-banner__download").addEventListener("click", () => {
-    window.electronAPI.updatesOpenReleases(currentUpdate.url);
-  });
+  banner
+    .querySelector(".update-banner__download")
+    .addEventListener("click", () => {
+      window.electronAPI.updatesOpenReleases(currentUpdate.url);
+    });
 
-  banner.querySelector(".update-banner__dismiss").addEventListener("click", () => {
-    window.electronAPI.updatesDismiss(currentUpdate.version);
-    currentUpdate = null;
-    renderBanner();
-  });
+  banner
+    .querySelector(".update-banner__dismiss")
+    .addEventListener("click", () => {
+      window.electronAPI.updatesDismiss(currentUpdate.version);
+      currentUpdate = null;
+      renderBanner();
+    });
 }
 
 export function setupUpdateChecker() {
@@ -61,7 +76,9 @@ export function setupUpdateChecker() {
     if (result.updateAvailable) {
       currentUpdate = { version: result.latestVersion, url: result.releaseUrl };
       renderBanner();
-      statusEl.textContent = format(t("updates.banner.message"), { version: result.latestVersion });
+      statusEl.textContent = format(t("updates.banner.message"), {
+        version: result.latestVersion,
+      });
     } else {
       statusEl.textContent = format(t("settings.updates.upToDate"), {
         version: result.currentVersion,

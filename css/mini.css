@@ -48,6 +48,10 @@ body {
   padding: 10px 14px 18px;
   user-select: none;
   overflow: hidden;
+  /* Pointer everywhere by default; buttons already declare their own
+     cursor: pointer, so they're unaffected, and :disabled buttons still
+     win with cursor: not-allowed via their higher-specificity rule. */
+  cursor: pointer;
 }
 
 /* ── Header ──────────────────────────────────────────────────── */
@@ -70,6 +74,12 @@ body {
   color: var(--ink-muted);
 }
 
+.mini-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .mini-close {
   background: none;
   border: none;
@@ -90,7 +100,30 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.mini-close:focus-visible {
+/* Mirrors the main window's .quit-btn red — --danger/--danger-dim are
+   only defined in styles.css's :root, which this window doesn't load. */
+.mini-quit {
+  background: none;
+  border: none;
+  color: #ff4d4f;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  font-family: var(--font-ui);
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out);
+}
+
+.mini-quit:hover {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.15);
+}
+
+.mini-close:focus-visible,
+.mini-quit:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -113,6 +146,27 @@ body {
 .mini-countdown.complete {
   color: var(--accent);
   text-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* Same completion-glow keyframe the main window's countdown plays when a
+   loop finishes, replayed on click as tactile feedback. */
+@keyframes completion-glow {
+  0% {
+    color: var(--ink);
+    text-shadow: none;
+  }
+  50% {
+    color: var(--accent);
+    text-shadow: 0 0 24px var(--accent-glow);
+  }
+  100% {
+    color: var(--accent);
+    text-shadow: 0 0 12px var(--accent-glow);
+  }
+}
+
+.mini-countdown.click-glow {
+  animation: completion-glow 600ms var(--ease-out) forwards;
 }
 
 /* ── Phase ───────────────────────────────────────────────────── */
@@ -179,6 +233,7 @@ body {
 /* Tüm sayfa draggable (html'de tanımlı) */
 /* Tıklanabilir elementler no-drag olmalı */
 .mini-close,
+.mini-quit,
 .mini-btn,
 .mini-countdown,
 .mini-phase,
@@ -204,6 +259,7 @@ body {
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
   .mini-countdown {
     text-shadow: none !important;

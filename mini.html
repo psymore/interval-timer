@@ -20,8 +20,12 @@
 
         <div class="mini-header">
             <span class="mini-label" id="miniLabel">TIMER</span>
-            <button type="button" class="mini-close" id="miniCloseBtn" aria-label="Close mini view"
-                data-i18n-aria-label="mini.closeAriaLabel">✕</button>
+            <div class="mini-header-actions">
+                <button type="button" class="mini-quit" id="miniQuitBtn" aria-label="Quit application"
+                    data-i18n-aria-label="mini.quitAriaLabel" title="Quit" data-i18n-title="mini.quitTitle">⏻</button>
+                <button type="button" class="mini-close" id="miniCloseBtn" aria-label="Close mini view"
+                    data-i18n-aria-label="mini.closeAriaLabel">✕</button>
+            </div>
         </div>
 
         <div class="mini-countdown" id="miniCountdown">00:00</div>
