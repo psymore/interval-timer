@@ -1,6 +1,7 @@
 import { alarmManager } from "./alarm/AlarmManager.js";
 import { AlarmProviderFactory } from "./alarm/AlarmProviderFactory.js";
 import { addRecentPath, loadRecentPaths, saveRecentPaths } from "./alarm/recentAlarms.js";
+import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
 
@@ -103,9 +104,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       toggle.addEventListener("click", () => {
         if (toggle.getAttribute("aria-expanded") === "true") return;
 
-        toggles.forEach(t => {
-          t.setAttribute("aria-expanded", "false");
-          const body = document.getElementById(t.getAttribute("aria-controls"));
+        toggles.forEach(other => {
+          other.setAttribute("aria-expanded", "false");
+          const body = document.getElementById(other.getAttribute("aria-controls"));
           if (body) body.classList.add("hidden");
         });
 
@@ -221,15 +222,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             ? `<span class="alarm-recent-tag">${t("alarm.recentActive")}</span>`
             : "";
         return `<li class="${classes.join(" ")}" data-path="${encodeURIComponent(p)}">
-          <span class="alarm-recent-name">${getFileName(p)}</span>
+          <span class="alarm-recent-name">${escapeHtml(getFileName(p))}</span>
           ${tag}
         </li>`;
       })
       .join("");
 
     alarmRecentList.querySelectorAll(".alarm-recent-item:not(.missing)").forEach(item => {
-      item.addEventListener("click", () => {
-        applyLocalFile(decodeURIComponent(item.dataset.path));
+      item.addEventListener("click", async () => {
+        try {
+          await applyLocalFile(decodeURIComponent(item.dataset.path));
+        } catch (err) {
+          log.error("Recent file reselect error:", err);
+          showFeedback(t("alarm.feedback.fileLoadError"), "error");
+        }
       });
     });
   }
@@ -288,24 +294,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       const file = e.dataTransfer.files[0];
       if (!file) return;
 
-      const filePath = window.electronAPI.getPathForFile(file);
-      const ext = "." + (filePath.split(".").pop() || "").toLowerCase();
-      if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
-        showFeedback(t("alarm.feedback.unsupportedFile"), "error");
-        return;
-      }
+      try {
+        const filePath = window.electronAPI.getPathForFile(file);
+        const ext = "." + (filePath.split(".").pop() || "").toLowerCase();
+        if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
+          showFeedback(t("alarm.feedback.unsupportedFile"), "error");
+          return;
+        }
 
-      const applied = await applyLocalFile(filePath);
-      if (applied) {
-        showFeedback(
-          format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
-          "success",
-        );
+        const applied = await applyLocalFile(filePath);
+        if (applied) {
+          showFeedback(
+            format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
+            "success",
+          );
+        }
+      } catch (err) {
+        log.error("File drop error:", err);
+        showFeedback(t("alarm.feedback.fileLoadError"), "error");
       }
     });
   }
 
   await renderRecentList();
+
+  // Re-check "Recent" entries' existence every time the modal is reopened —
+  // js/renderer.js owns the open/close toggle itself, so this listens on
+  // the same trigger button rather than duplicating that logic here. Without
+  // this, a file deleted mid-session would keep showing as valid until the
+  // next applyLocalFile/resetToDefault/language-change call happened to
+  // re-render the list.
+  const alarmFolderBtn = document.getElementById("alarmFolderBtn");
+  if (alarmFolderBtn) {
+    alarmFolderBtn.addEventListener("click", renderRecentList);
+  }
 
   // ── URL ile yükleme (YouTube / Spotify, ayrı kutular) ─────
   function setUrlLoadBtnState(btn, loading) {
@@ -314,6 +336,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     btn.textContent = loading ? t("alarm.urlLoading") : t("alarm.urlLoad");
   }
 
+  // Provider brand names below ("YouTube"/"Spotify") — not translated (see design spec).
   async function handleUrlLoad({ expectedType, input, loadBtn }) {
     const rawUrl = input.value.trim();
     if (!rawUrl) {
