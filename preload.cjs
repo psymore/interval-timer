@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // App
@@ -6,6 +6,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Dosya
   getFilePath: () => ipcRenderer.invoke("get-file-path"),
+  // Electron 32+ removed File.path for security — webUtils.getPathForFile
+  // is the supported replacement for recovering a real path from a
+  // drag-and-dropped File object under contextIsolation.
+  getPathForFile: file => webUtils.getPathForFile(file),
+  alarmCheckPathsExist: paths => ipcRenderer.invoke("alarm:check-paths-exist", paths),
+  alarmUseLocalPath: path => ipcRenderer.invoke("alarm:use-local-path", path),
 
   // Mini / always on top
   setAlwaysOnTop: value => ipcRenderer.invoke("set-always-on-top", value),
