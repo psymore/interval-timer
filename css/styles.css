@@ -1566,3 +1566,91 @@ button:disabled {
   color: var(--ink-muted);
   min-height: 1em;
 }
+
+/* ── Local alarm: drop zone + recent list ───────────────────── */
+.alarm-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  padding: var(--sp-4);
+  border: 1px dashed var(--modal-border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.alarm-dropzone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.alarm-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.alarm-recent-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.alarm-recent-item:hover {
+  background: var(--surface-alt);
+}
+
+.alarm-recent-item.missing {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.alarm-recent-item.active {
+  border-color: var(--accent);
+}
+
+.alarm-recent-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.alarm-recent-tag {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.alarm-recent-tag.missing {
+  color: var(--danger);
+}
+
+.alarm-reset-default {
+  align-self: flex-start;
+}

@@ -112,7 +112,13 @@
                         <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
                     </button>
                     <div class="alarm-section-body" id="localSectionBody">
-                        <button type="button" id="chooseAlarmBtn" class="btn-primary" data-i18n="alarm.chooseFile">Choose file…</button>
+                        <div class="alarm-dropzone" id="alarmDropzone">
+                            <span data-i18n="alarm.dropHint">Drag an audio file here, or</span>
+                            <button type="button" id="chooseAlarmBtn" class="btn-primary" data-i18n="alarm.chooseFile">Choose file…</button>
+                        </div>
+                        <p class="alarm-section-label" data-i18n="alarm.recentLabel">Recent</p>
+                        <ul class="alarm-recent-list" id="alarmRecentList"></ul>
+                        <button type="button" class="btn-subtle alarm-reset-default" id="alarmResetDefaultBtn" data-i18n="alarm.resetDefault">Reset to default</button>
                     </div>
                 </div>
 

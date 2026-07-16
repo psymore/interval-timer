@@ -1,5 +1,6 @@
 import { alarmManager } from "./alarm/AlarmManager.js";
 import { AlarmProviderFactory } from "./alarm/AlarmProviderFactory.js";
+import { addRecentPath, loadRecentPaths, saveRecentPaths } from "./alarm/recentAlarms.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
 
@@ -18,6 +19,10 @@ export function getFileName(filePath) {
 }
 
 const DEFAULT_ALARM = "assets/alarm.mp3";
+// Mirrors LOCAL_AUDIO_EXTENSIONS in lib/localServer.js — duplicated because
+// the renderer can't import a main-process module; keep both lists in sync
+// if the supported formats ever change.
+const SUPPORTED_LOCAL_EXTENSIONS = [".mp3", ".wav", ".ogg"];
 
 // Lucide "folder-open" (ISC license) — no brand mark exists for "local
 // file", so this is a generic glyph using currentColor to match whichever
@@ -49,6 +54,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (localSectionIcon) localSectionIcon.innerHTML = FOLDER_ICON_SVG;
+
+  const alarmDropzone = document.getElementById("alarmDropzone");
+  const alarmRecentList = document.getElementById("alarmRecentList");
+  const alarmResetDefaultBtn = document.getElementById("alarmResetDefaultBtn");
+
+  let recentPaths = loadRecentPaths();
 
   let isPreviewing = false;
 
@@ -159,6 +170,81 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateCurrentIcon("local");
   }
 
+  // ── Local dosya: paylaşılan uygulama mantığı ──────────────
+  // Used by the file-picker button, drag-and-drop, and clicking a "Recent"
+  // entry — all three converge here so allowlist registration, current-file
+  // display, and the recent-list update stay in exactly one place.
+  async function applyLocalFile(filePath) {
+    const result = await window.electronAPI.alarmUseLocalPath(filePath);
+    if (result?.error) {
+      showFeedback(t("alarm.feedback.fileLoadError"), "error");
+      return false;
+    }
+
+    const url = toFileUrl(filePath);
+    await alarmManager.load(url);
+    alarmManager.setFallbackSource(url);
+    localStorage.setItem("selectedAlarmPath", filePath);
+
+    recentPaths = addRecentPath(recentPaths, filePath);
+    saveRecentPaths(recentPaths);
+
+    usingDefaultAlarm = false;
+    updateCurrentFile(getFileName(filePath));
+    updateCurrentIcon("local");
+    resetPreviewBtn();
+    await renderRecentList();
+    return true;
+  }
+
+  async function renderRecentList() {
+    if (!alarmRecentList) return;
+
+    if (recentPaths.length === 0) {
+      alarmRecentList.innerHTML = "";
+      return;
+    }
+
+    const existsResults = await window.electronAPI.alarmCheckPathsExist(recentPaths);
+    const currentPath = localStorage.getItem("selectedAlarmPath");
+
+    alarmRecentList.innerHTML = recentPaths
+      .map((p, i) => {
+        const exists = existsResults[i];
+        const isActive = p === currentPath;
+        const classes = ["alarm-recent-item"];
+        if (!exists) classes.push("missing");
+        if (isActive) classes.push("active");
+        const tag = !exists
+          ? `<span class="alarm-recent-tag missing">${t("alarm.recentMissing")}</span>`
+          : isActive
+            ? `<span class="alarm-recent-tag">${t("alarm.recentActive")}</span>`
+            : "";
+        return `<li class="${classes.join(" ")}" data-path="${encodeURIComponent(p)}">
+          <span class="alarm-recent-name">${getFileName(p)}</span>
+          ${tag}
+        </li>`;
+      })
+      .join("");
+
+    alarmRecentList.querySelectorAll(".alarm-recent-item:not(.missing)").forEach(item => {
+      item.addEventListener("click", () => {
+        applyLocalFile(decodeURIComponent(item.dataset.path));
+      });
+    });
+  }
+
+  async function resetToDefault() {
+    await alarmManager.load(DEFAULT_ALARM);
+    alarmManager.setFallbackSource(DEFAULT_ALARM);
+    localStorage.removeItem("selectedAlarmPath");
+    usingDefaultAlarm = true;
+    updateCurrentFile(t("alarm.defaultFile"));
+    updateCurrentIcon("local");
+    resetPreviewBtn();
+    await renderRecentList();
+  }
+
   // ── Local dosya seç ───────────────────────────────────────
   chooseAlarmBtn.addEventListener("click", async () => {
     try {
@@ -168,27 +254,58 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      const url = toFileUrl(filePath);
-
-      await alarmManager.load(url);
-      alarmManager.setFallbackSource(url);
-
-      // Ham path'i kaydet (file:// olmadan) — initialize doğru tespit etsin
-      localStorage.setItem("selectedAlarmPath", filePath);
-
-      usingDefaultAlarm = false;
-      updateCurrentFile(getFileName(filePath));
-      updateCurrentIcon("local");
-      resetPreviewBtn();
-      showFeedback(
-        format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
-        "success",
-      );
+      const applied = await applyLocalFile(filePath);
+      if (applied) {
+        showFeedback(
+          format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
+          "success",
+        );
+      }
     } catch (err) {
       log.error("File pick error:", err);
       showFeedback(t("alarm.feedback.fileLoadError"), "error");
     }
   });
+
+  if (alarmResetDefaultBtn) {
+    alarmResetDefaultBtn.addEventListener("click", resetToDefault);
+  }
+
+  if (alarmDropzone) {
+    alarmDropzone.addEventListener("dragover", e => {
+      e.preventDefault();
+      alarmDropzone.classList.add("dragover");
+    });
+
+    alarmDropzone.addEventListener("dragleave", () => {
+      alarmDropzone.classList.remove("dragover");
+    });
+
+    alarmDropzone.addEventListener("drop", async e => {
+      e.preventDefault();
+      alarmDropzone.classList.remove("dragover");
+
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+
+      const filePath = window.electronAPI.getPathForFile(file);
+      const ext = "." + (filePath.split(".").pop() || "").toLowerCase();
+      if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
+        showFeedback(t("alarm.feedback.unsupportedFile"), "error");
+        return;
+      }
+
+      const applied = await applyLocalFile(filePath);
+      if (applied) {
+        showFeedback(
+          format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
+          "success",
+        );
+      }
+    });
+  }
+
+  await renderRecentList();
 
   // ── URL ile yükleme (YouTube / Spotify, ayrı kutular) ─────
   function setUrlLoadBtnState(btn, loading) {
@@ -376,5 +493,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!isPreviewing) resetPreviewBtn();
     updateSpotifyAuthUI();
     if (usingDefaultAlarm) updateCurrentFile(t("alarm.defaultFile"));
+    renderRecentList();
   });
 });
