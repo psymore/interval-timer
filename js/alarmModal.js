@@ -19,16 +19,26 @@ export function getFileName(filePath) {
 
 const DEFAULT_ALARM = "assets/alarm.mp3";
 
+// Lucide "folder-open" (ISC license) — no brand mark exists for "local
+// file", so this is a generic glyph using currentColor to match whichever
+// element it's dropped into (unlike the Spotify/YouTube <img> icons, which
+// carry their own fixed brand color and must never be recolored).
+const FOLDER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>`;
+
 // ── Modal setup ───────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
   const chooseAlarmBtn = document.getElementById("chooseAlarmBtn");
   const previewAlarmBtn = document.getElementById("previewAlarmBtn");
   const closeAlarmBtn = document.getElementById("closeAlarmFolderBtn");
   const alarmCurrentFile = document.getElementById("alarmCurrentFile");
+  const alarmCurrentIcon = document.getElementById("alarmCurrentIcon");
+  const localSectionIcon = document.getElementById("localSectionIcon");
   const alarmFeedback = document.getElementById("alarmFeedback");
-  const urlInput = document.getElementById("alarmUrlInput");
-  const urlLoadBtn = document.getElementById("alarmUrlLoadBtn");
-  const urlProviderTag = document.getElementById("alarmProviderTag");
+  const youtubeUrlInput = document.getElementById("youtubeUrlInput");
+  const youtubeUrlLoadBtn = document.getElementById("youtubeUrlLoadBtn");
+  const spotifyUrlInput = document.getElementById("spotifyUrlInput");
+  const spotifyUrlLoadBtn = document.getElementById("spotifyUrlLoadBtn");
+  const spotifyUrlRow = document.getElementById("spotifyUrlRow");
   const spotifyStatusLabel = document.getElementById("spotifyStatusLabel");
   const spotifyConnectBtn = document.getElementById("spotifyConnectBtn");
   const spotifyLogoutBtn = document.getElementById("spotifyLogoutBtn");
@@ -37,6 +47,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     log.error("alarmModal: #chooseAlarmBtn not found.");
     return;
   }
+
+  if (localSectionIcon) localSectionIcon.innerHTML = FOLDER_ICON_SVG;
 
   let isPreviewing = false;
 
@@ -54,17 +66,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     alarmCurrentFile.textContent = label || t("alarm.defaultLabel");
   }
 
-  function updateProviderTag(type) {
-    if (urlProviderTag) {
-      // Provider brand names — not translated (see design spec).
-      const labels = { youtube: "YouTube", spotify: "Spotify" };
-      const label = labels[type];
-      if (label) {
-        urlProviderTag.textContent = label;
-        urlProviderTag.classList.remove("hidden");
-      } else {
-        urlProviderTag.classList.add("hidden");
-      }
+  function updateCurrentIcon(type) {
+    if (alarmCurrentIcon) {
+      const markup = {
+        local: FOLDER_ICON_SVG,
+        youtube: '<img src="assets/icons/youtube.svg" alt="" />',
+        spotify: '<img src="assets/icons/spotify.svg" alt="" />',
+      };
+      alarmCurrentIcon.innerHTML = markup[type] || markup.local;
     }
 
     if (previewAlarmBtn) {
@@ -76,6 +85,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // ── Accordion: only one section open at a time ────────────
+  function setupAccordion() {
+    const toggles = document.querySelectorAll(".alarm-section-toggle");
+    toggles.forEach(toggle => {
+      toggle.addEventListener("click", () => {
+        if (toggle.getAttribute("aria-expanded") === "true") return;
+
+        toggles.forEach(t => {
+          t.setAttribute("aria-expanded", "false");
+          const body = document.getElementById(t.getAttribute("aria-controls"));
+          if (body) body.classList.add("hidden");
+        });
+
+        toggle.setAttribute("aria-expanded", "true");
+        const body = document.getElementById(toggle.getAttribute("aria-controls"));
+        if (body) body.classList.remove("hidden");
+      });
+    });
+  }
+  setupAccordion();
+
   function resetPreviewBtn() {
     isPreviewing = false;
     if (previewAlarmBtn) {
@@ -84,18 +114,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function setUrlLoadBtnState(loading) {
-    if (!urlLoadBtn) return;
-    urlLoadBtn.disabled = loading;
-    urlLoadBtn.textContent = loading ? t("alarm.urlLoading") : t("alarm.urlLoad");
-  }
-
   // ── AlarmManager callbacks ────────────────────────────────
   alarmManager.setCallbacks({
     onFallback: ({ reason }) => {
       log.warn("Alarm fallback:", reason);
       showFeedback(t("alarm.feedback.fallback"), "error");
-      updateProviderTag("local");
+      updateCurrentIcon("local");
     },
     onError: ({ error, type }) => {
       log.error(`Alarm error [${type}]:`, error?.message);
@@ -119,18 +143,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const type = AlarmProviderFactory.detect(savedSource);
     if (type === "local") {
       updateCurrentFile(getFileName(savedSource));
+      updateCurrentIcon("local");
     } else {
       const label =
         savedSource.length > 40 ? savedSource.slice(0, 37) + "…" : savedSource;
       updateCurrentFile(label);
       // alarmManager.initialize() may have silently fallen back to local
       // (e.g. no Spotify session) — reflect what actually loaded, not the
-      // raw saved string, so the tag/Preview-disable state stays accurate.
-      updateProviderTag(alarmManager.getProviderType());
+      // raw saved string, so the icon/Preview-disable state stays accurate.
+      updateCurrentIcon(alarmManager.getProviderType());
     }
   } else {
     usingDefaultAlarm = true;
     updateCurrentFile(t("alarm.defaultFile"));
+    updateCurrentIcon("local");
   }
 
   // ── Local dosya seç ───────────────────────────────────────
@@ -152,7 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       usingDefaultAlarm = false;
       updateCurrentFile(getFileName(filePath));
-      updateProviderTag("local");
+      updateCurrentIcon("local");
       resetPreviewBtn();
       showFeedback(
         format(t("alarm.feedback.fileLoaded"), { name: getFileName(filePath) }),
@@ -164,12 +190,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // ── URL ile yükleme (YouTube / Spotify) ───────────────────
-  urlLoadBtn.addEventListener("click", async () => {
-    const rawUrl = urlInput.value.trim();
+  // ── URL ile yükleme (YouTube / Spotify, ayrı kutular) ─────
+  function setUrlLoadBtnState(btn, loading) {
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.textContent = loading ? t("alarm.urlLoading") : t("alarm.urlLoad");
+  }
+
+  async function handleUrlLoad({ expectedType, input, loadBtn }) {
+    const rawUrl = input.value.trim();
     if (!rawUrl) {
       showFeedback(t("alarm.feedback.enterUrl"), "error");
-      urlInput.focus();
+      input.focus();
       return;
     }
 
@@ -178,29 +210,34 @@ document.addEventListener("DOMContentLoaded", async () => {
       showFeedback(t("alarm.feedback.invalidUrl"), "error");
       return;
     }
+    if (detectedType !== expectedType) {
+      const providerLabel = detectedType === "youtube" ? "YouTube" : "Spotify";
+      showFeedback(
+        format(t("alarm.feedback.wrongServiceLink"), { provider: providerLabel }),
+        "error",
+      );
+      return;
+    }
 
-    setUrlLoadBtnState(true);
+    setUrlLoadBtnState(loadBtn, true);
 
     try {
       const result = await alarmManager.load(rawUrl);
+      const providerLabel = expectedType === "youtube" ? "YouTube" : "Spotify";
 
       if (result.usedFallback) {
-        const providerLabel =
-          detectedType === "youtube" ? "YouTube" : "Spotify";
         showFeedback(
           format(t("alarm.feedback.providerFallback"), { provider: providerLabel }),
           "error",
         );
-        updateProviderTag("local");
+        updateCurrentIcon("local");
         updateCurrentFile(t("alarm.fallbackFile"));
       } else {
-        const providerLabel =
-          detectedType === "youtube" ? "YouTube" : "Spotify";
         showFeedback(
           format(t("alarm.feedback.providerLoaded"), { provider: providerLabel }),
           "success",
         );
-        updateProviderTag(detectedType);
+        updateCurrentIcon(expectedType);
 
         const displayLabel =
           rawUrl.length > 40 ? rawUrl.slice(0, 37) + "…" : rawUrl;
@@ -210,7 +247,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       resetPreviewBtn();
-      urlInput.value = "";
+      input.value = "";
     } catch (err) {
       log.error("URL load error:", err);
       showFeedback(
@@ -218,9 +255,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         "error",
       );
     } finally {
-      setUrlLoadBtnState(false);
+      setUrlLoadBtnState(loadBtn, false);
     }
-  });
+  }
+
+  youtubeUrlLoadBtn.addEventListener("click", () =>
+    handleUrlLoad({ expectedType: "youtube", input: youtubeUrlInput, loadBtn: youtubeUrlLoadBtn }),
+  );
+  spotifyUrlLoadBtn.addEventListener("click", () =>
+    handleUrlLoad({ expectedType: "spotify", input: spotifyUrlInput, loadBtn: spotifyUrlLoadBtn }),
+  );
 
   // ── Preview ───────────────────────────────────────────────
   if (previewAlarmBtn) {
@@ -274,6 +318,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (spotifyConnectBtn) spotifyConnectBtn.classList.toggle("hidden", connected);
     if (spotifyLogoutBtn) spotifyLogoutBtn.classList.toggle("hidden", !connected);
+    if (spotifyUrlRow) spotifyUrlRow.classList.toggle("hidden", !connected);
   }
 
   if (spotifyConnectBtn) {
@@ -320,7 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       showFeedback(t("alarm.feedback.spotifyDisconnected"), "success");
-      updateProviderTag("local");
+      updateCurrentIcon("local");
       await updateSpotifyAuthUI();
     });
   }

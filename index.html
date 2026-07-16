@@ -95,42 +95,75 @@
 
             <!-- Mevcut kaynak -->
             <div class="alarm-current">
+                <span class="alarm-current-icon" id="alarmCurrentIcon" aria-hidden="true"></span>
                 <span class="alarm-current-label" data-i18n="alarm.current">Current</span>
                 <span class="alarm-current-file" id="alarmCurrentFile">alarm.mp3 (default)</span>
-                <span class="alarm-provider-tag hidden" id="alarmProviderTag"></span>
             </div>
 
-            <!-- Local dosya seçimi -->
-            <div class="alarm-section">
-                <p class="alarm-section-label" data-i18n="alarm.localSectionLabel">Local file</p>
-                <button type="button" id="chooseAlarmBtn" class="btn-primary" data-i18n="alarm.chooseFile">Choose file…</button>
-            </div>
+            <!-- Accordion: Local / YouTube / Spotify -->
+            <div class="alarm-accordion" id="alarmAccordion">
 
-            <!-- URL ile yükleme -->
-            <div class="alarm-section">
-                <p class="alarm-section-label" data-i18n="alarm.urlSectionLabel">YouTube or Spotify URL</p>
-                <div class="alarm-url-row">
-                    <input id="alarmUrlInput" type="url" placeholder="https://youtube.com/watch?v=… or spotify link"
-                        data-i18n-placeholder="alarm.urlPlaceholder"
-                        autocomplete="off" spellcheck="false" />
-                    <button type="button" id="alarmUrlLoadBtn" data-i18n="alarm.urlLoad">Load</button>
+                <!-- Local -->
+                <div class="alarm-section" data-section="local">
+                    <button type="button" class="alarm-section-toggle" id="localSectionToggle"
+                        aria-expanded="true" aria-controls="localSectionBody">
+                        <span class="alarm-section-icon" id="localSectionIcon" aria-hidden="true"></span>
+                        <span class="alarm-section-title" data-i18n="alarm.localSectionLabel">Local file</span>
+                        <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="alarm-section-body" id="localSectionBody">
+                        <button type="button" id="chooseAlarmBtn" class="btn-primary" data-i18n="alarm.chooseFile">Choose file…</button>
+                    </div>
                 </div>
-                <p class="alarm-url-hint" data-i18n="alarm.urlHint">
-                    Paste a YouTube video or Spotify track URL. Spotify links
-                    require connecting your account and play through the real
-                    Spotify app (not an in-app preview).
-                    If unavailable, local alarm will be used as fallback.
-                </p>
-            </div>
 
-            <!-- Spotify account -->
-            <div class="alarm-section">
-                <p class="alarm-section-label" data-i18n="alarm.spotifySectionLabel">Spotify</p>
-                <div class="alarm-spotify-status" id="spotifyStatusRow">
-                    <span id="spotifyStatusLabel">Not connected</span>
-                    <button type="button" id="spotifyConnectBtn" class="btn-subtle" data-i18n="alarm.spotifyConnect">Connect Spotify</button>
-                    <button type="button" id="spotifyLogoutBtn" class="btn-subtle hidden" data-i18n="alarm.spotifyDisconnect">Disconnect</button>
+                <!-- YouTube -->
+                <div class="alarm-section" data-section="youtube">
+                    <button type="button" class="alarm-section-toggle" id="youtubeSectionToggle"
+                        aria-expanded="false" aria-controls="youtubeSectionBody">
+                        <span class="alarm-section-icon" aria-hidden="true"><img src="assets/icons/youtube.svg" alt="" /></span>
+                        <span class="alarm-section-title" data-i18n="alarm.youtubeSectionLabel">YouTube</span>
+                        <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="alarm-section-body hidden" id="youtubeSectionBody">
+                        <div class="alarm-url-row">
+                            <input id="youtubeUrlInput" type="url" placeholder="https://youtube.com/watch?v=…"
+                                data-i18n-placeholder="alarm.youtubeUrlPlaceholder"
+                                autocomplete="off" spellcheck="false" />
+                            <button type="button" id="youtubeUrlLoadBtn" data-i18n="alarm.urlLoad">Load</button>
+                        </div>
+                        <p class="alarm-url-hint" data-i18n="alarm.youtubeUrlHint">
+                            Paste a YouTube video URL. If unavailable, local alarm will be used as fallback.
+                        </p>
+                    </div>
                 </div>
+
+                <!-- Spotify -->
+                <div class="alarm-section" data-section="spotify">
+                    <button type="button" class="alarm-section-toggle" id="spotifySectionToggle"
+                        aria-expanded="false" aria-controls="spotifySectionBody">
+                        <span class="alarm-section-icon" aria-hidden="true"><img src="assets/icons/spotify.svg" alt="" /></span>
+                        <span class="alarm-section-title" data-i18n="alarm.spotifySectionLabel">Spotify</span>
+                        <span class="alarm-section-status" id="spotifyStatusLabel">Not connected</span>
+                        <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="alarm-section-body hidden" id="spotifySectionBody">
+                        <div class="alarm-spotify-status" id="spotifyStatusRow">
+                            <button type="button" id="spotifyConnectBtn" class="btn-subtle" data-i18n="alarm.spotifyConnect">Connect Spotify</button>
+                            <button type="button" id="spotifyLogoutBtn" class="btn-subtle hidden" data-i18n="alarm.spotifyDisconnect">Disconnect</button>
+                        </div>
+                        <div class="alarm-url-row hidden" id="spotifyUrlRow">
+                            <input id="spotifyUrlInput" type="url" placeholder="https://open.spotify.com/track/…"
+                                data-i18n-placeholder="alarm.spotifyUrlPlaceholder"
+                                autocomplete="off" spellcheck="false" />
+                            <button type="button" id="spotifyUrlLoadBtn" data-i18n="alarm.urlLoad">Load</button>
+                        </div>
+                        <p class="alarm-url-hint" data-i18n="alarm.spotifyUrlHint">
+                            Connect your account, then paste a Spotify track URL. Plays through the real
+                            Spotify app (not an in-app preview). If unavailable, local alarm will be used as fallback.
+                        </p>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Preview -->
