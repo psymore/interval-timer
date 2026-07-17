@@ -24,7 +24,7 @@ export function getFileName(filePath) {
   return filePath.replace(/\\/g, "/").split("/").pop();
 }
 
-const DEFAULT_ALARM = "assets/alarm.mp3";
+const DEFAULT_ALARM = "assets/audio/alarm.mp3";
 // Mirrors LOCAL_AUDIO_EXTENSIONS in lib/localServer.js — duplicated because
 // the renderer can't import a main-process module; keep both lists in sync
 // if the supported formats ever change.

@@ -24,12 +24,9 @@
   --surface-alt: #2b2b2b;
   --border-hover: #ff7a1a;
   --accent-b: #ee0979;
-  --danger: #ff4d4f;
-  --danger-dim: #ff4d4f22;
   --input-bg: #2e2e2e;
   --modal-bg: #2b2b2b;
   --modal-border: #383838;
-  --update-badge: #ddef0c;
 
   /* Type scale */
   --text-xs: 0.75rem;
@@ -101,6 +98,7 @@ body {
   letter-spacing: -0.03em;
   text-wrap: balance;
   line-height: 1.1;
+  margin-bottom: 3vh;
 }
 
 /* ── Top bar ─────────────────────────────────────────────────── */
@@ -210,7 +208,7 @@ body {
   height: 13px;
   border-radius: 50%;
   background: var(--update-badge);
-  box-shadow: 2px -2px 12px 1px greenyellow;
+  box-shadow: 2px -2px 12px 1px var(--update-badge-shadow);
   color: #1a1a1a;
   font-family: var(--font-ui);
   font-size: 9px;

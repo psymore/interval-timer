@@ -22,9 +22,13 @@
             <span class="mini-label" id="miniLabel">TIMER</span>
             <div class="mini-header-actions">
                 <button type="button" class="mini-quit" id="miniQuitBtn" aria-label="Quit application"
-                    data-i18n-aria-label="mini.quitAriaLabel" title="Quit" data-i18n-title="mini.quitTitle">⏻</button>
-                <button type="button" class="mini-close" id="miniCloseBtn" aria-label="Close mini view"
-                    data-i18n-aria-label="mini.closeAriaLabel">✕</button>
+                    data-i18n-aria-label="mini.quitAriaLabel" title="Quit" data-i18n-title="mini.quitTitle">
+                    <img src="assets/icons/power.png" alt="" class="mini-icon-img" />
+                </button>
+                <button type="button" class="mini-close mini-pinned" id="miniCloseBtn" aria-label="Unpin and close mini view"
+                    aria-pressed="true" data-i18n-aria-label="mini.closeAriaLabel" title="Pinned on top" data-i18n-title="mini.closeTitle">
+                    <img src="assets/icons/pinned.png" alt="" class="mini-icon-img" />
+                </button>
             </div>
         </div>
 

@@ -5,7 +5,7 @@ let currentUpdate = null;
 function renderSettingsBadge() {
   const settingsIcon = document.getElementById("settingsIcon");
   if (settingsIcon)
-    settingsIcon.classList.toggle("icon-btn--has-update", !currentUpdate);
+    settingsIcon.classList.toggle("icon-btn--has-update", !!currentUpdate);
 }
 
 function renderBanner() {

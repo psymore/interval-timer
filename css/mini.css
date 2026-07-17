@@ -82,17 +82,21 @@ body {
 
 .mini-close {
   background: none;
-  border: none;
+  /* border: 1px solid transparent; */
   color: var(--ink-muted);
   font-size: 0.7rem;
   cursor: pointer;
-  padding: 2px 5px;
+  padding: 3px 6px;
   border-radius: 4px;
   line-height: 1;
   font-family: var(--font-ui);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition:
     color 120ms var(--ease-out),
-    background 120ms var(--ease-out);
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out);
 }
 
 .mini-close:hover {
@@ -100,26 +104,65 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* The mini window is always-on-top for as long as it exists (see
+   lib/windows.js), so this button — which unpins/closes it — stays in a
+   permanent "already pressed" pinned look: same bg/color treatment the main
+   window's .icon-btn.active pin toggle uses, plus a border since mini has
+   no separate aria-pressed toggle state to lean on visually. */
+.mini-pinned {
+  /* background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: var(--accent); */
+}
+
+.mini-pinned:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 2px 2px 12px 2px var(--accent);
+}
+
+.mini-pinned .mini-icon-img {
+  opacity: 1;
+}
+
 /* Mirrors the main window's .quit-btn red — --danger/--danger-dim are
    only defined in styles.css's :root, which this window doesn't load. */
 .mini-quit {
   background: none;
-  border: none;
+  /* border: 1px solid rgba(255, 77, 79, 0.4); */
   color: #ff4d4f;
   font-size: 0.7rem;
   cursor: pointer;
-  padding: 2px 5px;
+  padding: 3px 6px;
   border-radius: 4px;
   line-height: 1;
   font-family: var(--font-ui);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition:
     color 120ms var(--ease-out),
-    background 120ms var(--ease-out);
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out);
 }
 
 .mini-quit:hover {
   color: #ff4d4f;
+  box-shadow: 2px 2px 12px 2px #ff4d4f;
   background: rgba(255, 77, 79, 0.15);
+}
+
+.mini-quit:hover .mini-icon-img {
+  opacity: 1;
+}
+
+.mini-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: 0.75;
+  display: block;
+  transition: opacity 120ms var(--ease-out);
 }
 
 .mini-close:focus-visible,

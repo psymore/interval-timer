@@ -17,9 +17,13 @@
   --accent: #ff7a1a;
   --accent-dim: #ff7a1a22;
   --accent-glow: rgba(255, 122, 26, 0.35);
+  --danger: #ff4d4f;
+  --danger-dim: #ff4d4f22;
   --ink: #f5f3f0;
   --ink-muted: #c8c8c8; /* ← #888'den yükseltildi, 5.2:1 */
   --font-ui: "Inter", system-ui, Arial, sans-serif;
   --font-mono: "Recursive", "Courier New", monospace;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --update-badge: #ddef0c;
+  --update-badge-shadow: greenyellow;
 }
