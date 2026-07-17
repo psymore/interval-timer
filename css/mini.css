@@ -82,8 +82,8 @@ body {
 
 .mini-close {
   background: none;
-  /* border: 1px solid transparent; */
   color: var(--ink-muted);
+  background: var(--accent-dim);
   font-size: 0.7rem;
   cursor: pointer;
   padding: 3px 6px;
@@ -110,15 +110,13 @@ body {
    window's .icon-btn.active pin toggle uses, plus a border since mini has
    no separate aria-pressed toggle state to lean on visually. */
 .mini-pinned {
-  /* background: var(--accent-dim);
-  border-color: var(--accent-dim);
-  color: var(--accent); */
+  color: var(--accent);
 }
 
 .mini-pinned:hover {
   background: var(--accent-dim);
   color: var(--accent);
-  box-shadow: 2px 2px 12px 2px var(--accent);
+  box-shadow: 2px 2px 12px 1px var(--accent);
 }
 
 .mini-pinned .mini-icon-img {
@@ -129,7 +127,7 @@ body {
    only defined in styles.css's :root, which this window doesn't load. */
 .mini-quit {
   background: none;
-  /* border: 1px solid rgba(255, 77, 79, 0.4); */
+  background: var(--danger-dim);
   color: #ff4d4f;
   font-size: 0.7rem;
   cursor: pointer;
@@ -140,6 +138,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-right: 8px;
   transition:
     color 120ms var(--ease-out),
     background 120ms var(--ease-out),
@@ -148,7 +147,7 @@ body {
 
 .mini-quit:hover {
   color: #ff4d4f;
-  box-shadow: 2px 2px 12px 2px #ff4d4f;
+  box-shadow: 2px 2px 12px 1px #ff4d4f;
   background: rgba(255, 77, 79, 0.15);
 }
 
