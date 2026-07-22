@@ -40,6 +40,8 @@ export function setupIntervalTimer(alarmSettings) {
     if (bm) bm.value = preset.breakMinutes;
     if (bs) bs.value = preset.breakSeconds;
     if (lc) lc.value = preset.loops;
+
+    window.dispatchEvent(new CustomEvent("preset-activated", { detail: preset }));
   }
 
   // Preset UI'ını başlat
