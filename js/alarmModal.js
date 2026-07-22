@@ -174,25 +174,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   // "One-time migration" section. Safe to call every launch: it's a no-op
   // once the active preset already has an alarmSource.
   async function migrateLegacyAlarmSource() {
-    const legacy = localStorage.getItem("selectedAlarmPath");
-    if (!legacy) return;
+    try {
+      const legacy = localStorage.getItem("selectedAlarmPath");
+      if (!legacy) return;
 
-    const active = await getActivePreset();
-    if (!active || active.alarmSource) return;
+      const active = await getActivePreset();
+      if (!active || active.alarmSource) return;
 
-    const type = AlarmProviderFactory.detect(legacy);
-    const patch = { alarmSource: { type, value: legacy } };
+      const type = AlarmProviderFactory.detect(legacy);
+      const patch = { alarmSource: { type, value: legacy } };
 
-    if (type === "youtube" || type === "spotify") {
-      const existing = active.alarmLinks?.[type] ?? [];
-      patch.alarmLinks = {
-        youtube: active.alarmLinks?.youtube ?? [],
-        spotify: active.alarmLinks?.spotify ?? [],
-        [type]: addLink(existing, legacy),
-      };
+      if (type === "youtube" || type === "spotify") {
+        const existing = active.alarmLinks?.[type] ?? [];
+        patch.alarmLinks = {
+          youtube: active.alarmLinks?.youtube ?? [],
+          spotify: active.alarmLinks?.spotify ?? [],
+          [type]: addLink(existing, legacy),
+        };
+      }
+
+      await window.electronAPI.presetsSave({ ...active, ...patch });
+    } catch (e) {
+      log.warn("migrateLegacyAlarmSource: skipped due to error:", e.message);
     }
-
-    await window.electronAPI.presetsSave({ ...active, ...patch });
   }
 
   // Loads the given preset's alarmSource (or the local default if it has
