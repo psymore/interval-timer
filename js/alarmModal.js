@@ -6,7 +6,7 @@ import {
   removeRecentPath,
   saveRecentPaths,
 } from "./alarm/recentAlarms.js";
-import { addLink } from "./alarm/presetAlarmLinks.js";
+import { addLink, removeLink } from "./alarm/presetAlarmLinks.js";
 import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
@@ -54,6 +54,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const spotifyStatusLabel = document.getElementById("spotifyStatusLabel");
   const spotifyConnectBtn = document.getElementById("spotifyConnectBtn");
   const spotifyLogoutBtn = document.getElementById("spotifyLogoutBtn");
+  const youtubeLinksList = document.getElementById("youtubeLinksList");
+  const spotifyLinksList = document.getElementById("spotifyLinksList");
 
   if (!chooseAlarmBtn) {
     log.error("alarmModal: #chooseAlarmBtn not found.");
@@ -236,7 +238,95 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   window.addEventListener("preset-activated", async e => {
     await loadPresetAlarm(e.detail);
+    await renderLinkList("youtube");
+    await renderLinkList("spotify");
   });
+
+  // ── Kaydedilen bağlantılar (YouTube / Spotify) ────────────
+  function linkListEl(type) {
+    return type === "youtube" ? youtubeLinksList : spotifyLinksList;
+  }
+
+  async function renderLinkList(type) {
+    const listEl = linkListEl(type);
+    if (!listEl) return;
+
+    const active = await getActivePreset();
+    const links = active?.alarmLinks?.[type] ?? [];
+    const currentValue = active?.alarmSource?.value ?? null;
+
+    if (links.length === 0) {
+      listEl.innerHTML = "";
+      return;
+    }
+
+    listEl.innerHTML = links
+      .map(url => {
+        const isActive = url === currentValue;
+        const label = url.length > 40 ? url.slice(0, 37) + "…" : url;
+        return `<li class="alarm-recent-item${isActive ? " active" : ""}" data-url="${encodeURIComponent(url)}">
+          <span class="alarm-recent-name">${escapeHtml(label)}</span>
+          ${isActive ? `<span class="alarm-recent-tag">${t("alarm.recentActive")}</span>` : ""}
+          <button type="button" class="alarm-recent-remove no-hover-lift" aria-label="${t("alarm.savedLinkRemoveAriaLabel")}">&times;</button>
+        </li>`;
+      })
+      .join("");
+
+    listEl.querySelectorAll(".alarm-recent-item").forEach(item => {
+      item.addEventListener("click", async e => {
+        if (e.target.closest(".alarm-recent-remove")) return;
+        await activateAlarmLink(type, decodeURIComponent(item.dataset.url));
+      });
+    });
+
+    listEl.querySelectorAll(".alarm-recent-remove").forEach(btn => {
+      btn.addEventListener("click", async e => {
+        e.stopPropagation();
+        const li = btn.closest(".alarm-recent-item");
+        await removeAlarmLink(type, decodeURIComponent(li.dataset.url));
+      });
+    });
+  }
+
+  async function saveAlarmLink(type, url) {
+    const active = await getActivePreset();
+    if (!active) return;
+    const existing = active.alarmLinks?.[type] ?? [];
+    const alarmLinks = {
+      youtube: active.alarmLinks?.youtube ?? [],
+      spotify: active.alarmLinks?.spotify ?? [],
+      [type]: addLink(existing, url),
+    };
+    await window.electronAPI.presetsSave({
+      ...active,
+      alarmLinks,
+      alarmSource: { type, value: url },
+    });
+    await renderLinkList(type);
+  }
+
+  async function removeAlarmLink(type, url) {
+    const active = await getActivePreset();
+    if (!active) return;
+    const existing = active.alarmLinks?.[type] ?? [];
+    const alarmLinks = {
+      youtube: active.alarmLinks?.youtube ?? [],
+      spotify: active.alarmLinks?.spotify ?? [],
+      [type]: removeLink(existing, url),
+    };
+    await window.electronAPI.presetsSave({ ...active, alarmLinks });
+    await renderLinkList(type);
+  }
+
+  async function activateAlarmLink(type, url) {
+    const input = type === "youtube" ? youtubeUrlInput : spotifyUrlInput;
+    const loadBtn = type === "youtube" ? youtubeUrlLoadBtn : spotifyUrlLoadBtn;
+    input.value = url;
+    await handleUrlLoad({ expectedType: type, input, loadBtn });
+  }
+
+  await renderLinkList("youtube");
+  await renderLinkList("spotify");
 
   // ── Local dosya: paylaşılan uygulama mantığı ──────────────
   // Used by the file-picker button, drag-and-drop, and clicking a "Recent"
@@ -492,7 +582,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           rawUrl.length > 40 ? rawUrl.slice(0, 37) + "…" : rawUrl;
         usingDefaultAlarm = false;
         updateCurrentFile(displayLabel);
-        localStorage.setItem("selectedAlarmPath", rawUrl);
+        await saveAlarmLink(expectedType, rawUrl);
       }
 
       resetPreviewBtn();
