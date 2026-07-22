@@ -343,6 +343,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(url);
     alarmManager.setFallbackSource(url);
     localStorage.setItem("selectedAlarmPath", filePath);
+    await saveActivePreset({ alarmSource: { type: "local", value: filePath } });
 
     recentPaths = addRecentPath(recentPaths, filePath);
     saveRecentPaths(recentPaths);
@@ -352,6 +353,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateCurrentIcon("local");
     resetPreviewBtn();
     await renderRecentList();
+    await renderLinkList("youtube");
+    await renderLinkList("spotify");
     return true;
   }
 
@@ -421,11 +424,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(DEFAULT_ALARM);
     alarmManager.setFallbackSource(DEFAULT_ALARM);
     localStorage.removeItem("selectedAlarmPath");
+    await saveActivePreset({ alarmSource: null });
     usingDefaultAlarm = true;
     updateCurrentFile(t("alarm.defaultFile"));
     updateCurrentIcon("local");
     resetPreviewBtn();
     await renderRecentList();
+    await renderLinkList("youtube");
+    await renderLinkList("spotify");
   }
 
   // ── Local dosya seç ───────────────────────────────────────
@@ -713,6 +719,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           await alarmManager.load(DEFAULT_ALARM);
           alarmManager.setFallbackSource(DEFAULT_ALARM);
           localStorage.removeItem("selectedAlarmPath");
+          await saveActivePreset({ alarmSource: null });
           usingDefaultAlarm = true;
           updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
@@ -726,6 +733,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       showFeedback(t("alarm.feedback.spotifyDisconnected"), "success");
       updateCurrentIcon("local");
       await updateSpotifyAuthUI();
+      await renderLinkList("spotify");
     });
   }
 
