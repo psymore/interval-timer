@@ -45,7 +45,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 18px;
+  padding: 10px 14px 26px;
   user-select: none;
   overflow: hidden;
   /* Pointer everywhere by default; buttons already declare their own
