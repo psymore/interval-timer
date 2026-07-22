@@ -733,6 +733,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       showFeedback(t("alarm.feedback.spotifyDisconnected"), "success");
       updateCurrentIcon("local");
       await updateSpotifyAuthUI();
+      await renderLinkList("youtube");
       await renderLinkList("spotify");
     });
   }
