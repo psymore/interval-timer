@@ -89,7 +89,12 @@ registerWindowIpc();
 registerPresetsIpc(store);
 registerSettingsIpc(store);
 registerSpotifyIpc();
-registerUpdateIpc(store);
+// Store builds auto-update through Windows Update — a self-hosted "check for
+// updates" pointing at GitHub Releases would conflict with Store policy and
+// wouldn't match the Store's own version track anyway.
+if (!process.windowsStore) {
+  registerUpdateIpc(store);
+}
 
 // ── App lifecycle ─────────────────────────────────────────────
 app
@@ -103,7 +108,9 @@ app
     );
 
     await createWindow(); // ← await eklendi
-    initUpdateChecker({ store });
+    if (!process.windowsStore) {
+      initUpdateChecker({ store });
+    }
     createTray();
     blockerId = powerSaveBlocker.start("prevent-app-suspension");
     app.on("activate", async () => {

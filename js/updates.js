@@ -50,6 +50,12 @@ function renderBanner() {
 }
 
 export function setupUpdateChecker() {
+  if (window.electronAPI.isWindowsStoreBuild) {
+    document.querySelector(".update-check-row")?.classList.add("hidden");
+    document.getElementById("updateCheckStatus")?.classList.add("hidden");
+    return;
+  }
+
   window.electronAPI.onUpdateAvailable(info => {
     currentUpdate = info;
     renderBanner();

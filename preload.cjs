@@ -46,7 +46,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onLanguageChanged: cb =>
     ipcRenderer.on("language-changed", (_e, lang) => cb(lang)),
 
-  // Updates
+  // Updates — false in normal/direct-download builds, true when running as
+  // an MSIX/Desktop Bridge package (Store handles updates itself there).
+  isWindowsStoreBuild: process.windowsStore === true,
   updatesCheck: () => ipcRenderer.invoke("updates:check"),
   updatesDismiss: version => ipcRenderer.invoke("updates:dismiss", version),
   updatesOpenReleases: url => ipcRenderer.invoke("updates:open-releases", url),
