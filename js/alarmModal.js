@@ -6,6 +6,7 @@ import {
   removeRecentPath,
   saveRecentPaths,
 } from "./alarm/recentAlarms.js";
+import { addLink } from "./alarm/presetAlarmLinks.js";
 import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
@@ -148,10 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     onStop: () => resetPreviewBtn(),
   });
 
-  // ── Başlangıç yükleme ─────────────────────────────────────
-  await alarmManager.initialize(DEFAULT_ALARM);
-  await updateSpotifyAuthUI();
-
+  // ── Preset-aware alarm loading ─────────────────────────────
   // Tracks whether the current-file label is showing the translated
   // default (vs. a custom filename/URL) — used by the onLanguageChange
   // handler below to re-render only the default label, not a real
@@ -159,26 +157,82 @@ document.addEventListener("DOMContentLoaded", async () => {
   // on why custom-source labels don't re-sync on toggle).
   let usingDefaultAlarm = false;
 
-  const savedSource = localStorage.getItem("selectedAlarmPath");
-  if (savedSource) {
-    const type = AlarmProviderFactory.detect(savedSource);
-    if (type === "local") {
-      updateCurrentFile(getFileName(savedSource));
-      updateCurrentIcon("local");
-    } else {
-      const label =
-        savedSource.length > 40 ? savedSource.slice(0, 37) + "…" : savedSource;
-      updateCurrentFile(label);
-      // alarmManager.initialize() may have silently fallen back to local
-      // (e.g. no Spotify session) — reflect what actually loaded, not the
-      // raw saved string, so the icon/Preview-disable state stays accurate.
-      updateCurrentIcon(alarmManager.getProviderType());
-    }
-  } else {
-    usingDefaultAlarm = true;
-    updateCurrentFile(t("alarm.defaultFile"));
-    updateCurrentIcon("local");
+  async function getActivePreset() {
+    return window.electronAPI.presetsGetActive();
   }
+
+  async function saveActivePreset(patch) {
+    const active = await getActivePreset();
+    if (!active) return null;
+    const updated = { ...active, ...patch };
+    const result = await window.electronAPI.presetsSave(updated);
+    return result?.error ? active : updated;
+  }
+
+  // One-time best-effort import of the legacy global alarm source (pre
+  // per-preset storage) into the active preset — see design spec's
+  // "One-time migration" section. Safe to call every launch: it's a no-op
+  // once the active preset already has an alarmSource.
+  async function migrateLegacyAlarmSource() {
+    const legacy = localStorage.getItem("selectedAlarmPath");
+    if (!legacy) return;
+
+    const active = await getActivePreset();
+    if (!active || active.alarmSource) return;
+
+    const type = AlarmProviderFactory.detect(legacy);
+    const patch = { alarmSource: { type, value: legacy } };
+
+    if (type === "youtube" || type === "spotify") {
+      const existing = active.alarmLinks?.[type] ?? [];
+      patch.alarmLinks = {
+        youtube: active.alarmLinks?.youtube ?? [],
+        spotify: active.alarmLinks?.spotify ?? [],
+        [type]: addLink(existing, legacy),
+      };
+    }
+
+    await window.electronAPI.presetsSave({ ...active, ...patch });
+  }
+
+  // Loads the given preset's alarmSource (or the local default if it has
+  // none) and updates the current-file label/icon to match. Called once at
+  // startup and again every time the active preset changes (see the
+  // preset-activated listener below).
+  async function loadPresetAlarm(preset) {
+    const alarmSource = preset?.alarmSource ?? null;
+    await alarmManager.initialize(DEFAULT_ALARM, alarmSource?.value ?? null);
+
+    if (alarmSource?.value) {
+      usingDefaultAlarm = false;
+      if (alarmSource.type === "local") {
+        updateCurrentFile(getFileName(alarmSource.value));
+        updateCurrentIcon("local");
+      } else {
+        const label =
+          alarmSource.value.length > 40
+            ? alarmSource.value.slice(0, 37) + "…"
+            : alarmSource.value;
+        updateCurrentFile(label);
+        // alarmManager.initialize() may have silently fallen back to local
+        // (e.g. no Spotify session) — reflect what actually loaded, not the
+        // raw saved string, so the icon/Preview-disable state stays accurate.
+        updateCurrentIcon(alarmManager.getProviderType());
+      }
+    } else {
+      usingDefaultAlarm = true;
+      updateCurrentFile(t("alarm.defaultFile"));
+      updateCurrentIcon("local");
+    }
+  }
+
+  await migrateLegacyAlarmSource();
+  await loadPresetAlarm(await getActivePreset());
+  await updateSpotifyAuthUI();
+
+  window.addEventListener("preset-activated", async e => {
+    await loadPresetAlarm(e.detail);
+  });
 
   // ── Local dosya: paylaşılan uygulama mantığı ──────────────
   // Used by the file-picker button, drag-and-drop, and clicking a "Recent"

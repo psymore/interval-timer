@@ -23,11 +23,9 @@ class AlarmManager {
    * localStorage'daki kaynağı tespit eder, doğru şekilde yükler.
    * @param {string} defaultSource - Hiçbir şey seçilmemişse kullanılacak yol
    */
-  async initialize(defaultSource) {
+  async initialize(defaultSource, savedSource = null) {
     this._defaultSource = defaultSource;
     this.setFallbackSource(defaultSource);
-
-    const savedSource = localStorage.getItem("selectedAlarmPath");
 
     if (!savedSource) {
       // Kayıtlı kaynak yok — default'u yükle
