@@ -80,6 +80,10 @@ export async function checkSpotifyLinks(urls) {
       return results;
     }
     const data = await res.json();
+    if (!Array.isArray(data.tracks)) {
+      urls.forEach(url => results.set(url, "unknown"));
+      return results;
+    }
     const tracksById = new Map();
     validIds.forEach((id, i) => tracksById.set(id, data.tracks?.[i] ?? null));
 

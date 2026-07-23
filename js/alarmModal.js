@@ -243,11 +243,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // with. Never awaited by callers — this is a background enhancement,
   // not something that should delay the alarm loading/UI it accompanies.
   // A null/local alarmSource clears the badge immediately (no network
-  // call needed).
-  async function updateAlarmHealthBadge(alarmSource) {
-    const active = await getActivePreset();
-    if (!active) return;
-    const presetId = active.id;
+  // call needed). presetId and alarmSource must be passed together as a
+  // matched pair captured from the same "active preset" snapshot by the
+  // caller — this function must never re-derive presetId on its own,
+  // since an async gap here could let it drift to a different preset than
+  // the one alarmSource was actually checked for.
+  async function updateAlarmHealthBadge(presetId, alarmSource) {
+    if (!presetId) return;
 
     if (!alarmSource?.type || alarmSource.type === "local") {
       window.dispatchEvent(
@@ -277,14 +279,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   {
     const active = await getActivePreset();
     await loadPresetAlarm(active);
-    updateAlarmHealthBadge(active?.alarmSource ?? null);
+    updateAlarmHealthBadge(active?.id ?? null, active?.alarmSource ?? null);
   }
   await updateSpotifyAuthUI();
 
   window.addEventListener("preset-activated", async () => {
     const active = await getActivePreset();
     await loadPresetAlarm(active);
-    updateAlarmHealthBadge(active?.alarmSource ?? null);
+    updateAlarmHealthBadge(active?.id ?? null, active?.alarmSource ?? null);
     await renderLinkList("youtube");
     await renderLinkList("spotify");
   });
@@ -426,8 +428,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(url);
     alarmManager.setFallbackSource(url);
     localStorage.setItem("selectedAlarmPath", filePath);
-    await saveActivePreset({ alarmSource: { type: "local", value: filePath } });
-    updateAlarmHealthBadge({ type: "local", value: filePath });
+    const savedPreset = await saveActivePreset({
+      alarmSource: { type: "local", value: filePath },
+    });
+    updateAlarmHealthBadge(
+      savedPreset?.id ?? null,
+      savedPreset?.alarmSource ?? null,
+    );
 
     recentPaths = addRecentPath(recentPaths, filePath);
     saveRecentPaths(recentPaths);
@@ -508,8 +515,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(DEFAULT_ALARM);
     alarmManager.setFallbackSource(DEFAULT_ALARM);
     localStorage.removeItem("selectedAlarmPath");
-    await saveActivePreset({ alarmSource: null });
-    updateAlarmHealthBadge(null);
+    const savedPreset = await saveActivePreset({ alarmSource: null });
+    updateAlarmHealthBadge(
+      savedPreset?.id ?? null,
+      savedPreset?.alarmSource ?? null,
+    );
     usingDefaultAlarm = true;
     updateCurrentFile(t("alarm.defaultFile"));
     updateCurrentIcon("local");
@@ -674,7 +684,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         usingDefaultAlarm = false;
         updateCurrentFile(displayLabel);
         await saveAlarmLink(expectedType, rawUrl);
-        updateAlarmHealthBadge({ type: expectedType, value: rawUrl });
+        const active = await getActivePreset();
+        updateAlarmHealthBadge(active?.id ?? null, active?.alarmSource ?? null);
       }
 
       resetPreviewBtn();
@@ -805,8 +816,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           await alarmManager.load(DEFAULT_ALARM);
           alarmManager.setFallbackSource(DEFAULT_ALARM);
           localStorage.removeItem("selectedAlarmPath");
-          await saveActivePreset({ alarmSource: null });
-          updateAlarmHealthBadge(null);
+          const savedPreset = await saveActivePreset({ alarmSource: null });
+          updateAlarmHealthBadge(
+            savedPreset?.id ?? null,
+            savedPreset?.alarmSource ?? null,
+          );
           usingDefaultAlarm = true;
           updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
