@@ -6,6 +6,7 @@ import {
   removeRecentPath,
   saveRecentPaths,
 } from "./alarm/recentAlarms.js";
+import { addLink, removeLink } from "./alarm/presetAlarmLinks.js";
 import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
@@ -53,6 +54,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const spotifyStatusLabel = document.getElementById("spotifyStatusLabel");
   const spotifyConnectBtn = document.getElementById("spotifyConnectBtn");
   const spotifyLogoutBtn = document.getElementById("spotifyLogoutBtn");
+  const youtubeLinksList = document.getElementById("youtubeLinksList");
+  const spotifyLinksList = document.getElementById("spotifyLinksList");
 
   if (!chooseAlarmBtn) {
     log.error("alarmModal: #chooseAlarmBtn not found.");
@@ -148,10 +151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     onStop: () => resetPreviewBtn(),
   });
 
-  // ── Başlangıç yükleme ─────────────────────────────────────
-  await alarmManager.initialize(DEFAULT_ALARM);
-  await updateSpotifyAuthUI();
-
+  // ── Preset-aware alarm loading ─────────────────────────────
   // Tracks whether the current-file label is showing the translated
   // default (vs. a custom filename/URL) — used by the onLanguageChange
   // handler below to re-render only the default label, not a real
@@ -159,26 +159,174 @@ document.addEventListener("DOMContentLoaded", async () => {
   // on why custom-source labels don't re-sync on toggle).
   let usingDefaultAlarm = false;
 
-  const savedSource = localStorage.getItem("selectedAlarmPath");
-  if (savedSource) {
-    const type = AlarmProviderFactory.detect(savedSource);
-    if (type === "local") {
-      updateCurrentFile(getFileName(savedSource));
-      updateCurrentIcon("local");
-    } else {
-      const label =
-        savedSource.length > 40 ? savedSource.slice(0, 37) + "…" : savedSource;
-      updateCurrentFile(label);
-      // alarmManager.initialize() may have silently fallen back to local
-      // (e.g. no Spotify session) — reflect what actually loaded, not the
-      // raw saved string, so the icon/Preview-disable state stays accurate.
-      updateCurrentIcon(alarmManager.getProviderType());
-    }
-  } else {
-    usingDefaultAlarm = true;
-    updateCurrentFile(t("alarm.defaultFile"));
-    updateCurrentIcon("local");
+  async function getActivePreset() {
+    return window.electronAPI.presetsGetActive();
   }
+
+  async function saveActivePreset(patch) {
+    const active = await getActivePreset();
+    if (!active) return null;
+    const updated = { ...active, ...patch };
+    const result = await window.electronAPI.presetsSave(updated);
+    return result?.error ? active : updated;
+  }
+
+  // One-time best-effort import of the legacy global alarm source (pre
+  // per-preset storage) into the active preset — see design spec's
+  // "One-time migration" section. Safe to call every launch: it's a no-op
+  // once the active preset already has an alarmSource.
+  async function migrateLegacyAlarmSource() {
+    try {
+      const legacy = localStorage.getItem("selectedAlarmPath");
+      if (!legacy) return;
+
+      const active = await getActivePreset();
+      if (!active || active.alarmSource) return;
+
+      const type = AlarmProviderFactory.detect(legacy);
+      const patch = { alarmSource: { type, value: legacy } };
+
+      if (type === "youtube" || type === "spotify") {
+        const existing = active.alarmLinks?.[type] ?? [];
+        patch.alarmLinks = {
+          youtube: active.alarmLinks?.youtube ?? [],
+          spotify: active.alarmLinks?.spotify ?? [],
+          [type]: addLink(existing, legacy),
+        };
+      }
+
+      await window.electronAPI.presetsSave({ ...active, ...patch });
+    } catch (e) {
+      log.warn("migrateLegacyAlarmSource: skipped due to error:", e.message);
+    }
+  }
+
+  // Loads the given preset's alarmSource (or the local default if it has
+  // none) and updates the current-file label/icon to match. Called once at
+  // startup and again every time the active preset changes (see the
+  // preset-activated listener below).
+  async function loadPresetAlarm(preset) {
+    const alarmSource = preset?.alarmSource ?? null;
+    await alarmManager.initialize(DEFAULT_ALARM, alarmSource?.value ?? null);
+
+    if (alarmSource?.value) {
+      usingDefaultAlarm = false;
+      if (alarmSource.type === "local") {
+        updateCurrentFile(getFileName(alarmSource.value));
+        updateCurrentIcon("local");
+      } else {
+        const label =
+          alarmSource.value.length > 40
+            ? alarmSource.value.slice(0, 37) + "…"
+            : alarmSource.value;
+        updateCurrentFile(label);
+        // alarmManager.initialize() may have silently fallen back to local
+        // (e.g. no Spotify session) — reflect what actually loaded, not the
+        // raw saved string, so the icon/Preview-disable state stays accurate.
+        updateCurrentIcon(alarmManager.getProviderType());
+      }
+    } else {
+      usingDefaultAlarm = true;
+      updateCurrentFile(t("alarm.defaultFile"));
+      updateCurrentIcon("local");
+    }
+  }
+
+  await migrateLegacyAlarmSource();
+  await loadPresetAlarm(await getActivePreset());
+  await updateSpotifyAuthUI();
+
+  window.addEventListener("preset-activated", async () => {
+    await loadPresetAlarm(await getActivePreset());
+    await renderLinkList("youtube");
+    await renderLinkList("spotify");
+  });
+
+  // ── Kaydedilen bağlantılar (YouTube / Spotify) ────────────
+  function linkListEl(type) {
+    return type === "youtube" ? youtubeLinksList : spotifyLinksList;
+  }
+
+  async function renderLinkList(type) {
+    const listEl = linkListEl(type);
+    if (!listEl) return;
+
+    const active = await getActivePreset();
+    const links = active?.alarmLinks?.[type] ?? [];
+    const currentValue = active?.alarmSource?.value ?? null;
+
+    if (links.length === 0) {
+      listEl.innerHTML = "";
+      return;
+    }
+
+    listEl.innerHTML = links
+      .map(url => {
+        const isActive = url === currentValue;
+        const label = url.length > 40 ? url.slice(0, 37) + "…" : url;
+        return `<li class="alarm-recent-item${isActive ? " active" : ""}" data-url="${encodeURIComponent(url)}">
+          <span class="alarm-recent-name">${escapeHtml(label)}</span>
+          ${isActive ? `<span class="alarm-recent-tag">${t("alarm.recentActive")}</span>` : ""}
+          <button type="button" class="alarm-recent-remove no-hover-lift" aria-label="${t("alarm.savedLinkRemoveAriaLabel")}">&times;</button>
+        </li>`;
+      })
+      .join("");
+
+    listEl.querySelectorAll(".alarm-recent-item").forEach(item => {
+      item.addEventListener("click", async e => {
+        if (e.target.closest(".alarm-recent-remove")) return;
+        await activateAlarmLink(type, decodeURIComponent(item.dataset.url));
+      });
+    });
+
+    listEl.querySelectorAll(".alarm-recent-remove").forEach(btn => {
+      btn.addEventListener("click", async e => {
+        e.stopPropagation();
+        const li = btn.closest(".alarm-recent-item");
+        await removeAlarmLink(type, decodeURIComponent(li.dataset.url));
+      });
+    });
+  }
+
+  async function saveAlarmLink(type, url) {
+    const active = await getActivePreset();
+    if (!active) return;
+    const existing = active.alarmLinks?.[type] ?? [];
+    const alarmLinks = {
+      youtube: active.alarmLinks?.youtube ?? [],
+      spotify: active.alarmLinks?.spotify ?? [],
+      [type]: addLink(existing, url),
+    };
+    await window.electronAPI.presetsSave({
+      ...active,
+      alarmLinks,
+      alarmSource: { type, value: url },
+    });
+    await renderLinkList(type);
+  }
+
+  async function removeAlarmLink(type, url) {
+    const active = await getActivePreset();
+    if (!active) return;
+    const existing = active.alarmLinks?.[type] ?? [];
+    const alarmLinks = {
+      youtube: active.alarmLinks?.youtube ?? [],
+      spotify: active.alarmLinks?.spotify ?? [],
+      [type]: removeLink(existing, url),
+    };
+    await window.electronAPI.presetsSave({ ...active, alarmLinks });
+    await renderLinkList(type);
+  }
+
+  async function activateAlarmLink(type, url) {
+    const input = type === "youtube" ? youtubeUrlInput : spotifyUrlInput;
+    const loadBtn = type === "youtube" ? youtubeUrlLoadBtn : spotifyUrlLoadBtn;
+    input.value = url;
+    await handleUrlLoad({ expectedType: type, input, loadBtn });
+  }
+
+  await renderLinkList("youtube");
+  await renderLinkList("spotify");
 
   // ── Local dosya: paylaşılan uygulama mantığı ──────────────
   // Used by the file-picker button, drag-and-drop, and clicking a "Recent"
@@ -195,6 +343,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(url);
     alarmManager.setFallbackSource(url);
     localStorage.setItem("selectedAlarmPath", filePath);
+    await saveActivePreset({ alarmSource: { type: "local", value: filePath } });
 
     recentPaths = addRecentPath(recentPaths, filePath);
     saveRecentPaths(recentPaths);
@@ -204,6 +353,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateCurrentIcon("local");
     resetPreviewBtn();
     await renderRecentList();
+    await renderLinkList("youtube");
+    await renderLinkList("spotify");
     return true;
   }
 
@@ -273,11 +424,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(DEFAULT_ALARM);
     alarmManager.setFallbackSource(DEFAULT_ALARM);
     localStorage.removeItem("selectedAlarmPath");
+    await saveActivePreset({ alarmSource: null });
     usingDefaultAlarm = true;
     updateCurrentFile(t("alarm.defaultFile"));
     updateCurrentIcon("local");
     resetPreviewBtn();
     await renderRecentList();
+    await renderLinkList("youtube");
+    await renderLinkList("spotify");
   }
 
   // ── Local dosya seç ───────────────────────────────────────
@@ -434,7 +588,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           rawUrl.length > 40 ? rawUrl.slice(0, 37) + "…" : rawUrl;
         usingDefaultAlarm = false;
         updateCurrentFile(displayLabel);
-        localStorage.setItem("selectedAlarmPath", rawUrl);
+        await saveAlarmLink(expectedType, rawUrl);
       }
 
       resetPreviewBtn();
@@ -565,6 +719,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           await alarmManager.load(DEFAULT_ALARM);
           alarmManager.setFallbackSource(DEFAULT_ALARM);
           localStorage.removeItem("selectedAlarmPath");
+          await saveActivePreset({ alarmSource: null });
           usingDefaultAlarm = true;
           updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
@@ -578,6 +733,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       showFeedback(t("alarm.feedback.spotifyDisconnected"), "success");
       updateCurrentIcon("local");
       await updateSpotifyAuthUI();
+      await renderLinkList("youtube");
+      await renderLinkList("spotify");
     });
   }
 
