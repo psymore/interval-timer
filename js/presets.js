@@ -8,8 +8,43 @@ export async function setupPresets(onPresetLoad) {
   const addBtn = document.getElementById("addPresetBtn");
   const triggerBtn = document.getElementById("presetTriggerBtn");
   const dropdown = document.getElementById("presetDropdown");
+  const triggerAlarmBadge = document.getElementById("presetTriggerAlarmBadge");
 
   if (!container || !addBtn || !triggerBtn || !dropdown) return;
+
+  // ── Active preset's alarm-link health badge ────────────────
+  // Tracks whether the CURRENTLY active preset's alarm link is known
+  // broken. Reset to false whenever the active preset itself changes
+  // (not on every renderPresets() call — editing/deleting an unrelated
+  // preset must not clear a real badge on the still-active one). The
+  // actual health check happens in js/alarmModal.js (Mechanism 1); this
+  // module only displays whatever result arrives via the event below.
+  let activeAlarmBroken = false;
+  let lastActiveId = null;
+
+  function applyAlarmBadgeDisplay() {
+    if (triggerAlarmBadge) {
+      triggerAlarmBadge.classList.toggle("hidden", !activeAlarmBroken);
+    }
+    const activeRowBadge = container.querySelector(
+      ".preset-item--active .preset-item__alarm-badge",
+    );
+    if (activeRowBadge) {
+      activeRowBadge.classList.toggle("hidden", !activeAlarmBroken);
+    }
+  }
+
+  // Race-safe: a health check is an async network call, so the user can
+  // switch presets again before it resolves. Re-derive the currently
+  // active preset at the moment the event arrives (never trust a
+  // presetId captured earlier) and discard results for a preset that's
+  // no longer active.
+  window.addEventListener("preset-alarm-health", async e => {
+    const current = await window.electronAPI.presetsGetActive();
+    if (!current || current.id !== e.detail.presetId) return;
+    activeAlarmBroken = e.detail.broken;
+    applyAlarmBadgeDisplay();
+  });
 
   // ── Dropdown aç/kapat ─────────────────────────────────────
   function openDropdown() {
@@ -61,12 +96,20 @@ export async function setupPresets(onPresetLoad) {
       window.electronAPI.presetsGetActive(),
     ]);
 
+    if ((active?.id ?? null) !== lastActiveId) {
+      activeAlarmBroken = false;
+      lastActiveId = active?.id ?? null;
+    }
+
     container.innerHTML = "";
 
     // Trigger label'ı aktif preset adıyla güncelle
     const triggerLabel = document.getElementById("presetTriggerLabel");
     if (triggerLabel) {
       triggerLabel.textContent = active?.name ?? t("interval.presetsDefault");
+    }
+    if (triggerAlarmBadge) {
+      triggerAlarmBadge.classList.toggle("hidden", !activeAlarmBroken);
     }
 
     // Empty state
@@ -86,6 +129,7 @@ export async function setupPresets(onPresetLoad) {
         onPresetLoad,
         renderPresets,
         closeDropdown,
+        active?.id === preset.id && activeAlarmBroken,
       );
       container.appendChild(li);
     });
@@ -113,7 +157,7 @@ export async function setupPresets(onPresetLoad) {
 }
 
 // ── Preset item ───────────────────────────────────────────────
-function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
+function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBroken = false) {
   const isDefault = preset.id.startsWith("default-");
 
   const li = document.createElement("li");
@@ -135,6 +179,7 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose) {
         <span aria-hidden="true">·</span>
         ↻ ${loopLabel}
       </span>
+      <span class="preset-alarm-health-badge preset-item__alarm-badge${alarmBroken ? "" : " hidden"}">${t("presets.alarmBrokenBadge")}</span>
     </button>
     <div class="preset-item__actions">
       <button class="preset-item__btn preset-item__btn--edit no-hover-lift"

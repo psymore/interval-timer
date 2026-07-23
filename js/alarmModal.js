@@ -7,6 +7,7 @@ import {
   saveRecentPaths,
 } from "./alarm/recentAlarms.js";
 import { addLink, removeLink } from "./alarm/presetAlarmLinks.js";
+import { checkYoutubeLink, checkSpotifyLinks } from "./alarm/linkHealth.js";
 import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
@@ -125,6 +126,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           toggle.getAttribute("aria-controls"),
         );
         if (body) body.classList.remove("hidden");
+
+        const section = toggle.closest(".alarm-section")?.dataset.section;
+        if (section === "youtube" || section === "spotify") {
+          renderLinkList(section, { checkHealth: true });
+        }
       });
     });
   }
@@ -232,12 +238,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Checks the given alarmSource's health (if it's a remote link) and
+  // dispatches the result for js/presets.js to badge the preset picker
+  // with. Never awaited by callers — this is a background enhancement,
+  // not something that should delay the alarm loading/UI it accompanies.
+  // A null/local alarmSource clears the badge immediately (no network
+  // call needed). presetId and alarmSource must be passed together as a
+  // matched pair captured from the same "active preset" snapshot by the
+  // caller — this function must never re-derive presetId on its own,
+  // since an async gap here could let it drift to a different preset than
+  // the one alarmSource was actually checked for.
+  async function updateAlarmHealthBadge(presetId, alarmSource) {
+    if (!presetId) return;
+
+    if (!alarmSource?.type || alarmSource.type === "local") {
+      window.dispatchEvent(
+        new CustomEvent("preset-alarm-health", {
+          detail: { presetId, broken: false },
+        }),
+      );
+      return;
+    }
+
+    let status = "unknown";
+    if (alarmSource.type === "youtube") {
+      status = await checkYoutubeLink(alarmSource.value);
+    } else if (alarmSource.type === "spotify") {
+      const results = await checkSpotifyLinks([alarmSource.value]);
+      status = results.get(alarmSource.value) ?? "unknown";
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("preset-alarm-health", {
+        detail: { presetId, broken: status === "broken" },
+      }),
+    );
+  }
+
   await migrateLegacyAlarmSource();
-  await loadPresetAlarm(await getActivePreset());
+  {
+    const active = await getActivePreset();
+    await loadPresetAlarm(active);
+    updateAlarmHealthBadge(active?.id ?? null, active?.alarmSource ?? null);
+  }
   await updateSpotifyAuthUI();
 
   window.addEventListener("preset-activated", async () => {
-    await loadPresetAlarm(await getActivePreset());
+    const active = await getActivePreset();
+    await loadPresetAlarm(active);
+    updateAlarmHealthBadge(active?.id ?? null, active?.alarmSource ?? null);
     await renderLinkList("youtube");
     await renderLinkList("spotify");
   });
@@ -247,7 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return type === "youtube" ? youtubeLinksList : spotifyLinksList;
   }
 
-  async function renderLinkList(type) {
+  async function renderLinkList(type, { checkHealth = false } = {}) {
     const listEl = linkListEl(type);
     if (!listEl) return;
 
@@ -286,6 +335,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         await removeAlarmLink(type, decodeURIComponent(li.dataset.url));
       });
     });
+
+    if (checkHealth) {
+      checkListHealth(type, links).then(brokenUrls => {
+        listEl.querySelectorAll(".alarm-recent-item").forEach(li => {
+          const url = decodeURIComponent(li.dataset.url);
+          if (brokenUrls.has(url) && !li.querySelector(".alarm-recent-tag.missing")) {
+            li.insertAdjacentHTML(
+              "beforeend",
+              `<span class="alarm-recent-tag missing">${t("alarm.linkBroken")}</span>`,
+            );
+          }
+        });
+      });
+    }
+  }
+
+  // Returns a Set of URLs (from `links`) confirmed broken. Never includes
+  // a URL whose check came back "unknown" — see linkHealth.js's contract.
+  async function checkListHealth(type, links) {
+    const broken = new Set();
+
+    if (type === "youtube") {
+      const results = await Promise.all(
+        links.map(async url => [url, await checkYoutubeLink(url)]),
+      );
+      results.forEach(([url, status]) => {
+        if (status === "broken") broken.add(url);
+      });
+    } else if (type === "spotify") {
+      const results = await checkSpotifyLinks(links);
+      results.forEach((status, url) => {
+        if (status === "broken") broken.add(url);
+      });
+    }
+
+    return broken;
   }
 
   async function saveAlarmLink(type, url) {
@@ -343,7 +428,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(url);
     alarmManager.setFallbackSource(url);
     localStorage.setItem("selectedAlarmPath", filePath);
-    await saveActivePreset({ alarmSource: { type: "local", value: filePath } });
+    const savedPreset = await saveActivePreset({
+      alarmSource: { type: "local", value: filePath },
+    });
+    updateAlarmHealthBadge(
+      savedPreset?.id ?? null,
+      savedPreset?.alarmSource ?? null,
+    );
 
     recentPaths = addRecentPath(recentPaths, filePath);
     saveRecentPaths(recentPaths);
@@ -424,7 +515,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     await alarmManager.load(DEFAULT_ALARM);
     alarmManager.setFallbackSource(DEFAULT_ALARM);
     localStorage.removeItem("selectedAlarmPath");
-    await saveActivePreset({ alarmSource: null });
+    const savedPreset = await saveActivePreset({ alarmSource: null });
+    updateAlarmHealthBadge(
+      savedPreset?.id ?? null,
+      savedPreset?.alarmSource ?? null,
+    );
     usingDefaultAlarm = true;
     updateCurrentFile(t("alarm.defaultFile"));
     updateCurrentIcon("local");
@@ -589,6 +684,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         usingDefaultAlarm = false;
         updateCurrentFile(displayLabel);
         await saveAlarmLink(expectedType, rawUrl);
+        const active = await getActivePreset();
+        updateAlarmHealthBadge(active?.id ?? null, active?.alarmSource ?? null);
       }
 
       resetPreviewBtn();
@@ -719,7 +816,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           await alarmManager.load(DEFAULT_ALARM);
           alarmManager.setFallbackSource(DEFAULT_ALARM);
           localStorage.removeItem("selectedAlarmPath");
-          await saveActivePreset({ alarmSource: null });
+          const savedPreset = await saveActivePreset({ alarmSource: null });
+          updateAlarmHealthBadge(
+            savedPreset?.id ?? null,
+            savedPreset?.alarmSource ?? null,
+          );
           usingDefaultAlarm = true;
           updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
