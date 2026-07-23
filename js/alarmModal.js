@@ -126,6 +126,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           toggle.getAttribute("aria-controls"),
         );
         if (body) body.classList.remove("hidden");
+
+        const section = toggle.closest(".alarm-section")?.dataset.section;
+        if (section === "youtube" || section === "spotify") {
+          renderLinkList(section, { checkHealth: true });
+        }
       });
     });
   }
@@ -289,7 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return type === "youtube" ? youtubeLinksList : spotifyLinksList;
   }
 
-  async function renderLinkList(type) {
+  async function renderLinkList(type, { checkHealth = false } = {}) {
     const listEl = linkListEl(type);
     if (!listEl) return;
 
@@ -328,6 +333,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         await removeAlarmLink(type, decodeURIComponent(li.dataset.url));
       });
     });
+
+    if (checkHealth) {
+      checkListHealth(type, links).then(brokenUrls => {
+        listEl.querySelectorAll(".alarm-recent-item").forEach(li => {
+          const url = decodeURIComponent(li.dataset.url);
+          if (brokenUrls.has(url) && !li.querySelector(".alarm-recent-tag.missing")) {
+            li.insertAdjacentHTML(
+              "beforeend",
+              `<span class="alarm-recent-tag missing">${t("alarm.linkBroken")}</span>`,
+            );
+          }
+        });
+      });
+    }
+  }
+
+  // Returns a Set of URLs (from `links`) confirmed broken. Never includes
+  // a URL whose check came back "unknown" — see linkHealth.js's contract.
+  async function checkListHealth(type, links) {
+    const broken = new Set();
+
+    if (type === "youtube") {
+      const results = await Promise.all(
+        links.map(async url => [url, await checkYoutubeLink(url)]),
+      );
+      results.forEach(([url, status]) => {
+        if (status === "broken") broken.add(url);
+      });
+    } else if (type === "spotify") {
+      const results = await checkSpotifyLinks(links);
+      results.forEach((status, url) => {
+        if (status === "broken") broken.add(url);
+      });
+    }
+
+    return broken;
   }
 
   async function saveAlarmLink(type, url) {
