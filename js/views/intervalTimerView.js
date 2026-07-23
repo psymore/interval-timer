@@ -8,6 +8,7 @@ export function renderIntervalView() {
           aria-haspopup="listbox" aria-expanded="false"
           aria-label="Select preset" data-i18n-aria-label="interval.selectPresetAriaLabel">
           <span class="preset-trigger__label" id="presetTriggerLabel">Presets</span>
+          <span class="preset-alarm-health-badge hidden" id="presetTriggerAlarmBadge" data-i18n="presets.alarmBrokenBadge">broken</span>
           <span class="preset-trigger__chevron" aria-hidden="true">▾</span>
         </button>
 

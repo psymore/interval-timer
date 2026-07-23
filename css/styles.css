@@ -906,6 +906,23 @@ button:disabled {
   flex-shrink: 0;
 }
 
+/* Shared by the preset trigger's badge and each preset-item row's badge —
+   same treatment as .alarm-recent-tag.missing in the Alarm Sound modal. */
+.preset-alarm-health-badge {
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--danger);
+  flex-shrink: 0;
+  margin-left: var(--sp-1);
+}
+
+.preset-alarm-health-badge.hidden {
+  display: none;
+}
+
 .preset-trigger--open .preset-trigger__chevron {
   transform: rotate(180deg);
 }
@@ -1031,6 +1048,11 @@ button:disabled {
   display: flex;
   gap: var(--sp-1);
   align-items: center;
+}
+
+.preset-item__alarm-badge {
+  margin-left: 0;
+  margin-top: 2px;
 }
 
 /* Action buttons */
