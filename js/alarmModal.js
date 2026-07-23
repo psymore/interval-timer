@@ -236,8 +236,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadPresetAlarm(await getActivePreset());
   await updateSpotifyAuthUI();
 
-  window.addEventListener("preset-activated", async e => {
-    await loadPresetAlarm(e.detail);
+  window.addEventListener("preset-activated", async () => {
+    await loadPresetAlarm(await getActivePreset());
     await renderLinkList("youtube");
     await renderLinkList("spotify");
   });
