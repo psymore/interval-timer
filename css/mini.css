@@ -391,7 +391,6 @@ body {
 .mini-resize-grip-diagonal::after {
   content: "";
   position: absolute;
-  top: 4px;
   left: 4px;
   width: 8px;
   height: 8px;
@@ -400,11 +399,13 @@ body {
 }
 
 .mini-resize-grip-dots::after {
+  top: 4px;
   background-image: radial-gradient(circle, var(--ink-muted) 1px, transparent 1.2px);
   background-size: 4px 4px;
 }
 
 .mini-resize-grip-diagonal::after {
+  bottom: 4px;
   background-image: repeating-linear-gradient(
     45deg,
     var(--ink-muted) 0,
