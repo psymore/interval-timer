@@ -129,10 +129,26 @@ body {
    not accent/danger-tinted like the pin/quit pills, since this isn't a
    toggle or a destructive action. */
 .mini-reset-size {
-  background: var(--surface);
+  /* background: var(--surface);
   border: 1px solid var(--border);
   color: var(--ink-muted);
   font-size: 0.75rem;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out); */
+  background: none;
+  color: var(--ink-muted);
+  background: var(--success-dim);
+  font-size: 0.7rem;
   cursor: pointer;
   padding: 3px 6px;
   border-radius: 4px;
@@ -148,9 +164,9 @@ body {
 }
 
 .mini-reset-size:hover {
-  color: var(--ink);
-  background: var(--accent-dim);
-  border-color: var(--accent);
+  background: var(--success-dim);
+  /* border-color: var(--accent); */
+  box-shadow: 2px 2px 12px 1px var(--success);
 }
 
 .mini-reset-size:focus-visible {
@@ -163,7 +179,7 @@ body {
 .mini-quit {
   background: none;
   background: var(--danger-dim);
-  color: #ff4d4f;
+  color: var(--danger);
   font-size: 0.7rem;
   cursor: pointer;
   padding: 3px 6px;

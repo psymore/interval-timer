@@ -25,5 +25,7 @@
   --font-mono: "Recursive", "Courier New", monospace;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --update-badge: #ddef0c;
-  --update-badge-shadow: greenyellow;
+  --update-badge-shadow: #adff2f;
+  --success: #4caf82;
+  --success-dim: #4caf821a;
 }
