@@ -307,3 +307,109 @@ body {
     text-shadow: none !important;
   }
 }
+
+/* ── Resize handles ──────────────────────────────────────────── */
+/* <html> is one big -webkit-app-region: drag zone (see mini.html), which
+   swallows the OS's edge/corner resize hit-testing. These sit at the
+   literal window edge (position: fixed, not relative to .mini-container's
+   padding) and opt back out of drag so native resize works now that
+   lib/windows.js sets resizable: true. */
+.mini-resize {
+  position: fixed;
+  -webkit-app-region: no-drag;
+}
+
+.mini-resize-n,
+.mini-resize-s {
+  left: 14px;
+  right: 14px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.mini-resize-n {
+  top: 0;
+}
+
+.mini-resize-s {
+  bottom: 0;
+}
+
+.mini-resize-e,
+.mini-resize-w {
+  top: 14px;
+  bottom: 14px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.mini-resize-w {
+  left: 0;
+}
+
+.mini-resize-e {
+  right: 0;
+}
+
+.mini-resize-nw,
+.mini-resize-ne,
+.mini-resize-sw,
+.mini-resize-se {
+  width: 14px;
+  height: 14px;
+}
+
+.mini-resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.mini-resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.mini-resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.mini-resize-se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+
+/* Visual grip glyphs — only the two corners the design calls for. Drawn as
+   an inset ::after so the functional hit-box above still reaches the true
+   window edge for resize, while the glyph itself sits inside
+   .mini-container's border-radius: 12px instead of poking past it. */
+.mini-resize-grip-dots::after,
+.mini-resize-grip-diagonal::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.mini-resize-grip-dots::after {
+  background-image: radial-gradient(circle, var(--ink-muted) 1px, transparent 1.2px);
+  background-size: 4px 4px;
+}
+
+.mini-resize-grip-diagonal::after {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ink-muted) 0,
+    var(--ink-muted) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
