@@ -9,6 +9,7 @@ const continueBtn = document.getElementById("miniContinueBtn");
 const resetBtn = document.getElementById("miniResetBtn");
 const closeBtn = document.getElementById("miniCloseBtn");
 const quitBtn = document.getElementById("miniQuitBtn");
+const resetSizeBtn = document.getElementById("miniResetSizeBtn");
 
 let lastState = { status: "ready", tab: "timer", time: "00:00" };
 
@@ -115,6 +116,13 @@ if (countdown) {
     if (event.animationName === "completion-glow") {
       countdown.classList.remove("click-glow");
     }
+  });
+}
+
+// ── Boyutu sıfırla ───────────────────────────────────────────────
+if (resetSizeBtn) {
+  resetSizeBtn.addEventListener("click", () => {
+    window.electronAPI.miniResetBounds();
   });
 }
 

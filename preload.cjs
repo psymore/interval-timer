@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onMiniReady: cb => ipcRenderer.on("mini-ready", cb),
   miniResizeStart: () => ipcRenderer.invoke("mini:resize-start"),
   miniResizeMove: bounds => ipcRenderer.send("mini:resize-move", bounds),
+  miniResetBounds: () => ipcRenderer.send("mini:reset-bounds"),
 
   // Presets
   presetsGetAll: () => ipcRenderer.invoke("presets:get-all"),

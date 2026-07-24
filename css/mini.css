@@ -123,6 +123,41 @@ body {
   opacity: 1;
 }
 
+/* Text glyph, not an <img> like .mini-quit/.mini-close — no existing icon
+   asset fit "reset window size", and a new binary asset isn't worth it for
+   one button. Neutral surface/border like the bottom .mini-btn controls,
+   not accent/danger-tinted like the pin/quit pills, since this isn't a
+   toggle or a destructive action. */
+.mini-reset-size {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out);
+}
+
+.mini-reset-size:hover {
+  color: var(--ink);
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.mini-reset-size:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* Mirrors the main window's .quit-btn red — --danger/--danger-dim are
    only defined in styles.css's :root, which this window doesn't load. */
 .mini-quit {
@@ -276,6 +311,7 @@ body {
 /* Tıklanabilir elementler no-drag olmalı */
 .mini-close,
 .mini-quit,
+.mini-reset-size,
 .mini-btn,
 .mini-countdown,
 .mini-phase,
