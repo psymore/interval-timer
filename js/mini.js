@@ -136,6 +136,62 @@ if (quitBtn) {
   });
 }
 
+// ── Resize (manual — see the "mini:resize-start" handler in
+// lib/windows.js for why this can't just be native OS edge resize) ────
+document.querySelectorAll(".mini-resize").forEach(zone => {
+  zone.addEventListener("mousedown", async event => {
+    event.preventDefault();
+
+    const dir = zone.dataset.resizeDir;
+    const start = await window.electronAPI.miniResizeStart();
+    if (!start) return;
+
+    const startScreenX = event.screenX;
+    const startScreenY = event.screenY;
+    let pendingBounds = null;
+    let rafScheduled = false;
+
+    function onMove(moveEvent) {
+      const dx = moveEvent.screenX - startScreenX;
+      const dy = moveEvent.screenY - startScreenY;
+
+      let { x, y, width, height } = start;
+
+      if (dir.includes("e")) {
+        width = Math.max(start.minWidth, start.width + dx);
+      }
+      if (dir.includes("w")) {
+        width = Math.max(start.minWidth, start.width - dx);
+        x = start.x + (start.width - width);
+      }
+      if (dir.includes("s")) {
+        height = Math.max(start.minHeight, start.height + dy);
+      }
+      if (dir.includes("n")) {
+        height = Math.max(start.minHeight, start.height - dy);
+        y = start.y + (start.height - height);
+      }
+
+      pendingBounds = { x, y, width, height };
+      if (!rafScheduled) {
+        rafScheduled = true;
+        requestAnimationFrame(() => {
+          window.electronAPI.miniResizeMove(pendingBounds);
+          rafScheduled = false;
+        });
+      }
+    }
+
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+});
+
 // ── Language ───────────────────────────────────────────────────
 initLanguage();
 onLanguageChange(() => render(lastState));

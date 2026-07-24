@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onTimerState: cb => ipcRenderer.on("timer-state", (_e, s) => cb(s)),
   onMiniAction: cb => ipcRenderer.on("mini-action", (_e, a) => cb(a)),
   onMiniReady: cb => ipcRenderer.on("mini-ready", cb),
+  miniResizeStart: () => ipcRenderer.invoke("mini:resize-start"),
+  miniResizeMove: bounds => ipcRenderer.send("mini:resize-move", bounds),
 
   // Presets
   presetsGetAll: () => ipcRenderer.invoke("presets:get-all"),

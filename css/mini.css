@@ -309,11 +309,12 @@ body {
 }
 
 /* ── Resize handles ──────────────────────────────────────────── */
-/* <html> is one big -webkit-app-region: drag zone (see mini.html), which
-   swallows the OS's edge/corner resize hit-testing. These sit at the
-   literal window edge (position: fixed, not relative to .mini-container's
-   padding) and opt back out of drag so native resize works now that
-   lib/windows.js sets resizable: true. */
+/* Hover/click targets for the manual JS-driven resize in js/mini.js —
+   frameless windows on this Electron version have no native OS edge/corner
+   resize hit-testing to opt into (see the "mini:resize-start" handler in
+   lib/windows.js for why), so these divs are what mousedown actually
+   listens on. -webkit-app-region: no-drag keeps the whole-window drag
+   region (mini.html's <html>) from swallowing their clicks. */
 .mini-resize {
   position: fixed;
   -webkit-app-region: no-drag;
@@ -400,7 +401,11 @@ body {
 
 .mini-resize-grip-dots::after {
   top: 4px;
-  background-image: radial-gradient(circle, var(--ink-muted) 1px, transparent 1.2px);
+  background-image: radial-gradient(
+    circle,
+    var(--ink-muted) 1px,
+    transparent 1.2px
+  );
   background-size: 4px 4px;
 }
 
