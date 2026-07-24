@@ -151,7 +151,21 @@ document.querySelectorAll(".mini-resize").forEach(zone => {
     let pendingBounds = null;
     let rafScheduled = false;
 
-    function onMove(moveEvent) {
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+
+    const onMove = moveEvent => {
+      // The button can be released outside the window (very plausible for
+      // a resize drag), which may not always deliver a "mouseup" here —
+      // bail the moment the button isn't actually down anymore instead of
+      // relying on the OS having kept mouse capture for us.
+      if (moveEvent.buttons === 0) {
+        onUp();
+        return;
+      }
+
       const dx = moveEvent.screenX - startScreenX;
       const dy = moveEvent.screenY - startScreenY;
 
@@ -180,12 +194,7 @@ document.querySelectorAll(".mini-resize").forEach(zone => {
           rafScheduled = false;
         });
       }
-    }
-
-    function onUp() {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    }
+    };
 
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
