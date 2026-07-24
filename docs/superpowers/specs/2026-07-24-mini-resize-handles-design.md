@@ -1,5 +1,15 @@
 # Mini window resize handles
 
+> **Superseded:** the CSS-only native-resize approach described below did
+> not work in practice — real-world testing showed no resize occurred even
+> with the hit zones stretched to 190px. Root cause: Electron only added
+> native resize hit-testing for `frame:false` windows in v42
+> (electron/electron#50864); this app is pinned to `^41.10.1`. The actual
+> shipped implementation is a manual JS-driven resize (mousedown → IPC →
+> `setBounds()`), added in commit `544aa1b` and hardened in `e8bead8`. The
+> 8 hit-zone divs and corner glyphs below are still accurate — only the
+> "native OS resize" mechanism section is obsolete.
+
 ## Problem
 
 `lib/windows.js` sets `resizable: true` on the mini `BrowserWindow` (previously

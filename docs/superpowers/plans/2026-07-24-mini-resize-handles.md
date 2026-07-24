@@ -2,6 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Superseded:** Task 1 below (CSS-only no-drag zones) shipped but real-world
+> testing proved native resize never actually triggers on this Electron
+> version (^41.10.1 — the fix landed in v42). The zones/glyphs it built are
+> still in use; the "native OS resize" mechanism is not. See the spec's
+> superseded note and commit `544aa1b` for the JS-driven replacement.
+
 **Goal:** Make the mini window's `resizable: true` (already set in `lib/windows.js`) actually resizable by the user, and add two subtle visual grip glyphs so it's discoverable.
 
 **Architecture:** `mini.html`'s `<html>` element is one big `-webkit-app-region: drag` zone, which swallows the OS's native edge/corner resize hit-testing. Add 8 fixed-position `div`s at the true window edges/corners, each opted back out of the drag region (`-webkit-app-region: no-drag`) with the matching OS resize cursor. Two of the eight (top-left, bottom-left) additionally render a small CSS-only glyph (dot grid / diagonal lines) via `::after`, inset from the literal corner so it doesn't poke past `.mini-container`'s rounded border.
