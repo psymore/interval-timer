@@ -384,33 +384,34 @@ body {
   cursor: nwse-resize;
 }
 
-/* Visual grip glyphs — only the two corners the design calls for. Drawn as
-   an inset ::after so the functional hit-box above still reaches the true
-   window edge for resize, while the glyph itself sits inside
-   .mini-container's border-radius: 12px instead of poking past it. */
-.mini-resize-grip-dots::after,
+/* Visual grip glyphs — classic Windows diagonal-hatch size grip, on all 4
+   corners. Drawn as an inset ::after so the functional hit-box above still
+   reaches the true window edge for resize, while the glyph itself sits
+   inside .mini-container's border-radius: 12px instead of poking past it.
+   Angle is matched per corner to that corner's own resize cursor: nw/se
+   use nwse-resize ("\"), ne/sw use nesw-resize ("/"). */
 .mini-resize-grip-diagonal::after {
   content: "";
   position: absolute;
-  left: 4px;
   width: 8px;
   height: 8px;
   pointer-events: none;
   opacity: 0.5;
 }
 
-.mini-resize-grip-dots::after {
-  top: 4px;
-  background-image: radial-gradient(
-    circle,
+.mini-resize-nw.mini-resize-grip-diagonal::after,
+.mini-resize-se.mini-resize-grip-diagonal::after {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--ink-muted) 0,
     var(--ink-muted) 1px,
-    transparent 1.2px
+    transparent 1px,
+    transparent 4px
   );
-  background-size: 4px 4px;
 }
 
-.mini-resize-grip-diagonal::after {
-  bottom: 4px;
+.mini-resize-ne.mini-resize-grip-diagonal::after,
+.mini-resize-sw.mini-resize-grip-diagonal::after {
   background-image: repeating-linear-gradient(
     45deg,
     var(--ink-muted) 0,
@@ -418,4 +419,24 @@ body {
     transparent 1px,
     transparent 4px
   );
+}
+
+.mini-resize-nw.mini-resize-grip-diagonal::after {
+  top: 4px;
+  left: 4px;
+}
+
+.mini-resize-ne.mini-resize-grip-diagonal::after {
+  top: 4px;
+  right: 4px;
+}
+
+.mini-resize-sw.mini-resize-grip-diagonal::after {
+  bottom: 4px;
+  left: 4px;
+}
+
+.mini-resize-se.mini-resize-grip-diagonal::after {
+  bottom: 4px;
+  right: 4px;
 }
