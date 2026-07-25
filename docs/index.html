@@ -372,13 +372,325 @@
       margin: 0;
     }
 
-    .feature-card__shot {
-      display: block;
+    .feature-card--wide {
+      grid-column: 1 / -1;
+    }
+
+    /* ---- mini window showcase ---- */
+    section.mini-showcase {
+      padding: 20px 0 84px;
+      border-top: 1px solid var(--border-quiet);
+    }
+
+    .mini-showcase .eyebrow {
+      margin-bottom: 10px;
+    }
+
+    .mini-showcase h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin: 60px 0 12px;
+      max-width: 40ch;
+      text-wrap: balance;
+    }
+
+    .mini-showcase .lede {
+      color: var(--ink-muted);
+      font-size: 0.95rem;
+      max-width: 52ch;
+      margin: 0 0 40px;
+    }
+
+    .mini-demo-stage {
+      position: relative;
+      min-height: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 40%, rgba(255, 122, 26, 0.07), transparent 60%);
+      border: 1px dashed var(--border-quiet);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .mini-demo-hint {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      color: var(--ink-muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.02em;
+      pointer-events: none;
+    }
+
+    .mini-demo {
+      position: absolute;
+      background: #1a1a1a;
+      border: 3px solid #3a3a3a;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 24px 28px;
+      user-select: none;
+      box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+    }
+
+    .mini-demo-header {
       width: 100%;
-      max-width: 220px;
-      margin: 16px auto 0;
-      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-quiet);
+    }
+
+    .mini-demo-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .mini-demo-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .mini-demo-actions button {
+      background: none;
+      border: none;
+      font: inherit;
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 6px;
+      transition: box-shadow 120ms ease;
+    }
+
+    .mini-demo-actions button:last-child {
+      margin-right: 0;
+    }
+
+    .mini-demo-actions img {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+      opacity: 0.75;
+      display: block;
+      transition: opacity 120ms ease;
+    }
+
+    .mini-demo-actions button:hover img {
+      opacity: 1;
+    }
+
+    .mini-demo-reset-size {
+      background: #4caf821a;
+    }
+
+    .mini-demo-reset-size:hover {
+      box-shadow: 0 0 0 1px #4caf82 inset;
+    }
+
+    .mini-demo-quit {
+      background: #ff4d4f22;
+    }
+
+    .mini-demo-quit:hover {
+      box-shadow: 0 0 0 1px #ff4d4f inset;
+    }
+
+    .mini-demo-pin {
+      background: var(--accent-dim);
+    }
+
+    .mini-demo-pin:hover {
+      box-shadow: 0 0 0 1px var(--accent) inset;
+    }
+
+    .mini-demo-pin img {
+      opacity: 1;
+    }
+
+    .mini-demo-countdown {
+      font-family: var(--font-mono);
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin: 6px 0 0;
+    }
+
+    .mini-demo-phase {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    .mini-demo-loop {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--ink-muted);
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+      min-height: 1em;
+    }
+
+    .mini-demo-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .mini-demo-btn {
+      font-size: 0.95rem;
+      background: var(--surface-2);
       border: 1px solid var(--border-quiet);
+      color: var(--ink-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 120ms ease, background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    .mini-demo-btn:hover {
+      color: var(--ink);
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .mini-demo-btn.is-active {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Resize handles — same idea as the real app's classic-Windows grip */
+    .mini-demo-resize {
+      position: absolute;
+    }
+
+    .mini-demo-resize-n,
+    .mini-demo-resize-s {
+      left: 20px;
+      right: 20px;
+      height: 10px;
+      cursor: ns-resize;
+    }
+
+    .mini-demo-resize-n {
+      top: 0;
+    }
+
+    .mini-demo-resize-s {
+      bottom: 0;
+    }
+
+    .mini-demo-resize-e,
+    .mini-demo-resize-w {
+      top: 20px;
+      bottom: 20px;
+      width: 10px;
+      cursor: ew-resize;
+    }
+
+    .mini-demo-resize-w {
+      left: 0;
+    }
+
+    .mini-demo-resize-e {
+      right: 0;
+    }
+
+    .mini-demo-resize-nw,
+    .mini-demo-resize-ne,
+    .mini-demo-resize-sw,
+    .mini-demo-resize-se {
+      width: 20px;
+      height: 20px;
+    }
+
+    .mini-demo-resize-nw {
+      top: 0;
+      left: 0;
+      cursor: nwse-resize;
+    }
+
+    .mini-demo-resize-ne {
+      top: 0;
+      right: 0;
+      cursor: nesw-resize;
+    }
+
+    .mini-demo-resize-sw {
+      bottom: 0;
+      left: 0;
+      cursor: nesw-resize;
+    }
+
+    .mini-demo-resize-se {
+      bottom: 0;
+      right: 0;
+      cursor: nwse-resize;
+    }
+
+    .mini-demo-grip::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .mini-demo-resize-nw.mini-demo-grip::after,
+    .mini-demo-resize-se.mini-demo-grip::after {
+      background-image: repeating-linear-gradient(135deg, var(--ink-muted) 0, var(--ink-muted) 1px, transparent 1px, transparent 4px);
+    }
+
+    .mini-demo-resize-ne.mini-demo-grip::after,
+    .mini-demo-resize-sw.mini-demo-grip::after {
+      background-image: repeating-linear-gradient(45deg, var(--ink-muted) 0, var(--ink-muted) 1px, transparent 1px, transparent 4px);
+    }
+
+    .mini-demo-resize-nw.mini-demo-grip::after {
+      top: 4px;
+      left: 4px;
+    }
+
+    .mini-demo-resize-ne.mini-demo-grip::after {
+      top: 4px;
+      right: 4px;
+    }
+
+    .mini-demo-resize-sw.mini-demo-grip::after {
+      bottom: 4px;
+      left: 4px;
+    }
+
+    .mini-demo-resize-se.mini-demo-grip::after {
+      bottom: 4px;
+      right: 4px;
     }
 
     /* ---- feedback ---- */
@@ -539,19 +851,60 @@
             self-corrects instead of drifting or freezing when the window is
             backgrounded.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card feature-card--wide">
           <h3><span class="dot"></span><span data-i18n="features.card3.h3">Presets for how you actually work</span></h3>
           <p data-i18n="features.card3.p">Save your usual work/break/loop combinations and switch between
             them from a dropdown instead of re-typing numbers every session.</p>
         </div>
-        <div class="feature-card">
-          <h3><span class="dot"></span><span data-i18n="features.card4.h3">An always-on-top mini window</span></h3>
-          <p data-i18n="features.card4.p">Pop out a small frameless timer that floats above everything else
-            while you work — resize it to fit your screen, synced live with the main window, and snap back to
-            default size in one click.</p>
-          <img class="feature-card__shot" src="assets/mini-window.png" data-i18n-alt="features.card4.shot.alt"
-            alt="The always-on-top mini window, resized larger, showing a running interval timer" />
+      </div>
+    </div>
+  </section>
+
+  <section class="mini-showcase" id="mini-window">
+    <div class="wrap">
+      <div class="eyebrow" data-i18n="miniShowcase.eyebrow">Try it right here</div>
+      <h2 data-i18n="miniShowcase.h2">An always-on-top mini window</h2>
+      <p class="lede" data-i18n="miniShowcase.p">Drag any edge or corner to resize it — same classic-Windows
+        grip as the real app — then hit the size button to snap back to default. The buttons react to
+        clicks, but this is a static demo, not a running timer.</p>
+
+      <div class="mini-demo-stage">
+        <div class="mini-demo" id="miniDemo">
+          <div class="mini-demo-header">
+            <span class="mini-demo-label">INTERVAL</span>
+            <div class="mini-demo-actions">
+              <button type="button" class="mini-demo-reset-size" id="miniDemoResetBtn" title="Reset size"
+                aria-label="Reset window to default size and position">
+                <img src="assets/resize-red.png" alt="" />
+              </button>
+              <button type="button" class="mini-demo-quit" title="Quit" aria-label="Quit">
+                <img src="assets/power.png" alt="" />
+              </button>
+              <button type="button" class="mini-demo-pin" title="Pinned on top" aria-label="Pinned on top">
+                <img src="assets/pinned.png" alt="" />
+              </button>
+            </div>
+          </div>
+          <div class="mini-demo-countdown">24:58</div>
+          <div class="mini-demo-phase">WORK</div>
+          <div class="mini-demo-loop">LOOP 1 / 4</div>
+          <div class="mini-demo-controls">
+            <button type="button" class="mini-demo-btn" id="miniDemoPauseBtn" title="Pause"
+              aria-label="Pause">⏸</button>
+            <button type="button" class="mini-demo-btn" id="miniDemoPlayBtn" title="Play" aria-label="Play">▶</button>
+            <button type="button" class="mini-demo-btn" title="Reset" aria-label="Reset">↺</button>
+          </div>
+
+          <div class="mini-demo-resize mini-demo-resize-n" data-dir="n"></div>
+          <div class="mini-demo-resize mini-demo-resize-s" data-dir="s"></div>
+          <div class="mini-demo-resize mini-demo-resize-e" data-dir="e"></div>
+          <div class="mini-demo-resize mini-demo-resize-w" data-dir="w"></div>
+          <div class="mini-demo-resize mini-demo-resize-nw mini-demo-grip" data-dir="nw"></div>
+          <div class="mini-demo-resize mini-demo-resize-ne mini-demo-grip" data-dir="ne"></div>
+          <div class="mini-demo-resize mini-demo-resize-sw mini-demo-grip" data-dir="sw"></div>
+          <div class="mini-demo-resize mini-demo-resize-se mini-demo-grip" data-dir="se"></div>
         </div>
+        <span class="mini-demo-hint" data-i18n="miniShowcase.hint">↔ drag an edge or corner to resize</span>
       </div>
     </div>
   </section>
@@ -593,6 +946,7 @@
   </footer>
 
   <script src="assets/i18n.js" defer></script>
+  <script src="assets/mini-demo.js" defer></script>
 </body>
 
 </html>
