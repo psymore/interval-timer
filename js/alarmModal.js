@@ -238,20 +238,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Checks the given alarmSource's health (if it's a remote link) and
-  // dispatches the result for js/presets.js to badge the preset picker
-  // with. Never awaited by callers — this is a background enhancement,
-  // not something that should delay the alarm loading/UI it accompanies.
-  // A null/local alarmSource clears the badge immediately (no network
-  // call needed). presetId and alarmSource must be passed together as a
-  // matched pair captured from the same "active preset" snapshot by the
-  // caller — this function must never re-derive presetId on its own,
-  // since an async gap here could let it drift to a different preset than
-  // the one alarmSource was actually checked for.
+  // Checks the given alarmSource's health — a remote link's reachability,
+  // or a local file's continued existence — and dispatches the result for
+  // js/presets.js to badge the preset picker with. Never awaited by
+  // callers — this is a background enhancement, not something that should
+  // delay the alarm loading/UI it accompanies. A null alarmSource clears
+  // the badge immediately (nothing to check). presetId and alarmSource
+  // must be passed together as a matched pair captured from the same
+  // "active preset" snapshot by the caller — this function must never
+  // re-derive presetId on its own, since an async gap here could let it
+  // drift to a different preset than the one alarmSource was actually
+  // checked for.
   async function updateAlarmHealthBadge(presetId, alarmSource) {
     if (!presetId) return;
 
-    if (!alarmSource?.type || alarmSource.type === "local") {
+    if (!alarmSource?.type) {
       window.dispatchEvent(
         new CustomEvent("preset-alarm-health", {
           detail: { presetId, broken: false },
@@ -260,17 +261,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    let status = "unknown";
-    if (alarmSource.type === "youtube") {
-      status = await checkYoutubeLink(alarmSource.value);
+    let broken = false;
+    if (alarmSource.type === "local") {
+      const [exists] = await window.electronAPI.alarmCheckPathsExist([
+        alarmSource.value,
+      ]);
+      broken = !exists;
+    } else if (alarmSource.type === "youtube") {
+      broken = (await checkYoutubeLink(alarmSource.value)) === "broken";
     } else if (alarmSource.type === "spotify") {
       const results = await checkSpotifyLinks([alarmSource.value]);
-      status = results.get(alarmSource.value) ?? "unknown";
+      broken = (results.get(alarmSource.value) ?? "unknown") === "broken";
     }
 
     window.dispatchEvent(
       new CustomEvent("preset-alarm-health", {
-        detail: { presetId, broken: status === "broken" },
+        detail: { presetId, broken },
       }),
     );
   }
