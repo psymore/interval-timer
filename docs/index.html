@@ -327,6 +327,7 @@
     .feature-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
+      align-items: start;
       gap: 16px;
     }
 
@@ -369,6 +370,15 @@
       font-size: 0.9rem;
       color: var(--ink-muted);
       margin: 0;
+    }
+
+    .feature-card__shot {
+      display: block;
+      width: 100%;
+      max-width: 220px;
+      margin: 16px auto 0;
+      border-radius: 10px;
+      border: 1px solid var(--border-quiet);
     }
 
     /* ---- feedback ---- */
@@ -537,7 +547,10 @@
         <div class="feature-card">
           <h3><span class="dot"></span><span data-i18n="features.card4.h3">An always-on-top mini window</span></h3>
           <p data-i18n="features.card4.p">Pop out a small frameless timer that floats above everything else
-            while you work, synced live with the main window.</p>
+            while you work — resize it to fit your screen, synced live with the main window, and snap back to
+            default size in one click.</p>
+          <img class="feature-card__shot" src="assets/mini-window.png" data-i18n-alt="features.card4.shot.alt"
+            alt="The always-on-top mini window, resized larger, showing a running interval timer" />
         </div>
       </div>
     </div>
