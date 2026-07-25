@@ -1,7 +1,8 @@
-// Static demo of the app's mini window on the landing page — resizable
-// and draggable (mirrors js/mini.js's own manual resize/drag, just
-// against a DOM element instead of a real BrowserWindow) but not wired
-// to a real timer.
+// Static-ish demo of the app's mini window on the landing page — resizable
+// and draggable (mirrors js/mini.js's own manual resize/drag, just against
+// a DOM element instead of a real BrowserWindow) and now a genuinely
+// working countdown: hit play, let it run down, and the alarm actually
+// rings (sound + a "big alarm" view the box stretches to fit).
 (function () {
   const demo = document.getElementById("miniDemo");
   const stage = demo?.parentElement;
@@ -11,6 +12,8 @@
   const MIN_HEIGHT = 174;
   const DEFAULT_WIDTH = 240;
   const DEFAULT_HEIGHT = 180;
+  const START_SECONDS = 10; // short on purpose, but a real 1s = 1s countdown
+  const ALARM_DURATION_MS = 3000;
 
   function centerRect() {
     const stageRect = stage.getBoundingClientRect();
@@ -31,11 +34,14 @@
 
   applyRect(centerRect());
 
+  let isRinging = false;
+
   // ── Resize — clamped to the stage's current bounds, so no edge can be
   // dragged past the container (the opposite edge stays fixed, same as
   // js/mini.js's real anchor math). ──────────────────────────────────
   demo.querySelectorAll(".mini-demo-resize").forEach((zone) => {
     zone.addEventListener("mousedown", (event) => {
+      if (isRinging) return;
       event.preventDefault();
       event.stopPropagation();
 
@@ -98,6 +104,7 @@
   // resize handle repositions it, clamped so it can't be dragged outside
   // the stage. Mirrors the real mini window's whole-window drag region. ─
   demo.addEventListener("mousedown", (event) => {
+    if (isRinging) return;
     if (event.target.closest("button, .mini-demo-resize")) return;
     event.preventDefault();
 
@@ -132,22 +139,140 @@
     document.addEventListener("mouseup", onUp);
   });
 
-  const resetBtn = document.getElementById("miniDemoResetBtn");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => applyRect(centerRect()));
+  const resetSizeBtn = document.getElementById("miniDemoResetBtn");
+  if (resetSizeBtn) {
+    resetSizeBtn.addEventListener("click", () => {
+      if (isRinging) return;
+      applyRect(centerRect());
+    });
   }
 
-  // Purely cosmetic — swaps which control looks "active", no real timer.
+  // ── Real countdown ──────────────────────────────────────────────
+  const countdownEl = document.getElementById("miniDemoCountdown");
   const pauseBtn = document.getElementById("miniDemoPauseBtn");
   const playBtn = document.getElementById("miniDemoPlayBtn");
-  if (pauseBtn && playBtn) {
+  const resetTimerBtn = document.getElementById("miniDemoResetTimerBtn");
+  const body = document.getElementById("miniDemoBody");
+  const alarmView = document.getElementById("miniDemoAlarm");
+  const alarmAudio = document.getElementById("miniDemoAlarmAudio");
+
+  let remainingSeconds = START_SECONDS;
+  let tickHandle = null;
+
+  function formatTime(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function renderCountdown() {
+    if (countdownEl) countdownEl.textContent = formatTime(remainingSeconds);
+  }
+
+  renderCountdown();
+
+  function stopTicking() {
+    if (tickHandle !== null) {
+      clearInterval(tickHandle);
+      tickHandle = null;
+    }
+  }
+
+  function startTicking() {
+    if (isRinging || tickHandle !== null) return;
+    if (remainingSeconds <= 0) remainingSeconds = START_SECONDS;
+    tickHandle = setInterval(() => {
+      remainingSeconds -= 1;
+      renderCountdown();
+      if (remainingSeconds <= 0) {
+        stopTicking();
+        ringAlarm();
+      }
+    }, 1000);
+  }
+
+  function resetCountdown() {
+    stopTicking();
+    remainingSeconds = START_SECONDS;
+    renderCountdown();
+  }
+
+  function ringAlarm() {
+    isRinging = true;
+
+    if (alarmAudio) {
+      alarmAudio.currentTime = 0;
+      alarmAudio.play().catch(() => {
+        // Autoplay can be blocked before any user gesture has landed on
+        // this specific <audio> element yet — the visual alarm still
+        // plays out either way, so this is a silent, harmless no-op.
+      });
+    }
+
+    if (body) body.classList.add("hidden");
+    if (alarmView) alarmView.classList.remove("hidden");
+
+    // Stretch the box to a bigger "alarm" size, clamped to the stage —
+    // same clamp math the manual resize uses.
+    const stageRect = stage.getBoundingClientRect();
+    const bigWidth = Math.min(340, stageRect.width);
+    const bigHeight = Math.min(300, stageRect.height);
+    const bigRect = {
+      left: Math.max(0, (stageRect.width - bigWidth) / 2),
+      top: Math.max(0, (stageRect.height - bigHeight) / 2),
+      width: bigWidth,
+      height: bigHeight,
+    };
+
+    demo.classList.add("is-animating");
+    applyRect(bigRect);
+
+    setTimeout(() => {
+      if (alarmAudio) {
+        alarmAudio.pause();
+        alarmAudio.currentTime = 0;
+      }
+
+      applyRect(centerRect());
+
+      setTimeout(() => {
+        demo.classList.remove("is-animating");
+      }, 340);
+
+      if (body) body.classList.remove("hidden");
+      if (alarmView) alarmView.classList.add("hidden");
+
+      playBtn?.classList.remove("is-active");
+      pauseBtn?.classList.remove("is-active");
+      resetCountdown();
+      isRinging = false;
+    }, ALARM_DURATION_MS);
+  }
+
+  if (playBtn) {
     playBtn.addEventListener("click", () => {
+      if (isRinging) return;
       playBtn.classList.add("is-active");
-      pauseBtn.classList.remove("is-active");
+      pauseBtn?.classList.remove("is-active");
+      startTicking();
     });
+  }
+
+  if (pauseBtn) {
     pauseBtn.addEventListener("click", () => {
+      if (isRinging) return;
       pauseBtn.classList.add("is-active");
-      playBtn.classList.remove("is-active");
+      playBtn?.classList.remove("is-active");
+      stopTicking();
+    });
+  }
+
+  if (resetTimerBtn) {
+    resetTimerBtn.addEventListener("click", () => {
+      if (isRinging) return;
+      playBtn?.classList.remove("is-active");
+      pauseBtn?.classList.remove("is-active");
+      resetCountdown();
     });
   }
 
@@ -155,6 +280,7 @@
   // doesn't fight a size the visitor deliberately dragged, just clamps
   // position/size so it can't end up hidden or overflowing off the edge.
   window.addEventListener("resize", () => {
+    if (isRinging) return;
     const stageRect = stage.getBoundingClientRect();
     const rect = {
       left: demo.offsetLeft,

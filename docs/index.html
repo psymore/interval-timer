@@ -33,6 +33,7 @@
       --border-quiet: #333333;
       --accent: #ff7a1a;
       --accent-dim: #ff7a1a1a;
+      --accent-glow: rgba(255, 122, 26, 0.35);
       --accent-b: #ee0979;
       --danger: #ff4d4f;
       --danger-dim: #ff4d4f22;
@@ -435,18 +436,74 @@
       background: #1a1a1a;
       border: 3px solid #3a3a3a;
       border-radius: 12px;
+      user-select: none;
+      box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+      cursor: grab;
+      overflow: hidden;
+    }
+
+    .mini-demo.is-dragging {
+      cursor: grabbing;
+    }
+
+    /* Only applied while the alarm is stretching/shrinking the box
+       programmatically — left off the rest of the time so manual
+       drag-resize/drag-move stay 1:1 with the mouse, not eased. */
+    .mini-demo.is-animating {
+      transition: width 320ms ease, height 320ms ease, left 320ms ease, top 320ms ease;
+    }
+
+    .mini-demo-body {
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
       padding: 10px 24px 28px;
-      user-select: none;
-      box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
-      cursor: grab;
     }
 
-    .mini-demo.is-dragging {
-      cursor: grabbing;
+    .mini-demo-body.hidden,
+    .mini-demo-alarm.hidden {
+      display: none;
+    }
+
+    .mini-demo-alarm {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      animation: mini-demo-alarm-pulse 900ms ease-in-out infinite;
+    }
+
+    .mini-demo-alarm-icon {
+      font-size: 2.6rem;
+      line-height: 1;
+    }
+
+    .mini-demo-alarm-text {
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    @keyframes mini-demo-alarm-pulse {
+
+      0%,
+      100% {
+        background-color: transparent;
+      }
+
+      50% {
+        background-color: rgba(255, 122, 26, 0.14);
+      }
     }
 
     .mini-demo-header {
@@ -913,15 +970,26 @@
               </button>
             </div>
           </div>
-          <div class="mini-demo-countdown">24:58</div>
-          <div class="mini-demo-phase">WORK</div>
-          <div class="mini-demo-loop">LOOP 1 / 4</div>
-          <div class="mini-demo-controls">
-            <button type="button" class="mini-demo-btn" id="miniDemoPauseBtn" title="Pause"
-              aria-label="Pause">⏸</button>
-            <button type="button" class="mini-demo-btn" id="miniDemoPlayBtn" title="Play" aria-label="Play">▶</button>
-            <button type="button" class="mini-demo-btn" title="Reset" aria-label="Reset">↺</button>
+          <div class="mini-demo-body" id="miniDemoBody">
+            <div class="mini-demo-countdown" id="miniDemoCountdown">00:10</div>
+            <div class="mini-demo-phase">WORK</div>
+            <div class="mini-demo-loop">LOOP 1 / 4</div>
+            <div class="mini-demo-controls">
+              <button type="button" class="mini-demo-btn" id="miniDemoPauseBtn" title="Pause"
+                aria-label="Pause">⏸</button>
+              <button type="button" class="mini-demo-btn" id="miniDemoPlayBtn" title="Play"
+                aria-label="Play">▶</button>
+              <button type="button" class="mini-demo-btn" id="miniDemoResetTimerBtn" title="Reset"
+                aria-label="Reset">↺</button>
+            </div>
           </div>
+
+          <div class="mini-demo-alarm hidden" id="miniDemoAlarm">
+            <div class="mini-demo-alarm-icon">🔔</div>
+            <div class="mini-demo-alarm-text" data-i18n="miniShowcase.alarmText">Time's up!</div>
+          </div>
+
+          <audio id="miniDemoAlarmAudio" src="assets/alarm.mp3" preload="none"></audio>
 
           <div class="mini-demo-resize mini-demo-resize-n" data-dir="n"></div>
           <div class="mini-demo-resize mini-demo-resize-s" data-dir="s"></div>
