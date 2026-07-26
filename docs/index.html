@@ -436,10 +436,11 @@
       background: #1a1a1a;
       border: 3px solid #3a3a3a;
       border-radius: 12px;
+      display: flex;
+      flex-direction: column;
       user-select: none;
       box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
       cursor: grab;
-      overflow: hidden;
     }
 
     .mini-demo.is-dragging {
@@ -455,12 +456,13 @@
 
     .mini-demo-body {
       width: 100%;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 24px 28px;
+      padding: 0 24px 28px;
     }
 
     .mini-demo-body.hidden,
@@ -511,7 +513,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 8px;
+      padding: 10px 24px 8px;
       border-bottom: 1px solid var(--border-quiet);
     }
 
