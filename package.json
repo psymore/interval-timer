@@ -9,7 +9,8 @@
     "start": "electron .",
     "clean": "rimraf dist",
     "build": "npm run clean && electron-builder",
-    "dist": "npm run clean && electron-builder --win --x64"
+    "dist": "npm run clean && electron-builder --win --x64",
+    "sync:demo": "node scripts/sync-demo-app.mjs"
   },
   "build": {
     "appId": "com.psymore.intervaltimer",

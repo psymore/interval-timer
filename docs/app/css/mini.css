@@ -1,0 +1,499 @@
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Recursive";
+  src: url("../assets/fonts/Recursive-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* All tokens this file used to declare here (--bg, --surface,
+   --border, --accent, --accent-dim, --accent-glow, --ink,
+   --ink-muted, --font-ui, --font-mono, --ease-out) are shared with
+   the main window and now live in css/tokens.css, loaded before
+   this file. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mini-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border: 3px solid #3a3a3a;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px 28px;
+  user-select: none;
+  overflow: hidden;
+  /* Pointer everywhere by default; buttons already declare their own
+     cursor: pointer, so they're unaffected, and :disabled buttons still
+     win with cursor: not-allowed via their higher-specificity rule. */
+  cursor: pointer;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.mini-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  /* cursor grab kaldırıldı — native drag kullanıyor */
+}
+
+.mini-label {
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.mini-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mini-close {
+  background: none;
+  color: var(--ink-muted);
+  background: var(--accent-dim);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  font-family: var(--font-ui);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out);
+}
+
+.mini-close:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+.mini-close:hover .mini-icon-img {
+  opacity: 1;
+}
+
+/* The mini window is always-on-top for as long as it exists (see
+   lib/windows.js), so this button — which unpins/closes it — stays in a
+   permanent "already pressed" pinned look: same bg/color treatment the main
+   window's .icon-btn.active pin toggle uses, plus a border since mini has
+   no separate aria-pressed toggle state to lean on visually. */
+.mini-pinned {
+  color: var(--accent);
+}
+
+.mini-pinned:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 2px 2px 12px 1px var(--accent);
+}
+
+.mini-pinned .mini-icon-img {
+  opacity: 0.75;
+}
+
+/* Text glyph, not an <img> like .mini-quit/.mini-close — no existing icon
+   asset fit "reset window size", and a new binary asset isn't worth it for
+   one button. Neutral surface/border like the bottom .mini-btn controls,
+   not accent/danger-tinted like the pin/quit pills, since this isn't a
+   toggle or a destructive action. */
+.mini-reset-size {
+  /* background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out); */
+  background: none;
+  color: var(--ink-muted);
+  background: var(--success-dim);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out);
+}
+
+.mini-reset-size:hover {
+  background: var(--success-dim);
+  box-shadow: 2px 2px 12px 1px var(--success);
+}
+
+.mini-reset-size:hover .mini-icon-img {
+  opacity: 1;
+}
+
+.mini-reset-size:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mirrors the main window's .quit-btn red — --danger/--danger-dim are
+   only defined in styles.css's :root, which this window doesn't load. */
+.mini-quit {
+  background: var(--danger-dim);
+  color: var(--danger);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  font-family: var(--font-ui);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out);
+}
+
+.mini-quit:hover {
+  color: #ff4d4f;
+  box-shadow: 2px 2px 12px 1px #ff4d4f;
+  background: rgba(255, 77, 79, 0.15);
+}
+
+.mini-quit:hover .mini-icon-img {
+  opacity: 1;
+}
+
+.mini-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: 0.75;
+  display: block;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.mini-close:focus-visible,
+.mini-quit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Countdown ───────────────────────────────────────────────── */
+.mini-countdown {
+  font-family: var(--font-mono);
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 6px 0 0;
+  transition:
+    color 300ms var(--ease-out),
+    text-shadow 300ms var(--ease-out);
+}
+
+.mini-countdown.complete {
+  color: var(--accent);
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* Same completion-glow keyframe the main window's countdown plays when a
+   loop finishes, replayed on click as tactile feedback. */
+@keyframes completion-glow {
+  0% {
+    color: var(--ink);
+    text-shadow: none;
+  }
+  50% {
+    color: var(--accent);
+    text-shadow: 0 0 24px var(--accent-glow);
+  }
+  100% {
+    color: var(--accent);
+    text-shadow: 0 0 12px var(--accent-glow);
+  }
+}
+
+.mini-countdown.click-glow {
+  animation: completion-glow 600ms var(--ease-out) forwards;
+}
+
+/* ── Phase ───────────────────────────────────────────────────── */
+.mini-phase {
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: 4px;
+  transition: color 200ms var(--ease-out);
+}
+
+/* ── Controls ────────────────────────────────────────────────── */
+.mini-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mini-btn {
+  font-size: 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 120ms var(--ease-out),
+    background 120ms var(--ease-out),
+    border-color 120ms var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+
+.mini-btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.mini-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.mini-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mini-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+/* ── Drag bölgeleri ──────────────────────────────────────────── */
+
+/* Tüm sayfa draggable (html'de tanımlı) */
+/* Tıklanabilir elementler no-drag olmalı */
+.mini-close,
+.mini-quit,
+.mini-reset-size,
+.mini-btn,
+.mini-countdown,
+.mini-phase,
+.mini-loop,
+.mini-controls {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Loop bilgisi ────────────────────────────────────────────── */
+.mini-loop {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  min-height: 1em; /* interval tab'ında dolacak, timer'da boş kalacak */
+}
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .mini-countdown {
+    text-shadow: none !important;
+  }
+}
+
+/* ── Resize handles ──────────────────────────────────────────── */
+/* Hover/click targets for the manual JS-driven resize in js/mini.js —
+   frameless windows on this Electron version have no native OS edge/corner
+   resize hit-testing to opt into (see the "mini:resize-start" handler in
+   lib/windows.js for why), so these divs are what mousedown actually
+   listens on. -webkit-app-region: no-drag keeps the whole-window drag
+   region (mini.html's <html>) from swallowing their clicks. */
+.mini-resize {
+  position: fixed;
+  -webkit-app-region: no-drag;
+}
+
+.mini-resize-n,
+.mini-resize-s {
+  left: 20px;
+  right: 20px;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+.mini-resize-n {
+  top: 0;
+}
+
+.mini-resize-s {
+  bottom: 0;
+}
+
+.mini-resize-e,
+.mini-resize-w {
+  top: 20px;
+  bottom: 20px;
+  width: 10px;
+  cursor: ew-resize;
+}
+
+.mini-resize-w {
+  left: 0;
+}
+
+.mini-resize-e {
+  right: 0;
+}
+
+.mini-resize-nw,
+.mini-resize-ne,
+.mini-resize-sw,
+.mini-resize-se {
+  width: 20px;
+  height: 20px;
+}
+
+.mini-resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.mini-resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.mini-resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.mini-resize-se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+
+/* Visual grip glyphs — classic Windows diagonal-hatch size grip, on all 4
+   corners. Drawn as an inset ::after so the functional hit-box above still
+   reaches the true window edge for resize, while the glyph itself sits
+   inside .mini-container's border-radius: 12px instead of poking past it.
+   Angle is matched per corner to that corner's own resize cursor: nw/se
+   use nwse-resize ("\"), ne/sw use nesw-resize ("/"). */
+.mini-resize-grip-diagonal::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.mini-resize-nw.mini-resize-grip-diagonal::after,
+.mini-resize-se.mini-resize-grip-diagonal::after {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--ink-muted) 0,
+    var(--ink-muted) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+.mini-resize-ne.mini-resize-grip-diagonal::after,
+.mini-resize-sw.mini-resize-grip-diagonal::after {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ink-muted) 0,
+    var(--ink-muted) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+.mini-resize-nw.mini-resize-grip-diagonal::after {
+  top: 4px;
+  left: 4px;
+}
+
+.mini-resize-ne.mini-resize-grip-diagonal::after {
+  top: 4px;
+  right: 4px;
+}
+
+.mini-resize-sw.mini-resize-grip-diagonal::after {
+  bottom: 4px;
+  left: 4px;
+}
+
+.mini-resize-se.mini-resize-grip-diagonal::after {
+  bottom: 4px;
+  right: 4px;
+}
