@@ -51,7 +51,7 @@ Frameless, non-resizable `BrowserWindow` (`mini.html`/`js/mini.js`) toggled via 
 - On mini open, main window sends a state snapshot via the `request-interval-snapshot`/`request-timer-snapshot` custom events so the mini isn't blank until the next tick.
 
 ### Presets
-Persisted with `electron-store` (`timer-config.json`), not localStorage — main process owns the data, IPC-only access (`presets:get-all/get-active/save/delete/set-active`). Three seeded default presets are not deletable by convention; user presets capped at `MAX_PRESETS = 20` (enforced in `main.js`, not the renderer). UI is a floating dropdown (`js/presets.js`) rather than being inlined into the settings modal, so it doesn't inflate the main container.
+Persisted with `electron-store` (`timer-config.json`), not localStorage — main process owns the data, IPC-only access (`presets:get-all/get-active/save/delete/set-active`). The three seeded default presets are ordinary presets — editable and deletable like any other; presets capped at `MAX_PRESETS = 20` (enforced in `lib/presetsIpc.js`, not the renderer). The preset trigger shows "+ Add Preset" when the list is empty. UI is a floating dropdown (`js/presets.js`) rather than being inlined into the settings modal, so it doesn't inflate the main container.
 
 ### Adding a new alarm source
 1. New file in `js/alarm/providers/` implementing the `BaseAlarmProvider` contract.

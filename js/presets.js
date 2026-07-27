@@ -116,7 +116,10 @@ export async function setupPresets(onPresetLoad) {
     // Trigger label'ı aktif preset adıyla güncelle
     const triggerLabel = document.getElementById("presetTriggerLabel");
     if (triggerLabel) {
-      triggerLabel.textContent = active?.name ?? t("interval.presetsDefault");
+      triggerLabel.textContent =
+        !presets || presets.length === 0
+          ? t("presets.addPresetCta")
+          : (active?.name ?? t("interval.presetsDefault"));
     }
     if (triggerAlarmBadge) {
       triggerAlarmBadge.classList.toggle("hidden", !activeAlarmBroken);
@@ -168,8 +171,6 @@ export async function setupPresets(onPresetLoad) {
 
 // ── Preset item ───────────────────────────────────────────────
 function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBroken = false) {
-  const isDefault = preset.id.startsWith("default-");
-
   const li = document.createElement("li");
   li.className = `preset-item${isActive ? " preset-item--active" : ""}`;
   li.setAttribute("role", "option");
@@ -200,12 +201,10 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBrok
     <div class="preset-item__actions">
       <button class="preset-item__btn preset-item__btn--edit no-hover-lift"
         aria-label="${format(t("presets.editAriaLabel"), { name: escapeHtml(preset.name) })}"
-        title="${t("presets.editTitle")}"
-        ${isDefault ? "disabled" : ""}>✎</button>
+        title="${t("presets.editTitle")}">✎</button>
       <button class="preset-item__btn preset-item__btn--delete no-hover-lift"
         aria-label="${format(t("presets.deleteAriaLabel"), { name: escapeHtml(preset.name) })}"
-        title="${isDefault ? t("presets.cannotDeleteDefaultTitle") : t("presets.deleteTitle")}"
-        ${isDefault ? "disabled" : ""}>✕</button>
+        title="${t("presets.deleteTitle")}">✕</button>
     </div>
     <div class="preset-item__confirm hidden">
       <span>${t("presets.deleteConfirm")}</span>
@@ -233,7 +232,7 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBrok
 
   // ── Edit ──────────────────────────────────────────────────
   const editBtn = li.querySelector(".preset-item__btn--edit");
-  if (editBtn && !isDefault) {
+  if (editBtn) {
     editBtn.addEventListener("click", e => {
       e.stopPropagation();
       onClose();
@@ -247,7 +246,7 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBrok
   const confirmYes = li.querySelector(".preset-item__btn--yes");
   const confirmNo = li.querySelector(".preset-item__btn--no");
 
-  if (deleteBtn && !isDefault) {
+  if (deleteBtn) {
     deleteBtn.addEventListener("click", e => {
       e.stopPropagation();
       confirmPanel.classList.remove("hidden");
