@@ -371,6 +371,14 @@ function showPresetForm(existingPreset, onRefresh) {
           value="${p.loops}" />
       </div>
 
+      <div class="preset-form__field">
+        <label>${t("presets.alarmNavLabel")}</label>
+        <button type="button" class="preset-form__alarm-nav no-hover-lift" id="pfAlarmNav">
+          <span class="preset-form__alarm-nav-text" id="pfAlarmNavText">🎧 …</span>
+          <span class="preset-form__alarm-nav-chevron" aria-hidden="true">›</span>
+        </button>
+      </div>
+
       <p class="preset-form__error hidden" id="pfError"
         role="alert" aria-live="assertive"></p>
 
@@ -390,6 +398,58 @@ function showPresetForm(existingPreset, onRefresh) {
   const errEl = overlay.querySelector("#pfError");
 
   setTimeout(() => nameInput?.focus(), 50);
+
+  // ── Alarm-source navigator ─────────────────────────────────
+  // For a NEW preset this previews whatever alarm is currently active —
+  // that's exactly what gets baked into the new preset at save time (see
+  // validate() below). For an EDIT (wired in a later task), it shows that
+  // specific preset's own alarmSource instead.
+  const alarmNavBtn = overlay.querySelector("#pfAlarmNav");
+  const alarmNavText = overlay.querySelector("#pfAlarmNavText");
+  let currentAlarmSource = null;
+
+  function renderAlarmNavText(alarmSource) {
+    const info = alarmSourceInfo(alarmSource);
+    const nameHtml = info.name ? ` · ${escapeHtml(info.name)}` : "";
+    alarmNavText.innerHTML = `🎧 ${escapeHtml(info.label)}<span class="preset-form__alarm-nav-name"></span>`;
+    const nameEl = alarmNavText.querySelector(".preset-form__alarm-nav-name");
+    if (nameHtml) {
+      nameEl.before(" · ");
+      nameEl.textContent = info.name;
+    }
+    if (!info.name && info.resolve) {
+      info.resolve().then(name => {
+        if (!name) return;
+        nameEl.before(" · ");
+        nameEl.textContent = name;
+      });
+    }
+  }
+
+  async function refreshAlarmNavPreview() {
+    const active = await window.electronAPI.presetsGetActive();
+    currentAlarmSource = active?.alarmSource ?? null;
+    renderAlarmNavText(currentAlarmSource);
+  }
+
+  if (alarmNavBtn) {
+    refreshAlarmNavPreview();
+
+    alarmNavBtn.addEventListener("click", () => {
+      overlay.classList.add("hidden");
+      const alarmModal = document.getElementById("alarmFolderModal");
+      alarmModal.classList.remove("hidden");
+
+      const observer = new MutationObserver(() => {
+        if (alarmModal.classList.contains("hidden")) {
+          observer.disconnect();
+          overlay.classList.remove("hidden");
+          refreshAlarmNavPreview();
+        }
+      });
+      observer.observe(alarmModal, { attributes: true, attributeFilter: ["class"] });
+    });
+  }
 
   function closeForm() {
     overlay.remove();
@@ -447,6 +507,7 @@ function showPresetForm(existingPreset, onRefresh) {
       breakMinutes,
       breakSeconds,
       loops,
+      alarmSource: currentAlarmSource,
     });
 
     if (result?.error) {
@@ -500,7 +561,7 @@ function showToast(message, type = "success") {
 // the specific file name / video title / track name, and — for
 // YouTube/Spotify names not yet cached — a `resolve()` fetcher the
 // caller can await and patch into the DOM afterward.
-function alarmSourceInfo(alarmSource) {
+export function alarmSourceInfo(alarmSource) {
   const type = alarmSource?.type ?? "local";
   const value = alarmSource?.value ?? null;
 

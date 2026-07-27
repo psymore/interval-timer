@@ -1300,6 +1300,48 @@ button:disabled {
   width: 100%;
 }
 
+.preset-form__alarm-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--modal-border);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.preset-form__alarm-nav:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+}
+
+.preset-form__alarm-nav:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.preset-form__alarm-nav-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.preset-form__alarm-nav-chevron {
+  color: var(--ink-muted);
+  margin-left: var(--sp-2);
+  flex-shrink: 0;
+}
+
 .preset-form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
