@@ -294,4 +294,74 @@
     rect.top = Math.min(Math.max(0, rect.top), Math.max(0, stageRect.height - rect.height));
     applyRect(rect);
   });
+
+  // ── Pin → expand into the real running app ──────────────────────
+  // The expanded view is a sandboxed iframe loading the actual app
+  // (docs/app/, synced from the app's own source by
+  // scripts/sync-demo-app.mjs) in ?demo=1 mode — not a recreation. State
+  // hands off both ways over postMessage: on expand, this box sends its
+  // current countdown to the iframe once it signals readiness; on
+  // shrink, the iframe sends its current countdown back.
+  const pinBtn = document.getElementById("miniDemoPinBtn");
+  const iframeEl = document.getElementById("miniDemoIframe");
+
+  function expandRect() {
+    const stageRect = stage.getBoundingClientRect();
+    const width = Math.min(760, stageRect.width - 32);
+    const height = Math.min(560, stageRect.height - 32);
+    return {
+      left: Math.max(0, (stageRect.width - width) / 2),
+      top: Math.max(0, (stageRect.height - height) / 2),
+      width,
+      height,
+    };
+  }
+
+  function onDemoMessage(event) {
+    if (!iframeEl.contentWindow || event.source !== iframeEl.contentWindow) return;
+
+    if (event.data?.type === "demo-ready") {
+      iframeEl.contentWindow.postMessage(
+        {
+          type: "demo-seed-timer",
+          remainingSeconds,
+          isRunning: tickHandle !== null,
+        },
+        "*",
+      );
+      iframeEl.classList.add("is-visible");
+      if (body) body.classList.add("hidden");
+      stopTicking();
+    } else if (event.data?.type === "demo-shrink") {
+      remainingSeconds = Math.max(0, Math.round(event.data.remainingSeconds));
+      renderCountdown();
+      collapse();
+      if (event.data.isRunning) startTicking();
+    }
+  }
+
+  function expand() {
+    if (isRinging) return;
+    window.addEventListener("message", onDemoMessage);
+    stage.classList.add("is-expanded");
+    demo.classList.add("is-animating");
+    applyRect(expandRect());
+    iframeEl.classList.remove("hidden");
+    iframeEl.src = "app/?demo=1";
+  }
+
+  function collapse() {
+    demo.classList.add("is-animating");
+    applyRect(centerRect());
+    iframeEl.classList.remove("is-visible");
+    iframeEl.classList.add("hidden");
+    iframeEl.src = "about:blank";
+    stage.classList.remove("is-expanded");
+    window.removeEventListener("message", onDemoMessage);
+    if (body) body.classList.remove("hidden");
+  }
+
+  if (pinBtn) {
+    pinBtn.addEventListener("click", expand);
+  }
 })();

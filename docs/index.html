@@ -417,6 +417,11 @@
       border: 1px dashed var(--border-quiet);
       border-radius: var(--radius-lg);
       overflow: hidden;
+      transition: min-height 340ms ease;
+    }
+
+    .mini-demo-stage.is-expanded {
+      min-height: 620px;
     }
 
     .mini-demo-hint {
@@ -447,6 +452,25 @@
        drag-resize/drag-move stay 1:1 with the mouse, not eased. */
     .mini-demo.is-animating {
       transition: width 320ms ease, height 320ms ease, left 320ms ease, top 320ms ease;
+    }
+
+    .mini-demo-iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      border-radius: 9px;
+      opacity: 0;
+      transition: opacity 240ms ease;
+    }
+
+    .mini-demo-iframe.is-visible {
+      opacity: 1;
+    }
+
+    .mini-demo-iframe.hidden {
+      display: none;
     }
 
     .mini-demo-body {
@@ -962,7 +986,7 @@
               <button type="button" class="mini-demo-quit" title="Quit" aria-label="Quit">
                 <img src="assets/power.png" alt="" class="mini-demo-icon-img" />
               </button>
-              <button type="button" class="mini-demo-pin" title="Pinned on top" aria-label="Pinned on top">
+              <button type="button" class="mini-demo-pin" id="miniDemoPinBtn" title="Pinned on top — expand into the real app" aria-label="Expand into the real app">
                 <img src="assets/pinned.png" alt="" class="mini-demo-icon-img" />
               </button>
             </div>
@@ -987,6 +1011,8 @@
           </div>
 
           <audio id="miniDemoAlarmAudio" src="assets/alarm.mp3" preload="none"></audio>
+
+          <iframe class="mini-demo-iframe hidden" id="miniDemoIframe" title="Interval Timer — live app"></iframe>
 
           <div class="mini-demo-resize mini-demo-resize-n" data-dir="n"></div>
           <div class="mini-demo-resize mini-demo-resize-s" data-dir="s"></div>
