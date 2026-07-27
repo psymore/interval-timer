@@ -346,6 +346,9 @@
     stage.classList.add("is-expanded");
     demo.classList.add("is-animating");
     applyRect(expandRect());
+    setTimeout(() => {
+      demo.classList.remove("is-animating");
+    }, 320);
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
   }
@@ -353,6 +356,9 @@
   function collapse() {
     demo.classList.add("is-animating");
     applyRect(centerRect());
+    setTimeout(() => {
+      demo.classList.remove("is-animating");
+    }, 320);
     iframeEl.classList.remove("is-visible");
     iframeEl.classList.add("hidden");
     iframeEl.src = "about:blank";
