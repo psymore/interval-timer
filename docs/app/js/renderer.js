@@ -1,11 +1,12 @@
 import { renderTimerView } from "./views/timerView.js";
 import { renderIntervalView } from "./views/intervalTimerView.js";
-import { setupTimer, getTimerStatus } from "./timer.js";
+import { setupTimer, getTimerStatus, getDemoSnapshot } from "./timer.js";
 import { setupIntervalTimer, getIntervalStatus } from "./intervalTimer.js";
 import { setupTabListeners, switchTab } from "./tabs.js";
 import { enhanceNumberInputs } from "./numberStepper.js";
 import { initLanguage, setLanguage, getLanguage, t, onLanguageChange } from "./i18n/i18n.js";
 import { setupUpdateChecker } from "./updates.js";
+import { isDemoMode } from "./demo/isDemoMode.js";
 
 const app = document.getElementById("app");
 
@@ -131,6 +132,13 @@ if (aotBtn) {
   };
 
   aotBtn.addEventListener("click", () => {
+    if (isDemoMode()) {
+      window.parent.postMessage(
+        { type: "demo-shrink", ...getDemoSnapshot() },
+        "*",
+      );
+      return;
+    }
     alwaysOnTop = !alwaysOnTop;
     window.electronAPI.setAlwaysOnTop(alwaysOnTop);
     aotBtn.classList.toggle("active", alwaysOnTop);
@@ -143,19 +151,23 @@ if (aotBtn) {
 }
 
 // ── Quit ───────────────────────────────────────────────────────
-document.getElementById("quitAppBtn").onclick = () => {
-  const activeStatuses = ["running", "paused"];
-  const isTimerActive =
-    activeStatuses.includes(getTimerStatus()) ||
-    activeStatuses.includes(getIntervalStatus());
+if (isDemoMode()) {
+  document.getElementById("quitAppBtn")?.classList.add("hidden");
+} else {
+  document.getElementById("quitAppBtn").onclick = () => {
+    const activeStatuses = ["running", "paused"];
+    const isTimerActive =
+      activeStatuses.includes(getTimerStatus()) ||
+      activeStatuses.includes(getIntervalStatus());
 
-  if (isTimerActive) {
-    const confirmed = window.confirm(t("confirm.quitRunning"));
-    if (!confirmed) return;
-  }
+    if (isTimerActive) {
+      const confirmed = window.confirm(t("confirm.quitRunning"));
+      if (!confirmed) return;
+    }
 
-  window.electronAPI.quitApp();
-};
+    window.electronAPI.quitApp();
+  };
+}
 
 // ── Mini'den gelen aksiyonları ilgili tab'a yönlendir ─────────
 window.electronAPI.onMiniAction(action => {
@@ -265,3 +277,17 @@ alarmObserver.observe(alarmModal, {
 // ── Initialize ────────────────────────────────────────────────
 setupTabListeners();
 switchTab("interval");
+
+// ── Demo mode — bridges parent postMessage to a local CustomEvent so
+// js/timer.js doesn't need its own "message" listener, and announces
+// readiness so the parent (docs/assets/mini-demo.js) knows it's safe to
+// send the seed state. ──────────────────────────────────────────
+if (isDemoMode()) {
+  window.addEventListener("message", event => {
+    if (event.data?.type !== "demo-seed-timer") return;
+    window.dispatchEvent(
+      new CustomEvent("demo-seed-timer", { detail: event.data }),
+    );
+  });
+  window.parent.postMessage({ type: "demo-ready" }, "*");
+}
