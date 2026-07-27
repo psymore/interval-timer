@@ -11,6 +11,7 @@ import { checkYoutubeLink, checkSpotifyLinks } from "./alarm/linkHealth.js";
 import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
+import { isDemoMode } from "./demo/isDemoMode.js";
 
 const log = createLogger("alarmModal");
 
@@ -40,6 +41,20 @@ const FOLDER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
 
 // ── Modal setup ───────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
+  if (isDemoMode()) {
+    document
+      .querySelector('.alarm-section[data-section="local"]')
+      ?.classList.add("hidden");
+
+    const alarmTitle = document.getElementById("alarmTitle");
+    if (alarmTitle) {
+      const hint = document.createElement("p");
+      hint.className = "alarm-url-hint";
+      hint.textContent = "Demo preview — changes here aren't saved.";
+      alarmTitle.insertAdjacentElement("afterend", hint);
+    }
+  }
+
   const chooseAlarmBtn = document.getElementById("chooseAlarmBtn");
   const previewAlarmBtn = document.getElementById("previewAlarmBtn");
   const closeAlarmBtn = document.getElementById("closeAlarmFolderBtn");
