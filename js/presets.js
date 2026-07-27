@@ -56,6 +56,13 @@ export async function setupPresets(onPresetLoad) {
     applyAlarmBadgeDisplay();
   });
 
+  // Fired by js/alarmModal.js whenever the active preset's alarmSource is
+  // saved — re-render so an open (or later-opened) dropdown reflects the
+  // change without needing to be closed/reopened.
+  window.addEventListener("preset-data-changed", () => {
+    renderPresets();
+  });
+
   // ── Dropdown aç/kapat ─────────────────────────────────────
   function openDropdown() {
     dropdown.hidden = false;

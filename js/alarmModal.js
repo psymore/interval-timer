@@ -393,6 +393,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       alarmLinks,
       alarmSource: { type, value: url },
     });
+    window.dispatchEvent(new CustomEvent("preset-data-changed"));
     await renderLinkList(type);
   }
 
@@ -441,6 +442,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       savedPreset?.id ?? null,
       savedPreset?.alarmSource ?? null,
     );
+    window.dispatchEvent(new CustomEvent("preset-data-changed"));
 
     recentPaths = addRecentPath(recentPaths, filePath);
     saveRecentPaths(recentPaths);
@@ -526,6 +528,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       savedPreset?.id ?? null,
       savedPreset?.alarmSource ?? null,
     );
+    window.dispatchEvent(new CustomEvent("preset-data-changed"));
     usingDefaultAlarm = true;
     updateCurrentFile(t("alarm.defaultFile"));
     updateCurrentIcon("local");
@@ -827,6 +830,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             savedPreset?.id ?? null,
             savedPreset?.alarmSource ?? null,
           );
+          window.dispatchEvent(new CustomEvent("preset-data-changed"));
           usingDefaultAlarm = true;
           updateCurrentFile(t("alarm.defaultFile"));
         } catch (e) {
