@@ -76,9 +76,16 @@ export function setupIntervalTimer(alarmSettings) {
         await window.electronAPI.presetsSetActive(LAST_SESSION_ID);
       }
 
-      // Not "preset-activated" — that would re-run applyPreset() and
-      // stomp on the field values the user is actively editing. Only
-      // the list/trigger-label UI needs to know something changed.
+      // Not "preset-activated" — that event doesn't touch the timer
+      // fields (only applyPreset() does that, by directly setting
+      // .value, and this function never calls it), but js/alarmModal.js
+      // DOES listen for it and would re-initialize the alarm provider,
+      // re-check link health, and re-render the YouTube/Spotify link
+      // lists in response. Since alarmSource is unchanged here (`active
+      // ?.alarmSource ?? null`, copied through as-is), firing that event
+      // on every debounced sync would just re-run all of that needlessly
+      // on every pause in typing. Only the list/trigger-label UI needs to
+      // know something changed.
       window.dispatchEvent(new CustomEvent("preset-data-changed"));
     } catch (e) {
       console.error("syncLastSessionPreset failed:", e);

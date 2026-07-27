@@ -28,11 +28,16 @@ function dedupe(source, cache, fetcher) {
   if (cache.has(source)) return Promise.resolve(cache.get(source));
   if (pendingFetches.has(source)) return pendingFetches.get(source);
 
-  const promise = fetcher().then(name => {
-    pendingFetches.delete(source);
-    if (name) cache.set(source, name);
-    return name;
-  });
+  const promise = fetcher()
+    .then(name => {
+      pendingFetches.delete(source);
+      if (name) cache.set(source, name);
+      return name;
+    })
+    .catch(() => {
+      pendingFetches.delete(source);
+      return null;
+    });
   pendingFetches.set(source, promise);
   return promise;
 }

@@ -372,7 +372,7 @@ function showPresetForm(existingPreset, onRefresh) {
       </div>
 
       <div class="preset-form__field">
-        <label>${t("presets.alarmNavLabel")}</label>
+        <label for="pfAlarmNav">${t("presets.alarmNavLabel")}</label>
         <button type="button" class="preset-form__alarm-nav no-hover-lift" id="pfAlarmNav">
           <span class="preset-form__alarm-nav-text" id="pfAlarmNavText">🎧 …</span>
           <span class="preset-form__alarm-nav-chevron" aria-hidden="true">›</span>
@@ -402,11 +402,17 @@ function showPresetForm(existingPreset, onRefresh) {
   // ── Alarm-source navigator ─────────────────────────────────
   // For a NEW preset this previews whatever alarm is currently active —
   // that's exactly what gets baked into the new preset at save time (see
-  // validate() below). For an EDIT (wired in a later task), it shows that
-  // specific preset's own alarmSource instead.
+  // validate() below), and the real active preset's alarm is restored
+  // once the Alarm modal closes (see the click handler below). For an
+  // EDIT, it shows that specific preset's own alarmSource instead, and
+  // the previously-active preset (if different) is restored the same way.
   const alarmNavBtn = overlay.querySelector("#pfAlarmNav");
   const alarmNavText = overlay.querySelector("#pfAlarmNavText");
-  let currentAlarmSource = null;
+  // Seeded synchronously (not left to the async refreshAlarmNavPreview()
+  // below) so that if validate() saves before that first refresh resolves,
+  // an edit form still saves the preset's REAL alarmSource instead of
+  // silently wiping it back to null.
+  let currentAlarmSource = isEdit ? (p.alarmSource ?? null) : null;
 
   function renderAlarmNavText(alarmSource) {
     const info = alarmSourceInfo(alarmSource);
@@ -447,28 +453,82 @@ function showPresetForm(existingPreset, onRefresh) {
 
     alarmNavBtn.addEventListener("click", async () => {
       // The Alarm Sound modal always edits "whichever preset is active"
-      // (existing mechanism in js/alarmModal.js) — for an edit form on a
-      // preset that isn't already active, switch to it first so the
-      // change lands on the right preset. This is IPC-only bookkeeping;
-      // it does not touch the main Interval tab's visible fields (those
-      // only change via the separate preset-activated event, which this
-      // does not fire).
+      // (existing mechanism in js/alarmModal.js), and js/alarmModal.js only
+      // refreshes what it displays (current-file label/icon, loaded alarm)
+      // on startup or on the "preset-activated" event — presetsSetActive()
+      // by itself only updates the main-process store and tells no one.
+      // So for an edit form on a preset that isn't already active, we both
+      // switch to it AND fire "preset-activated" (with a freshly re-read
+      // copy of it as detail, matching what applyPreset() itself passes),
+      // so the Alarm modal actually shows/edits THIS preset's alarm rather
+      // than whatever was previously active. Whatever preset was active
+      // before is restored (and re-announced) below once the Alarm modal
+      // closes.
+      let previousActiveId = null;
+      let activeAlarmSourceSnapshot = null;
+
       if (isEdit) {
         const active = await window.electronAPI.presetsGetActive();
         if (active?.id !== p.id) {
+          previousActiveId = active?.id ?? null;
           await window.electronAPI.presetsSetActive(p.id);
+          const all = await window.electronAPI.presetsGetAll();
+          const freshSelf = all.find(pr => pr.id === p.id) ?? p;
+          window.dispatchEvent(
+            new CustomEvent("preset-activated", { detail: freshSelf }),
+          );
         }
+      } else {
+        // New-preset mode: the Alarm modal is about to write to whichever
+        // preset is globally active (it has no concept of "the unsaved
+        // preset this form represents"). Snapshot that real preset's
+        // alarmSource now so it can be restored once the user's pick has
+        // been captured for the new preset instead — otherwise picking an
+        // alarm here would silently and permanently overwrite the real
+        // active preset's alarm, even if this form is later cancelled.
+        const active = await window.electronAPI.presetsGetActive();
+        activeAlarmSourceSnapshot = active?.alarmSource ?? null;
       }
 
       overlay.classList.add("hidden");
       const alarmModal = document.getElementById("alarmFolderModal");
       alarmModal.classList.remove("hidden");
 
-      const observer = new MutationObserver(() => {
+      const observer = new MutationObserver(async () => {
         if (alarmModal.classList.contains("hidden")) {
           observer.disconnect();
           overlay.classList.remove("hidden");
-          refreshAlarmNavPreview();
+          // Captures whatever the user just picked: for edit mode this
+          // preset's own (possibly just-changed) alarmSource; for
+          // new-preset mode, the real active preset's alarmSource — which
+          // for new-preset mode IS the pick, since that's what the Alarm
+          // modal just wrote to. Must run BEFORE the new-preset restore
+          // below overwrites the active preset back to its snapshot.
+          await refreshAlarmNavPreview();
+
+          if (isEdit) {
+            if (previousActiveId && previousActiveId !== p.id) {
+              await window.electronAPI.presetsSetActive(previousActiveId);
+              const all = await window.electronAPI.presetsGetAll();
+              const freshPrev = all.find(pr => pr.id === previousActiveId);
+              if (freshPrev) {
+                window.dispatchEvent(
+                  new CustomEvent("preset-activated", { detail: freshPrev }),
+                );
+              }
+            }
+          } else {
+            const active = await window.electronAPI.presetsGetActive();
+            if (active) {
+              await window.electronAPI.presetsSave({
+                ...active,
+                alarmSource: activeAlarmSourceSnapshot,
+              });
+              window.dispatchEvent(new CustomEvent("preset-data-changed"));
+            }
+          }
+
+          alarmNavBtn.focus();
         }
       });
       observer.observe(alarmModal, { attributes: true, attributeFilter: ["class"] });
