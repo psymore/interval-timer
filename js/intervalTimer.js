@@ -27,6 +27,75 @@ export function setupIntervalTimer(alarmSettings) {
   const continueBtn = document.getElementById("continueLoopBtn");
   const resetBtn = document.getElementById("resetIntervalBtn");
 
+  const workSecondsInput = document.getElementById("workSeconds");
+  const breakSecondsInput = document.getElementById("breakSeconds");
+
+  // ── "Last Session" auto-tracking ──────────────────────────
+  // Any real edit to the timer fields (typing, or the number-stepper
+  // buttons, which also dispatch a native "input" event — see
+  // js/numberStepper.js) forks the active preset into a dedicated
+  // "last-session" preset so unsaved edits are never lost: it becomes
+  // the active preset (so it reloads on next launch via the existing
+  // applyPreset()-on-startup path below), and is a fully normal,
+  // renameable/deletable preset once created. Debounced so rapid
+  // typing doesn't hammer the store with a write per keystroke.
+  const LAST_SESSION_ID = "last-session";
+  let lastSessionSyncTimer = null;
+
+  function readTimerFields() {
+    return {
+      workMinutes: parseInt(workDurationInput.value, 10) || 0,
+      workSeconds: parseInt(workSecondsInput?.value, 10) || 0,
+      breakMinutes: parseInt(breakDurationInput.value, 10) || 0,
+      breakSeconds: parseInt(breakSecondsInput?.value, 10) || 0,
+      loops: parseInt(loopCountInput.value, 10) || 1,
+    };
+  }
+
+  async function syncLastSessionPreset() {
+    try {
+      const active = await window.electronAPI.presetsGetActive();
+      const allPresets = await window.electronAPI.presetsGetAll();
+      const existingLastSession = allPresets.find(p => p.id === LAST_SESSION_ID);
+
+      const isAlreadyActive = active?.id === LAST_SESSION_ID;
+      const base = isAlreadyActive ? active : existingLastSession;
+
+      const payload = {
+        id: LAST_SESSION_ID,
+        name: base?.name ?? t("presets.lastSessionName"),
+        ...readTimerFields(),
+        alarmSource: active?.alarmSource ?? null,
+        alarmLinks: base?.alarmLinks ?? { youtube: [], spotify: [] },
+      };
+
+      const result = await window.electronAPI.presetsSave(payload);
+      if (result?.error) return;
+
+      if (!isAlreadyActive) {
+        await window.electronAPI.presetsSetActive(LAST_SESSION_ID);
+      }
+
+      // Not "preset-activated" — that would re-run applyPreset() and
+      // stomp on the field values the user is actively editing. Only
+      // the list/trigger-label UI needs to know something changed.
+      window.dispatchEvent(new CustomEvent("preset-data-changed"));
+    } catch (e) {
+      console.error("syncLastSessionPreset failed:", e);
+    }
+  }
+
+  function scheduleLastSessionSync() {
+    clearTimeout(lastSessionSyncTimer);
+    lastSessionSyncTimer = setTimeout(syncLastSessionPreset, 500);
+  }
+
+  [workDurationInput, workSecondsInput, breakDurationInput, breakSecondsInput, loopCountInput]
+    .filter(Boolean)
+    .forEach(input => {
+      input.addEventListener("input", scheduleLastSessionSync);
+    });
+
   // ── Preset yüklendiğinde input'ları doldur ────────────────
   function applyPreset(preset) {
     const wm = document.getElementById("workMinutes");
