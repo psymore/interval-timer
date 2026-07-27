@@ -1,4 +1,5 @@
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
+import { isDemoMode } from "./demo/isDemoMode.js";
 
 let currentUpdate = null;
 
@@ -50,7 +51,7 @@ function renderBanner() {
 }
 
 export function setupUpdateChecker() {
-  if (window.electronAPI.isWindowsStoreBuild) {
+  if (window.electronAPI.isWindowsStoreBuild || isDemoMode()) {
     document.querySelector(".update-check-row")?.classList.add("hidden");
     document.getElementById("updateCheckStatus")?.classList.add("hidden");
     return;

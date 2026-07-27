@@ -3,6 +3,7 @@ import {
   createTimerStateBroadcaster,
   formatDuration,
 } from "./timerStateBroadcast.js";
+import { isDemoMode } from "./demo/isDemoMode.js";
 
 let timer = null;
 let alarmTimeoutId = null;
@@ -37,6 +38,14 @@ export function getTimerStatus() {
   return stateBroadcaster.getStatus();
 }
 
+export function getDemoSnapshot() {
+  const remainingMs = timer ? timer.getRemainingTime() : getDurationFromInputs() * 1000;
+  return {
+    remainingSeconds: Math.round(remainingMs / 1000),
+    isRunning: getTimerStatus() === "running",
+  };
+}
+
 export function setupTimer(settings) {
   alarmSettings = settings;
   document.getElementById("startBtn").onclick = startTimer;
@@ -44,6 +53,16 @@ export function setupTimer(settings) {
   document.getElementById("continueBtn").onclick = continueTimer;
   document.getElementById("stopBtn").onclick = stopTimer;
   document.getElementById("resetBtn").onclick = resetTimer;
+
+  if (isDemoMode()) {
+    window.addEventListener("demo-seed-timer", event => {
+      const { remainingSeconds, isRunning } = event.detail;
+      document.getElementById("minutes").value = Math.floor(remainingSeconds / 60);
+      document.getElementById("seconds").value = remainingSeconds % 60;
+      startTimer();
+      if (!isRunning) pauseTimer();
+    });
+  }
 }
 
 // ── Alarm helpers ─────────────────────────────────────────────
