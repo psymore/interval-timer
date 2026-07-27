@@ -427,15 +427,39 @@ function showPresetForm(existingPreset, onRefresh) {
   }
 
   async function refreshAlarmNavPreview() {
-    const active = await window.electronAPI.presetsGetActive();
-    currentAlarmSource = active?.alarmSource ?? null;
+    if (isEdit) {
+      // Re-read by id rather than trusting the closed-over `p` — if the
+      // navigator's alarm-modal flow just changed this preset's alarm,
+      // the on-disk copy is newer than the object this form was opened
+      // with.
+      const all = await window.electronAPI.presetsGetAll();
+      const latestSelf = all.find(pr => pr.id === p.id);
+      currentAlarmSource = latestSelf?.alarmSource ?? null;
+    } else {
+      const active = await window.electronAPI.presetsGetActive();
+      currentAlarmSource = active?.alarmSource ?? null;
+    }
     renderAlarmNavText(currentAlarmSource);
   }
 
   if (alarmNavBtn) {
     refreshAlarmNavPreview();
 
-    alarmNavBtn.addEventListener("click", () => {
+    alarmNavBtn.addEventListener("click", async () => {
+      // The Alarm Sound modal always edits "whichever preset is active"
+      // (existing mechanism in js/alarmModal.js) — for an edit form on a
+      // preset that isn't already active, switch to it first so the
+      // change lands on the right preset. This is IPC-only bookkeeping;
+      // it does not touch the main Interval tab's visible fields (those
+      // only change via the separate preset-activated event, which this
+      // does not fire).
+      if (isEdit) {
+        const active = await window.electronAPI.presetsGetActive();
+        if (active?.id !== p.id) {
+          await window.electronAPI.presetsSetActive(p.id);
+        }
+      }
+
       overlay.classList.add("hidden");
       const alarmModal = document.getElementById("alarmFolderModal");
       alarmModal.classList.remove("hidden");
