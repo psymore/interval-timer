@@ -473,6 +473,15 @@
       display: none;
     }
 
+    /* While not yet visible (waiting on the demo-ready handshake), the
+       iframe must not intercept clicks on the mini box's own header
+       buttons (Pin/Quit/reset-size) sitting behind it in stacking order —
+       otherwise a load failure that never sends demo-ready leaves the box
+       stuck expanded with no way to interact with it. */
+    .mini-demo-iframe:not(.is-visible) {
+      pointer-events: none;
+    }
+
     .mini-demo-body {
       width: 100%;
       flex: 1;

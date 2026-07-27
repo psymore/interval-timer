@@ -50,7 +50,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (alarmTitle) {
       const hint = document.createElement("p");
       hint.className = "alarm-url-hint";
-      hint.textContent = "Demo preview — changes here aren't saved.";
+      hint.dataset.i18n = "alarm.demoHint";
+      hint.textContent = t("alarm.demoHint");
       alarmTitle.insertAdjacentElement("afterend", hint);
     }
   }

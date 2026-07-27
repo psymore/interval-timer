@@ -15,11 +15,28 @@
   const START_SECONDS = 10; // short on purpose, but a real 1s = 1s countdown
   const ALARM_DURATION_MS = 3000;
 
+  // Stage min-heights from the CSS above — .mini-demo-stage / .is-expanded.
+  // getBoundingClientRect() called synchronously right after a class change
+  // that starts a CSS transition returns the PRE-transition value (the
+  // transition's progress is 0 at that instant, since no frame has been
+  // rendered yet) — not the eventual target. So centerRect()/expandRect()
+  // use these known target heights instead of trusting a live measurement
+  // of a stage that's mid-transition.
+  const STAGE_HEIGHT_EXPANDED = 620;
+  const STAGE_HEIGHT_DEFAULT = 440;
+
+  // NOTE: when collapsing FROM the expanded state, this must be called
+  // while the stage still has "is-expanded" on it (i.e. before that class
+  // is removed) — that's how it knows to use the known default height
+  // instead of the stage's still-620px live measurement.
   function centerRect() {
     const stageRect = stage.getBoundingClientRect();
+    const targetStageHeight = stage.classList.contains("is-expanded")
+      ? STAGE_HEIGHT_DEFAULT
+      : stageRect.height;
     return {
       left: Math.max(0, (stageRect.width - DEFAULT_WIDTH) / 2),
-      top: Math.max(0, (stageRect.height - DEFAULT_HEIGHT) / 2),
+      top: Math.max(0, (targetStageHeight - DEFAULT_HEIGHT) / 2),
       width: DEFAULT_WIDTH,
       height: DEFAULT_HEIGHT,
     };
@@ -307,11 +324,12 @@
 
   function expandRect() {
     const stageRect = stage.getBoundingClientRect();
+    const targetStageHeight = STAGE_HEIGHT_EXPANDED;
     const width = Math.min(760, stageRect.width - 32);
-    const height = Math.min(560, stageRect.height - 32);
+    const height = Math.min(560, targetStageHeight - 32);
     return {
       left: Math.max(0, (stageRect.width - width) / 2),
-      top: Math.max(0, (stageRect.height - height) / 2),
+      top: Math.max(0, (targetStageHeight - height) / 2),
       width,
       height,
     };
@@ -332,11 +350,20 @@
       iframeEl.classList.add("is-visible");
       if (body) body.classList.add("hidden");
       stopTicking();
+      playBtn?.classList.remove("is-active");
+      pauseBtn?.classList.remove("is-active");
     } else if (event.data?.type === "demo-shrink") {
       remainingSeconds = Math.max(0, Math.round(event.data.remainingSeconds));
       renderCountdown();
       collapse();
-      if (event.data.isRunning) startTicking();
+      if (event.data.isRunning) {
+        startTicking();
+        playBtn?.classList.add("is-active");
+        pauseBtn?.classList.remove("is-active");
+      } else {
+        pauseBtn?.classList.add("is-active");
+        playBtn?.classList.remove("is-active");
+      }
     }
   }
 
@@ -354,6 +381,9 @@
   }
 
   function collapse() {
+    // centerRect() must run while the stage still has "is-expanded" on it —
+    // that's how it knows to center against the known 440px default height
+    // instead of the stage's real-but-about-to-change 620px live height.
     demo.classList.add("is-animating");
     applyRect(centerRect());
     setTimeout(() => {

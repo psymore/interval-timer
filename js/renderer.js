@@ -285,6 +285,7 @@ switchTab("interval");
 if (isDemoMode()) {
   window.addEventListener("message", event => {
     if (event.data?.type !== "demo-seed-timer") return;
+    switchTab("timer");
     window.dispatchEvent(
       new CustomEvent("demo-seed-timer", { detail: event.data }),
     );
