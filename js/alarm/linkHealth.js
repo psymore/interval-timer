@@ -5,7 +5,7 @@
 // isn't a definitive not-found) must never be treated as "broken" by
 // callers — only a confirmed-dead link is.
 
-function extractYoutubeId(source) {
+export function extractYoutubeId(source) {
   if (!source) return null;
   if (/^[a-zA-Z0-9_-]{11}$/.test(source)) return source;
   try {
@@ -17,7 +17,7 @@ function extractYoutubeId(source) {
   return null;
 }
 
-function extractSpotifyTrackId(source) {
+export function extractSpotifyTrackId(source) {
   if (!source) return null;
   if (/^[a-zA-Z0-9]{22}$/.test(source)) return source;
   const uriMatch = source.match(/spotify:track:([a-zA-Z0-9]{22})/);

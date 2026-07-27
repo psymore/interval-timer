@@ -1,5 +1,15 @@
 import { enhanceNumberInputs } from "./numberStepper.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
+import {
+  peekYoutubeTitle,
+  peekSpotifyName,
+  resolveYoutubeTitle,
+  resolveSpotifyName,
+} from "./alarm/sourceNames.js";
+
+// Filename of the bundled default alarm (assets/audio/alarm.mp3 in
+// alarmModal.js) — presets with no alarmSource fall back to it.
+const DEFAULT_LOCAL_ALARM_FILENAME = "alarm.mp3";
 
 const MAX_PRESETS = 20;
 
@@ -168,6 +178,10 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBrok
   const workLabel = formatDuration(preset.workMinutes, preset.workSeconds);
   const breakLabel = formatDuration(preset.breakMinutes, preset.breakSeconds);
   const loopLabel = `${preset.loops} loop${preset.loops !== 1 ? "s" : ""}`;
+  const source = alarmSourceInfo(preset.alarmSource);
+  const sourceNameHtml = source.name
+    ? ` · <span class="preset-item__source-name" title="${escapeHtml(source.name)}">${escapeHtml(source.name)}</span>`
+    : `<span class="preset-item__source-name"></span>`;
 
   li.innerHTML = `
     <button class="preset-item__load no-hover-lift" aria-label="${format(t("presets.loadAriaLabel"), { name: escapeHtml(preset.name) })}">
@@ -178,6 +192,8 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBrok
         ☕ ${breakLabel}
         <span aria-hidden="true">·</span>
         ↻ ${loopLabel}
+        <span aria-hidden="true">·</span>
+        <span class="preset-item__source">🎧 ${source.label}${sourceNameHtml}</span>
       </span>
       <span class="preset-alarm-health-badge preset-item__alarm-badge${alarmBroken ? "" : " hidden"}">${t("presets.alarmBrokenBadge")}</span>
     </button>
@@ -254,6 +270,27 @@ function buildPresetItem(preset, isActive, onLoad, onRefresh, onClose, alarmBrok
         return;
       }
       await onRefresh();
+    });
+  }
+
+  // ── Async source name resolution ───────────────────────────
+  // Local filenames are known synchronously; YouTube/Spotify names
+  // require a network lookup, so the row renders with just the type
+  // label first and this patches in the real name once resolved
+  // (silently no-ops on failure — li may already be detached by then,
+  // which is harmless).
+  if (!source.name && source.resolve) {
+    source.resolve().then(name => {
+      if (!name) return;
+      const nameEl = li.querySelector(".preset-item__source-name");
+      if (!nameEl) return;
+      // The separator must be a sibling text node, not part of nameEl's
+      // content — nameEl is `display: inline-block` (needed for its
+      // ellipsis truncation), and inline-block boxes trim leading/
+      // trailing whitespace from their own content.
+      nameEl.before(" · ");
+      nameEl.textContent = name;
+      nameEl.title = name;
     });
   }
 
@@ -453,6 +490,39 @@ function showToast(message, type = "success") {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
+// Resolves a preset's alarmSource into a type label plus (when known)
+// the specific file name / video title / track name, and — for
+// YouTube/Spotify names not yet cached — a `resolve()` fetcher the
+// caller can await and patch into the DOM afterward.
+function alarmSourceInfo(alarmSource) {
+  const type = alarmSource?.type ?? "local";
+  const value = alarmSource?.value ?? null;
+
+  if (type === "youtube" && value) {
+    return {
+      label: t("presets.sourceYoutube"),
+      name: peekYoutubeTitle(value),
+      resolve: () => resolveYoutubeTitle(value),
+    };
+  }
+  if (type === "spotify" && value) {
+    return {
+      label: t("presets.sourceSpotify"),
+      name: peekSpotifyName(value),
+      resolve: () => resolveSpotifyName(value),
+    };
+  }
+  return {
+    label: t("presets.sourceLocal"),
+    name: value ? getLocalFileName(value) : DEFAULT_LOCAL_ALARM_FILENAME,
+    resolve: null,
+  };
+}
+
+function getLocalFileName(filePath) {
+  return filePath.replace(/\\/g, "/").split("/").pop();
+}
+
 function formatDuration(min, sec) {
   if (min > 0 && sec > 0) return `${min}m ${sec}s`;
   if (min > 0) return `${min}m`;

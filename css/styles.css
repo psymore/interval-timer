@@ -1055,6 +1055,18 @@ button:disabled {
   margin-top: 2px;
 }
 
+/* The specific file name / video title / track name — can be arbitrarily
+   long, so it self-truncates rather than pushing the rest of the meta
+   row wider or squeezing the fixed ⏱/☕/↻ segments. */
+.preset-item__source-name {
+  display: inline-block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 /* Action buttons */
 .preset-item__actions {
   display: flex;
