@@ -22,7 +22,7 @@
   // rendered yet) — not the eventual target. So centerRect()/expandRect()
   // use these known target heights instead of trusting a live measurement
   // of a stage that's mid-transition.
-  const STAGE_HEIGHT_EXPANDED = 620;
+  const STAGE_HEIGHT_EXPANDED = 1150;
   const STAGE_HEIGHT_DEFAULT = 440;
 
   // NOTE: when collapsing FROM the expanded state, this must be called
@@ -325,8 +325,12 @@
   function expandRect() {
     const stageRect = stage.getBoundingClientRect();
     const targetStageHeight = STAGE_HEIGHT_EXPANDED;
-    const width = Math.min(760, stageRect.width - 32);
-    const height = Math.min(560, targetStageHeight - 32);
+    // 800x1100 matches the real app's own default window size (lib/windows.js)
+    // so the expanded view fits the app's tallest tab (Interval Timer) without
+    // an internal scrollbar, and reads as "this is the actual app," not an
+    // arbitrarily-sized box.
+    const width = Math.min(800, stageRect.width - 32);
+    const height = Math.min(1100, targetStageHeight - 32);
     return {
       left: Math.max(0, (stageRect.width - width) / 2),
       top: Math.max(0, (targetStageHeight - height) / 2),

@@ -109,10 +109,13 @@ function playAlarm(duration) {
 }
 
 // ── Input helper ──────────────────────────────────────────────
+const DEMO_MAX_DURATION_SECONDS = 10;
+
 function getDurationFromInputs() {
   const mins = parseInt(document.getElementById("minutes").value, 10) || 0;
   const secs = parseInt(document.getElementById("seconds").value, 10) || 0;
-  return mins * 60 + secs;
+  const total = mins * 60 + secs;
+  return isDemoMode() ? Math.min(total, DEMO_MAX_DURATION_SECONDS) : total;
 }
 
 // ── Display helper ────────────────────────────────────────────

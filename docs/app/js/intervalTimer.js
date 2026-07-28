@@ -8,6 +8,9 @@ import {
 } from "./timerStateBroadcast.js";
 import { toFileUrl } from "./alarmModal.js";
 import { t, onLanguageChange } from "./i18n/i18n.js";
+import { isDemoMode } from "./demo/isDemoMode.js";
+
+const DEMO_MAX_DURATION_SECONDS = 10;
 
 let stateBroadcaster = null;
 
@@ -256,12 +259,17 @@ export function setupIntervalTimer(alarmSettings) {
     const breakSec =
       parseInt(document.getElementById("breakSeconds").value, 10) || 0;
 
-    const totalWorkDuration = workMin * 60 + workSec;
-    const totalBreakDuration = breakMin * 60 + breakSec;
+    let totalWorkDuration = workMin * 60 + workSec;
+    let totalBreakDuration = breakMin * 60 + breakSec;
 
     if (totalWorkDuration <= 0) {
       console.warn("Work duration must be greater than 0.");
       return;
+    }
+
+    if (isDemoMode()) {
+      totalWorkDuration = Math.min(totalWorkDuration, DEMO_MAX_DURATION_SECONDS);
+      totalBreakDuration = Math.min(totalBreakDuration, DEMO_MAX_DURATION_SECONDS);
     }
 
     totalLoops = parseInt(loopCountInput.value, 10) || 1;
