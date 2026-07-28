@@ -1,6 +1,7 @@
 # Landing page: interactive product demo
 
-Source request: `docs/github-page.md`. Goal is to evolve the GitHub Pages
+Source request: `docs/superpowers/specs/2026-07-27-landing-page-live-demo-request.md`.
+Goal is to evolve the GitHub Pages
 mini-window playground from a visual showcase into a live demo powered by
 the real app, delivered as three independently-shippable phases on the same
 branch.
