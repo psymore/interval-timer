@@ -10,6 +10,7 @@ a YouTube video, or a Spotify track.
 
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Interval Timer app screenshot" width="420" />
+  <img src="docs/assets/alarm-sound-modal.png" alt="Redesigned Alarm Sound modal with Local/YouTube/Spotify accordion" width="420" />
 </p>
 
 ## Features
