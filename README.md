@@ -4,7 +4,7 @@ A desktop interval/countdown timer for Windows, built with Electron. Designed fo
 work/break cycles (Pomodoro-style), with alarms that can play a local sound file,
 a YouTube video, or a Spotify track.
 
-**[Download the latest release](https://github.com/psymore/interval-timer/releases/latest)** · [Landing page](https://psymore.github.io/interval-timer/)
+## **[Download the latest release](https://github.com/psymore/interval-timer/releases/latest)** &nbsp; · &nbsp; </nbsp> [Landing page](https://psymore.github.io/interval-timer/)
 
 ## Screenshot
 
