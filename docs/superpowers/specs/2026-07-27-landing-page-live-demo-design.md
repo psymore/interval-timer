@@ -46,10 +46,13 @@ application components... avoid duplicating code": the expanded view *is*
 packaged app ships, always in sync because there's only one source copy
 (`docs/app/` is a generated mirror, never hand-edited). The bespoke mini
 box's countdown is a single plain timer (no work/break phases), so its
-state hands off to the app's **Timer** tab (`js/timer.js`/`js/logic/
-Timer.js`), not the Interval Timer tab — the expanded playground opens on
-that tab pre-seeded, and the visitor is free to switch tabs afterward like
-in the real app.
+state hands off to the app's **Timer** tab's own `Timer` instance
+(`js/timer.js`/`js/logic/Timer.js`) regardless of which tab is visible.
+The expanded playground opens on the **Interval Timer** tab (the app's own
+default) rather than jumping to Timer — the seeded Timer keeps ticking in
+the background either way, so a visitor who switches to the Timer tab
+still finds it mid-countdown. The visitor is free to switch tabs
+afterward like in the real app.
 
 `index.html` is not runnable outside Electron as-is: several modules call
 `window.electronAPI.*` unconditionally, which doesn't exist without

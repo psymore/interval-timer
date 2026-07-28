@@ -285,7 +285,10 @@ switchTab("interval");
 if (isDemoMode()) {
   window.addEventListener("message", event => {
     if (event.data?.type !== "demo-seed-timer") return;
-    switchTab("timer");
+    // Stay on the default "interval" tab (set above) rather than jumping
+    // to "timer" — the seeded Timer keeps ticking in the background
+    // either way (js/timer.js's own demo-seed-timer listener), so a
+    // visitor who switches to the Timer tab still finds it mid-countdown.
     window.dispatchEvent(
       new CustomEvent("demo-seed-timer", { detail: event.data }),
     );
