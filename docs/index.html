@@ -409,7 +409,7 @@
 
     .mini-demo-stage {
       position: relative;
-      min-height: 440px;
+      min-height: 120px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -420,8 +420,20 @@
       transition: min-height 340ms ease;
     }
 
-    .mini-demo-stage.is-expanded {
-      min-height: 1150px;
+    /* Shown only while the demo is docked (see .is-idle below) — the
+       expanded height is set as an inline style by mini-demo.js instead of
+       a second hardcoded number here, so there is exactly one place
+       (EXPANDED_STAGE_HEIGHT in mini-demo.js) that value is defined. */
+    .mini-demo-stage-placeholder {
+      display: none;
+      text-align: center;
+      color: var(--ink-muted);
+      font-size: 0.9rem;
+      font-family: var(--font-mono);
+    }
+
+    .mini-demo-stage.is-idle .mini-demo-stage-placeholder {
+      display: block;
     }
 
     .mini-demo-hint {
@@ -445,6 +457,18 @@
       flex-direction: column;
       user-select: none;
       box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+    }
+
+    .mini-demo.is-docked {
+      position: fixed;
+      z-index: 60;
+    }
+
+    /* Resize/drag handles only make sense on the small docked widget —
+       the expanded view is a normal-flow block, not something you drag
+       around a stage. */
+    .mini-demo:not(.is-docked) .mini-demo-resize {
+      display: none;
     }
 
     /* Only applied while the alarm is stretching/shrinking the box
@@ -972,6 +996,7 @@
         see (and hear) the alarm, or hit the pin button to expand it into the real, running app.</p>
 
       <div class="mini-demo-stage">
+        <div class="mini-demo-stage-placeholder" data-i18n="miniShowcase.idle">Pinned to the corner — click the pin icon to bring it back.</div>
         <div class="mini-demo" id="miniDemo">
           <div class="mini-demo-header">
             <span class="mini-demo-label">INTERVAL</span>
