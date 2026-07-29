@@ -378,9 +378,21 @@
 
   let isExpanded = false; // set true by initDefaultExpanded() below
 
+  // Pin button toggles between docking and expanding, so its accessible
+  // name/state must reflect whichever action it will perform *next* — not
+  // a fixed label left over from the old one-way "expand" behavior.
+  function setPinButtonState(expanded) {
+    if (!pinBtn) return;
+    const label = expanded ? "Pin to a small window" : "Expand back to full view";
+    pinBtn.title = label;
+    pinBtn.setAttribute("aria-label", label);
+    pinBtn.setAttribute("aria-pressed", expanded ? "false" : "true");
+  }
+
   function expand() {
     if (isRinging) return;
     isExpanded = true;
+    setPinButtonState(true);
     window.addEventListener("message", onDemoMessage);
     setStageMode("expanded");
     demo.classList.remove("is-docked");
@@ -391,10 +403,22 @@
     }, 320);
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
+
+    // Un-docking after the visitor has scrolled away (e.g. dock, scroll to
+    // the page bottom, hit Pin) grows the stage by 1000+px right where it
+    // already sits — if that's off-screen, bring it into view instead of
+    // leaving the visitor stranded with no visual cue anything happened.
+    const stageRect = stage.getBoundingClientRect();
+    const inViewport = stageRect.bottom > 0 && stageRect.top < window.innerHeight;
+    if (!inViewport) {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      stage.scrollIntoView({ block: "center", behavior: reducedMotion ? "auto" : "smooth" });
+    }
   }
 
   function collapse() {
     isExpanded = false;
+    setPinButtonState(false);
     demo.classList.add("is-animating");
     demo.classList.add("is-docked");
     applyRect(dockRect());
@@ -432,9 +456,21 @@
   // triggered by page load instead of a click.
   function initDefaultExpanded() {
     isExpanded = true;
+    setPinButtonState(true);
     window.addEventListener("message", onDemoMessage);
+
+    // The stage's min-height transition (340ms) would otherwise animate
+    // from its CSS default straight to the expanded height on the very
+    // first rendered frame, contributing layout shift before the visitor
+    // has seen anything settle. Suppress it for this one, page-load-only
+    // jump; later manual expand()/collapse() toggles animate normally.
+    stage.style.transition = "none";
     setStageMode("expanded");
     applyRect(expandRect());
+    requestAnimationFrame(() => {
+      stage.style.transition = "";
+    });
+
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
   }

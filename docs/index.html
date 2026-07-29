@@ -394,18 +394,6 @@
       display: block;
     }
 
-    .mini-demo-hint {
-      position: absolute;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 0.75rem;
-      color: var(--ink-muted);
-      font-family: var(--font-mono);
-      letter-spacing: 0.02em;
-      pointer-events: none;
-    }
-
     .mini-demo {
       position: absolute;
       background: #1a1a1a;
@@ -951,7 +939,7 @@
               <img src="assets/power.png" alt="" class="mini-demo-icon-img" />
             </button>
             <button type="button" class="mini-demo-pin" id="miniDemoPinBtn"
-              title="Pinned on top — expand into the real app" aria-label="Expand into the real app">
+              title="Pin to a small window" aria-label="Pin to a small window" aria-pressed="false">
               <img src="assets/pinned.png" alt="" class="mini-demo-icon-img" />
             </button>
           </div>
@@ -988,7 +976,6 @@
         <div class="mini-demo-resize mini-demo-resize-sw mini-demo-grip" data-dir="sw"></div>
         <div class="mini-demo-resize mini-demo-resize-se mini-demo-grip" data-dir="se"></div>
       </div>
-      <span class="mini-demo-hint" data-i18n="miniShowcase.hint">↔ drag an edge or corner to resize</span>
     </div>
   </header>
 

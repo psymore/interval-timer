@@ -944,7 +944,7 @@ Add:
     }
 ```
 
-(The resize handle `div`s aren't natively focusable and are marked `aria-hidden` already per CLAUDE.md's mini-resize-handles note — this rule is a no-op safety net if that ever changes, not a behavior change here.)
+(The resize handle `div`s aren't natively focusable, so this rule is a no-op safety net for keyboard focus, not a behavior change here.)
 
 - [ ] **Step 4: z-index scale check**
 
