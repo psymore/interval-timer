@@ -292,11 +292,19 @@
     });
   }
 
-  // Keep the demo within the stage if the viewport is resized narrower —
+  // Keep the demo within bounds if the viewport is resized. Expanded is
+  // still position:absolute with an explicit pixel rect applied once by
+  // expand()/initDefaultExpanded() — it does NOT reflow on its own, so a
+  // narrower viewport needs expandRect() recomputed and reapplied or the
+  // stale rect gets clipped by .mini-demo-stage's overflow:hidden. Docked
   // doesn't fight a size the visitor deliberately dragged, just clamps
   // position/size so it can't end up hidden or overflowing off the edge.
   window.addEventListener("resize", () => {
-    if (isRinging || !demo.classList.contains("is-docked")) return;
+    if (isRinging) return;
+    if (!demo.classList.contains("is-docked")) {
+      applyRect(expandRect());
+      return;
+    }
     const rect = {
       left: demo.offsetLeft,
       top: demo.offsetTop,
