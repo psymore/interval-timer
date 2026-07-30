@@ -14,29 +14,35 @@
   const DEFAULT_HEIGHT = 180;
   const START_SECONDS = 10; // short on purpose, but a real 1s = 1s countdown
   const ALARM_DURATION_MS = 3000;
+  const DOCK_MARGIN = 24;
+  // How long to wait for the iframe's "demo-ready" handshake before giving
+  // up and falling back to the small docked widget. Normally fires almost
+  // immediately; this only matters when the iframe can't load at all (e.g.
+  // the page opened directly via file:// instead of a real HTTP origin,
+  // which postMessage requires) — without it, the bespoke widget would sit
+  // stuck at the full expanded size forever.
+  const DEMO_READY_TIMEOUT_MS = 3000;
 
-  // Stage min-heights from the CSS above — .mini-demo-stage / .is-expanded.
-  // getBoundingClientRect() called synchronously right after a class change
-  // that starts a CSS transition returns the PRE-transition value (the
-  // transition's progress is 0 at that instant, since no frame has been
-  // rendered yet) — not the eventual target. So centerRect()/expandRect()
-  // use these known target heights instead of trusting a live measurement
-  // of a stage that's mid-transition.
-  const STAGE_HEIGHT_EXPANDED = 1150;
-  const STAGE_HEIGHT_DEFAULT = 440;
+  // Single source of truth for the expanded stage's height — applied as an
+  // inline style (see setStageMode below) instead of also living in a CSS
+  // ".is-expanded" rule, so the two can't drift out of sync.
+  const EXPANDED_STAGE_HEIGHT = 1150;
 
-  // NOTE: when collapsing FROM the expanded state, this must be called
-  // while the stage still has "is-expanded" on it (i.e. before that class
-  // is removed) — that's how it knows to use the known default height
-  // instead of the stage's still-620px live measurement.
-  function centerRect() {
-    const stageRect = stage.getBoundingClientRect();
-    const targetStageHeight = stage.classList.contains("is-expanded")
-      ? STAGE_HEIGHT_DEFAULT
-      : stageRect.height;
+  // mode: "expanded" | "idle". "idle" is the stage's appearance once the
+  // demo has docked away from it — a small placeholder, not the old
+  // small-widget-centered-in-stage layout (that state no longer exists).
+  function setStageMode(mode) {
+    stage.classList.toggle("is-idle", mode === "idle");
+    stage.style.minHeight = mode === "expanded" ? `${EXPANDED_STAGE_HEIGHT}px` : "";
+  }
+
+  // Where the docked widget sits: bottom-right of the *viewport*, not
+  // centered inside the stage — it's position:fixed once docked, so its
+  // bounds are the window, not the stage element.
+  function dockRect() {
     return {
-      left: Math.max(0, (stageRect.width - DEFAULT_WIDTH) / 2),
-      top: Math.max(0, (targetStageHeight - DEFAULT_HEIGHT) / 2),
+      left: Math.max(0, window.innerWidth - DEFAULT_WIDTH - DOCK_MARGIN),
+      top: Math.max(0, window.innerHeight - DEFAULT_HEIGHT - DOCK_MARGIN),
       width: DEFAULT_WIDTH,
       height: DEFAULT_HEIGHT,
     };
@@ -49,8 +55,6 @@
     demo.style.height = `${rect.height}px`;
   }
 
-  applyRect(centerRect());
-
   let isRinging = false;
 
   // ── Resize — clamped to the stage's current bounds, so no edge can be
@@ -58,7 +62,7 @@
   // js/mini.js's real anchor math). ──────────────────────────────────
   demo.querySelectorAll(".mini-demo-resize").forEach((zone) => {
     zone.addEventListener("mousedown", (event) => {
-      if (isRinging) return;
+      if (isRinging || !demo.classList.contains("is-docked")) return;
       event.preventDefault();
       event.stopPropagation();
 
@@ -71,9 +75,8 @@
       };
       const startX = event.clientX;
       const startY = event.clientY;
-      const stageRect = stage.getBoundingClientRect();
-      const maxRight = stageRect.width;
-      const maxBottom = stageRect.height;
+      const maxRight = window.innerWidth;
+      const maxBottom = window.innerHeight;
 
       const onMove = (moveEvent) => {
         if (moveEvent.buttons === 0) {
@@ -121,16 +124,15 @@
   // resize handle repositions it, clamped so it can't be dragged outside
   // the stage. Mirrors the real mini window's whole-window drag region. ─
   demo.addEventListener("mousedown", (event) => {
-    if (isRinging) return;
+    if (isRinging || !demo.classList.contains("is-docked")) return;
     if (event.target.closest("button, .mini-demo-resize")) return;
     event.preventDefault();
 
     const start = { left: demo.offsetLeft, top: demo.offsetTop };
     const startX = event.clientX;
     const startY = event.clientY;
-    const stageRect = stage.getBoundingClientRect();
-    const maxLeft = Math.max(0, stageRect.width - demo.offsetWidth);
-    const maxTop = Math.max(0, stageRect.height - demo.offsetHeight);
+    const maxLeft = Math.max(0, window.innerWidth - demo.offsetWidth);
+    const maxTop = Math.max(0, window.innerHeight - demo.offsetHeight);
 
     demo.classList.add("is-dragging");
 
@@ -159,8 +161,8 @@
   const resetSizeBtn = document.getElementById("miniDemoResetBtn");
   if (resetSizeBtn) {
     resetSizeBtn.addEventListener("click", () => {
-      if (isRinging) return;
-      applyRect(centerRect());
+      if (isRinging || !demo.classList.contains("is-docked")) return;
+      applyRect(dockRect());
     });
   }
 
@@ -229,14 +231,18 @@
     if (body) body.classList.add("hidden");
     if (alarmView) alarmView.classList.remove("hidden");
 
-    // Stretch the box to a bigger "alarm" size, clamped to the stage —
-    // same clamp math the manual resize uses.
-    const stageRect = stage.getBoundingClientRect();
-    const bigWidth = Math.min(340, stageRect.width);
-    const bigHeight = Math.min(300, stageRect.height);
+    // Stretch the box to a bigger "alarm" size. Bounded against the
+    // viewport while docked (position:fixed, same bounds drag/resize use
+    // above) or against the stage in the rare case the alarm fires before
+    // the demo has ever been docked (still position:absolute in the stage
+    // at that point).
+    const docked = demo.classList.contains("is-docked");
+    const boundsRect = docked ? { width: window.innerWidth, height: window.innerHeight } : stage.getBoundingClientRect();
+    const bigWidth = Math.min(340, boundsRect.width);
+    const bigHeight = Math.min(300, boundsRect.height);
     const bigRect = {
-      left: Math.max(0, (stageRect.width - bigWidth) / 2),
-      top: Math.max(0, (stageRect.height - bigHeight) / 2),
+      left: Math.max(0, (boundsRect.width - bigWidth) / 2),
+      top: Math.max(0, (boundsRect.height - bigHeight) / 2),
       width: bigWidth,
       height: bigHeight,
     };
@@ -250,7 +256,7 @@
         alarmAudio.currentTime = 0;
       }
 
-      applyRect(centerRect());
+      applyRect(docked ? dockRect() : expandRect());
 
       setTimeout(() => {
         demo.classList.remove("is-animating");
@@ -293,22 +299,29 @@
     });
   }
 
-  // Keep the demo within the stage if the viewport is resized narrower —
+  // Keep the demo within bounds if the viewport is resized. Expanded is
+  // still position:absolute with an explicit pixel rect applied once by
+  // expand()/initDefaultExpanded() — it does NOT reflow on its own, so a
+  // narrower viewport needs expandRect() recomputed and reapplied or the
+  // stale rect gets clipped by .mini-demo-stage's overflow:hidden. Docked
   // doesn't fight a size the visitor deliberately dragged, just clamps
   // position/size so it can't end up hidden or overflowing off the edge.
   window.addEventListener("resize", () => {
     if (isRinging) return;
-    const stageRect = stage.getBoundingClientRect();
+    if (!demo.classList.contains("is-docked")) {
+      applyRect(expandRect());
+      return;
+    }
     const rect = {
       left: demo.offsetLeft,
       top: demo.offsetTop,
       width: demo.offsetWidth,
       height: demo.offsetHeight,
     };
-    rect.width = Math.min(rect.width, Math.max(MIN_WIDTH, stageRect.width));
-    rect.height = Math.min(rect.height, Math.max(MIN_HEIGHT, stageRect.height));
-    rect.left = Math.min(Math.max(0, rect.left), Math.max(0, stageRect.width - rect.width));
-    rect.top = Math.min(Math.max(0, rect.top), Math.max(0, stageRect.height - rect.height));
+    rect.width = Math.min(rect.width, Math.max(MIN_WIDTH, window.innerWidth));
+    rect.height = Math.min(rect.height, Math.max(MIN_HEIGHT, window.innerHeight));
+    rect.left = Math.min(Math.max(0, rect.left), Math.max(0, window.innerWidth - rect.width));
+    rect.top = Math.min(Math.max(0, rect.top), Math.max(0, window.innerHeight - rect.height));
     applyRect(rect);
   });
 
@@ -322,18 +335,28 @@
   const pinBtn = document.getElementById("miniDemoPinBtn");
   const iframeEl = document.getElementById("miniDemoIframe");
 
+  let readyTimeoutHandle = null;
+
+  function armReadyTimeout() {
+    clearTimeout(readyTimeoutHandle);
+    readyTimeoutHandle = setTimeout(() => {
+      if (!iframeEl.classList.contains("is-visible")) {
+        collapse();
+      }
+    }, DEMO_READY_TIMEOUT_MS);
+  }
+
   function expandRect() {
     const stageRect = stage.getBoundingClientRect();
-    const targetStageHeight = STAGE_HEIGHT_EXPANDED;
     // 800x1100 matches the real app's own default window size (lib/windows.js)
     // so the expanded view fits the app's tallest tab (Interval Timer) without
     // an internal scrollbar, and reads as "this is the actual app," not an
     // arbitrarily-sized box.
     const width = Math.min(800, stageRect.width - 32);
-    const height = Math.min(1100, targetStageHeight - 32);
+    const height = Math.min(1100, EXPANDED_STAGE_HEIGHT - 32);
     return {
       left: Math.max(0, (stageRect.width - width) / 2),
-      top: Math.max(0, (targetStageHeight - height) / 2),
+      top: Math.max(0, (EXPANDED_STAGE_HEIGHT - height) / 2),
       width,
       height,
     };
@@ -343,6 +366,7 @@
     if (!iframeEl.contentWindow || event.source !== iframeEl.contentWindow) return;
 
     if (event.data?.type === "demo-ready") {
+      clearTimeout(readyTimeoutHandle);
       iframeEl.contentWindow.postMessage(
         {
           type: "demo-seed-timer",
@@ -371,10 +395,26 @@
     }
   }
 
+  let isExpanded = false; // set true by initDefaultExpanded() below
+
+  // Pin button toggles between docking and expanding, so its accessible
+  // name/state must reflect whichever action it will perform *next* — not
+  // a fixed label left over from the old one-way "expand" behavior.
+  function setPinButtonState(expanded) {
+    if (!pinBtn) return;
+    const label = expanded ? "Pin to a small window" : "Expand back to full view";
+    pinBtn.title = label;
+    pinBtn.setAttribute("aria-label", label);
+    pinBtn.setAttribute("aria-pressed", expanded ? "false" : "true");
+  }
+
   function expand() {
     if (isRinging) return;
+    isExpanded = true;
+    setPinButtonState(true);
     window.addEventListener("message", onDemoMessage);
-    stage.classList.add("is-expanded");
+    setStageMode("expanded");
+    demo.classList.remove("is-docked");
     demo.classList.add("is-animating");
     applyRect(expandRect());
     setTimeout(() => {
@@ -382,26 +422,80 @@
     }, 320);
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
+    armReadyTimeout();
+
+    // Un-docking after the visitor has scrolled away (e.g. dock, scroll to
+    // the page bottom, hit Pin) grows the stage by 1000+px right where it
+    // already sits — if that's off-screen, bring it into view instead of
+    // leaving the visitor stranded with no visual cue anything happened.
+    const stageRect = stage.getBoundingClientRect();
+    const inViewport = stageRect.bottom > 0 && stageRect.top < window.innerHeight;
+    if (!inViewport) {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      stage.scrollIntoView({ block: "center", behavior: reducedMotion ? "auto" : "smooth" });
+    }
   }
 
   function collapse() {
-    // centerRect() must run while the stage still has "is-expanded" on it —
-    // that's how it knows to center against the known 440px default height
-    // instead of the stage's real-but-about-to-change 620px live height.
+    clearTimeout(readyTimeoutHandle);
+    isExpanded = false;
+    setPinButtonState(false);
     demo.classList.add("is-animating");
-    applyRect(centerRect());
+    demo.classList.add("is-docked");
+    applyRect(dockRect());
     setTimeout(() => {
       demo.classList.remove("is-animating");
     }, 320);
     iframeEl.classList.remove("is-visible");
     iframeEl.classList.add("hidden");
     iframeEl.src = "about:blank";
-    stage.classList.remove("is-expanded");
+    setStageMode("idle");
     window.removeEventListener("message", onDemoMessage);
     if (body) body.classList.remove("hidden");
   }
 
-  if (pinBtn) {
-    pinBtn.addEventListener("click", expand);
+  function togglePin() {
+    if (isRinging) return;
+    if (isExpanded) {
+      collapse();
+    } else {
+      expand();
+    }
   }
+
+  if (pinBtn) {
+    pinBtn.addEventListener("click", togglePin);
+  }
+
+  // The page loads directly into the expanded (real-app) view. This
+  // mirrors expand()'s important side effects but applies the rect
+  // immediately instead of animating from a small starting box — there is
+  // nothing to animate *from* on first paint. The bespoke widget (already
+  // painted synchronously above via the countdown/body markup) stays
+  // visible until the iframe's own "demo-ready" message arrives and
+  // onDemoMessage swaps it in — same handshake as a manual Pin click, just
+  // triggered by page load instead of a click.
+  function initDefaultExpanded() {
+    isExpanded = true;
+    setPinButtonState(true);
+    window.addEventListener("message", onDemoMessage);
+
+    // The stage's min-height transition (340ms) would otherwise animate
+    // from its CSS default straight to the expanded height on the very
+    // first rendered frame, contributing layout shift before the visitor
+    // has seen anything settle. Suppress it for this one, page-load-only
+    // jump; later manual expand()/collapse() toggles animate normally.
+    stage.style.transition = "none";
+    setStageMode("expanded");
+    applyRect(expandRect());
+    requestAnimationFrame(() => {
+      stage.style.transition = "";
+    });
+
+    iframeEl.classList.remove("hidden");
+    iframeEl.src = "app/?demo=1";
+    armReadyTimeout();
+  }
+
+  initDefaultExpanded();
 })();
