@@ -15,6 +15,13 @@
   const START_SECONDS = 10; // short on purpose, but a real 1s = 1s countdown
   const ALARM_DURATION_MS = 3000;
   const DOCK_MARGIN = 24;
+  // How long to wait for the iframe's "demo-ready" handshake before giving
+  // up and falling back to the small docked widget. Normally fires almost
+  // immediately; this only matters when the iframe can't load at all (e.g.
+  // the page opened directly via file:// instead of a real HTTP origin,
+  // which postMessage requires) — without it, the bespoke widget would sit
+  // stuck at the full expanded size forever.
+  const DEMO_READY_TIMEOUT_MS = 3000;
 
   // Single source of truth for the expanded stage's height — applied as an
   // inline style (see setStageMode below) instead of also living in a CSS
@@ -328,6 +335,17 @@
   const pinBtn = document.getElementById("miniDemoPinBtn");
   const iframeEl = document.getElementById("miniDemoIframe");
 
+  let readyTimeoutHandle = null;
+
+  function armReadyTimeout() {
+    clearTimeout(readyTimeoutHandle);
+    readyTimeoutHandle = setTimeout(() => {
+      if (!iframeEl.classList.contains("is-visible")) {
+        collapse();
+      }
+    }, DEMO_READY_TIMEOUT_MS);
+  }
+
   function expandRect() {
     const stageRect = stage.getBoundingClientRect();
     // 800x1100 matches the real app's own default window size (lib/windows.js)
@@ -348,6 +366,7 @@
     if (!iframeEl.contentWindow || event.source !== iframeEl.contentWindow) return;
 
     if (event.data?.type === "demo-ready") {
+      clearTimeout(readyTimeoutHandle);
       iframeEl.contentWindow.postMessage(
         {
           type: "demo-seed-timer",
@@ -403,6 +422,7 @@
     }, 320);
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
+    armReadyTimeout();
 
     // Un-docking after the visitor has scrolled away (e.g. dock, scroll to
     // the page bottom, hit Pin) grows the stage by 1000+px right where it
@@ -417,6 +437,7 @@
   }
 
   function collapse() {
+    clearTimeout(readyTimeoutHandle);
     isExpanded = false;
     setPinButtonState(false);
     demo.classList.add("is-animating");
@@ -473,6 +494,7 @@
 
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
+    armReadyTimeout();
   }
 
   initDefaultExpanded();
