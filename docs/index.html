@@ -173,6 +173,20 @@
       margin: 32px 0 20px;
     }
 
+    .hero-demo-caption--mobile {
+      display: none;
+    }
+
+    @media (max-width: 820px) {
+      .hero-demo-caption--desktop {
+        display: none;
+      }
+
+      .hero-demo-caption--mobile {
+        display: block;
+      }
+    }
+
     .eyebrow {
       display: inline-flex;
       align-items: center;
@@ -918,10 +932,13 @@
         once)</span>
     </div>
 
-    <p class="hero-demo-caption" data-i18n="hero.demoCaption">
+    <p class="hero-demo-caption hero-demo-caption--desktop" data-i18n="hero.demoCaption">
       This is the real app, running live — hit play to hear the alarm, or pin
       it into a small always-on-top window and drag any edge to resize it,
       just like the desktop app.
+    </p>
+    <p class="hero-demo-caption hero-demo-caption--mobile" data-i18n="hero.demoCaptionMobile">
+      This is the real app — tap the pin in the corner to try it live.
     </p>
 
     <div class="mini-demo-stage">
