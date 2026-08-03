@@ -32,19 +32,21 @@
   // docs/index.html — reused here rather than introducing a second
   // magic number for "is this a narrow viewport."
   const MOBILE_BREAKPOINT = 820;
-  const MOBILE_EXPAND_MARGIN = 64;
+  const EXPAND_HEIGHT_MARGIN = 64;
 
-  // The one place "how tall should the expanded stage be right now"
-  // is decided — both setStageMode("expanded") and expandRect() call
-  // this instead of each computing their own answer, so they can't
-  // drift out of sync the way the old dual-hardcoded-1150 bug did.
-  // Desktop always gets the fixed constant; mobile gets a
-  // viewport-height-relative cap so a manually-expanded phone visitor
-  // doesn't inherit the same fixed-1100px-tall box regardless of how
-  // short their screen actually is.
+  // The one place "how tall should the expanded stage be right now" is
+  // decided — both setStageMode("expanded") and expandRect() call this
+  // instead of each computing their own answer, so they can't drift out
+  // of sync the way the old dual-hardcoded-1150 bug did. Always capped to
+  // the viewport height: a fixed 1150px box centers its content (like the
+  // loading spinner) around its own vertical middle, which on a short
+  // window — a narrow phone, or just a small, non-maximized desktop
+  // window — sits well below the fold, invisible without scrolling. On a
+  // normal/tall window this cap never actually binds (window.innerHeight
+  // comfortably exceeds 1150 + margin), so desktop behavior is unchanged.
   function expandedStageHeight() {
     if (window.innerWidth >= MOBILE_BREAKPOINT) return EXPANDED_STAGE_HEIGHT;
-    return Math.min(EXPANDED_STAGE_HEIGHT, window.innerHeight - MOBILE_EXPAND_MARGIN);
+    return Math.min(EXPANDED_STAGE_HEIGHT, window.innerHeight - EXPAND_HEIGHT_MARGIN);
   }
 
   // mode: "expanded" | "idle". "idle" is the stage's appearance once the
@@ -193,6 +195,7 @@
   const body = document.getElementById("miniDemoBody");
   const alarmView = document.getElementById("miniDemoAlarm");
   const alarmAudio = document.getElementById("miniDemoAlarmAudio");
+  const loadingView = document.getElementById("miniDemoLoading");
 
   let remainingSeconds = START_SECONDS;
   let tickHandle = null;
@@ -356,6 +359,18 @@
 
   let readyTimeoutHandle = null;
 
+  // Swaps the small-widget body for the loading spinner — called whenever
+  // the expanded iframe starts loading, so visitors never see the
+  // 240x180-sized countdown/controls stretched to fill the 800x1100 box.
+  // Exiting this state is two independent moments (demo-ready just hides
+  // the spinner since the iframe covers everything; collapse() restores
+  // the body too), so they're handled inline at each call site instead of
+  // a matching "exit" helper here.
+  function enterLoading() {
+    if (body) body.classList.add("hidden");
+    if (loadingView) loadingView.classList.remove("hidden");
+  }
+
   function armReadyTimeout() {
     clearTimeout(readyTimeoutHandle);
     readyTimeoutHandle = setTimeout(() => {
@@ -397,7 +412,7 @@
         "*",
       );
       iframeEl.classList.add("is-visible");
-      if (body) body.classList.add("hidden");
+      if (loadingView) loadingView.classList.add("hidden");
       stopTicking();
       playBtn?.classList.remove("is-active");
       pauseBtn?.classList.remove("is-active");
@@ -444,6 +459,7 @@
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
     armReadyTimeout();
+    enterLoading();
 
     // Un-docking after the visitor has scrolled away (e.g. dock, scroll to
     // the page bottom, hit Pin) grows the stage by 1000+px right where it
@@ -473,6 +489,7 @@
     setStageMode("idle");
     window.removeEventListener("message", onDemoMessage);
     if (body) body.classList.remove("hidden");
+    if (loadingView) loadingView.classList.add("hidden");
   }
 
   function togglePin() {
@@ -491,11 +508,12 @@
   // The page loads directly into the expanded (real-app) view. This
   // mirrors expand()'s important side effects but applies the rect
   // immediately instead of animating from a small starting box — there is
-  // nothing to animate *from* on first paint. The bespoke widget (already
-  // painted synchronously above via the countdown/body markup) stays
-  // visible until the iframe's own "demo-ready" message arrives and
-  // onDemoMessage swaps it in — same handshake as a manual Pin click, just
-  // triggered by page load instead of a click.
+  // nothing to animate *from* on first paint. enterLoading() swaps the
+  // bespoke small-widget body for a spinner immediately (rather than
+  // leaving the 240x180-sized countdown stretched across the 800x1100 box)
+  // until the iframe's own "demo-ready" message arrives and onDemoMessage
+  // hides it — same handshake as a manual Pin click, just triggered by
+  // page load instead of a click.
   function initDefaultExpanded() {
     isExpanded = true;
     setPinButtonState(true);
@@ -516,6 +534,7 @@
     iframeEl.classList.remove("hidden");
     iframeEl.src = "app/?demo=1";
     armReadyTimeout();
+    enterLoading();
   }
 
   // Narrow viewports start docked instead: the 800x1100 expand target
