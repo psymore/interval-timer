@@ -1,0 +1,6 @@
+{
+  "name": "@interval-timer/pwa",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Installable PWA build of Interval Timer."
+}
