@@ -13,7 +13,7 @@
 - No new npm dependencies, no bundler, no build step for `packages/pwa` itself — it's copied into `docs/pwa/` as-is by `packages/pwa/scripts/build.mjs`, same pattern as `docs/app`.
 - Spotify is out of scope for this v1 PWA (explicit decision — see the design spec). The PWA hides the Spotify section in the Alarm Sound modal rather than exposing a login flow that can't work (no main process to hold the client secret, no way to catch the OAuth loopback redirect).
 - `packages/pwa/platform/electronAPI-web.js` must be a **classic script, not an ES module** — it has to run and set `window.electronAPI` before any `type="module"` script touches it (module scripts are always deferred until after parsing; a classic script inserted via `document.write` during parsing is what guarantees that ordering). This is exactly why `js/demo/electron-demo-shim.js` is a classic script too — don't "clean it up" into a module.
-- `js/alarm/localSourceAdapter.js` (in `packages/core`, shared) must stay platform-agnostic itself — it never imports `packages/pwa`'s strategy statically (that would break `packages/core`'s standalone deployability to Electron/the demo, neither of which ever has a `platform/` directory). It loads the PWA strategy via a **root-relative dynamic `import()`**, guarded by checking `window.electronAPI?.__platform === "pwa"` first, so the import is never attempted outside the one deployment where `platform/localBlobStrategy.js` actually exists.
+- `js/alarm/localSourceAdapter.js` (in `packages/core`, shared) must stay platform-agnostic itself — it never imports `packages/pwa`'s strategy statically (that would break `packages/core`'s standalone deployability to Electron/the demo, neither of which ever has a `platform/` directory). It loads the PWA strategy via a **relative dynamic `import()`** (`../../platform/localBlobStrategy.js`, not a root-relative `/platform/...` path — this project's GitHub Pages site is served under a `/interval-timer/` path prefix, not the domain root, so a root-relative import would resolve to the wrong URL there despite happening to work under a local `npx serve docs/pwa` test), guarded by checking `window.electronAPI?.__platform === "pwa"` first, so the import is never attempted outside the one deployment where `platform/localBlobStrategy.js` actually exists.
 - Local alarm blobs in IndexedDB are keyed by **filename**, not a generated id — this isn't just convenience, it's what lets every existing `getFileName(value)` call site in `js/alarmModal.js` keep working unchanged for both platforms (a bare filename is already its own "file name"; re-uploading a same-named file intentionally overwrites the old blob, which is the expected behavior, not a bug).
 - This repo has no test runner — verification is manual throughout, same as the restructure plan.
 
@@ -82,10 +82,16 @@ git commit -m "feat: add packages/pwa skeleton"
 //
 // The PWA strategy lives in packages/pwa/platform/localBlobStrategy.js,
 // deployed alongside this file as docs/pwa/platform/localBlobStrategy.js.
-// It's loaded here via a root-relative dynamic import — never a static
-// one — specifically so this file (and packages/core as a whole) stays
+// It's loaded here via a dynamic import — never a static one —
+// specifically so this file (and packages/core as a whole) stays
 // deployable standalone to targets that never have a platform/ directory
-// at all (real Electron, the ?demo=1 preview).
+// at all (real Electron, the ?demo=1 preview). The import path below is
+// relative (`../../platform/...`), not root-relative (`/platform/...`) —
+// GitHub Pages serves this project's docs/ under a `/interval-timer/`
+// path prefix, not the domain root, so a root-relative import would
+// resolve to the wrong URL there even though it would happen to work
+// under a plain `npx serve docs/pwa` local test (verified: no CNAME file
+// in docs/, so there's no custom domain putting Pages at a bare root).
 
 const electronStrategy = {
   async pick() {
@@ -111,7 +117,7 @@ let strategyPromise = null;
 
 async function resolveStrategy() {
   if (window.electronAPI?.__platform === "pwa") {
-    const { pwaLocalSourceStrategy } = await import("/platform/localBlobStrategy.js");
+    const { pwaLocalSourceStrategy } = await import("../../platform/localBlobStrategy.js");
     return pwaLocalSourceStrategy;
   }
   return electronStrategy;
