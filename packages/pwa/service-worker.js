@@ -27,7 +27,13 @@ self.addEventListener("fetch", event => {
       const cached = await cache.match(request);
       if (cached) return cached;
       const response = await fetch(request);
-      if (response.ok) cache.put(request, response.clone());
+      // response.ok is also true for 206 Partial Content (a plausible
+      // outcome for a Range request against the >1MB default alarm audio),
+      // but the Cache API's put() throws a TypeError on a 206 response per
+      // spec — require a normal, complete, same-origin response instead.
+      if (response.status === 200 && response.type === "basic") {
+        cache.put(request, response.clone());
+      }
       return response;
     }),
   );
