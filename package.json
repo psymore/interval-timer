@@ -13,7 +13,8 @@
     "clean": "npm run clean --workspace=packages/electron",
     "build": "npm run build --workspace=packages/electron",
     "dist": "npm run dist --workspace=packages/electron",
-    "sync:demo": "node scripts/sync-demo-app.mjs"
+    "sync:demo": "node scripts/sync-demo-app.mjs",
+    "sync:pwa": "node packages/pwa/scripts/build.mjs"
   },
   "overrides": {
     "@noble/hashes": "1.8.0"
