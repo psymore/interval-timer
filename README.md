@@ -52,26 +52,33 @@ There is no test suite or lint script configured.
 
 Downloaded releases ship with the maintainer's own Spotify app credentials, so Spotify alarm selection works out of the box — no setup needed. Every user authenticates their own Spotify account separately (via the in-app login), so this only identifies the app to Spotify's API, not any individual user's account. See `RELEASE_VALIDATION_REPORT.md` for the tradeoffs of this approach.
 
-If you're building from source and want to use your own Spotify app instead, copy `spotify-credentials.example.json` to `spotify-credentials.json` and fill in the client ID/secret from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). This file is gitignored, so a source checkout won't have one until you create it.
+If you're building from source and want to use your own Spotify app instead, copy `packages/electron/spotify-credentials.example.json` to `packages/electron/spotify-credentials.json` and fill in the client ID/secret from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). This file is gitignored, so a source checkout won't have one until you create it.
 
 ## Project structure
 
+This is an npm-workspaces monorepo:
+
 ```
 interval-timer/
-├── main.js                          # Electron main process — windows, tray, local HTTP server, Spotify OAuth
-├── preload.cjs                      # contextBridge bridge exposing window.electronAPI
-├── index.html / mini.html           # Renderer entry points (main window / always-on-top mini window)
-├── css/styles.css
-├── js/
-│   ├── logic/                       # Pure timer state machines (Timer.js, IntervalTimer.js)
-│   ├── alarm/
-│   │   ├── AlarmManager.js          # Singleton entry point — source-agnostic
-│   │   ├── AlarmProviderFactory.js  # Detects source type, builds the right provider
-│   │   └── providers/               # Local / YouTube / Spotify implementations
-│   ├── views/                       # DOM templates for each tab
-│   ├── renderer.js, timer.js, intervalTimer.js, mini.js, presets.js, tabs.js, ...
-├── docs/                            # GitHub Pages landing page (served from /docs on main)
-└── build/                           # electron-builder assets (app icon)
+├── packages/
+│   ├── core/                        # Platform-agnostic renderer
+│   │   ├── index.html / mini.html   # Renderer entry points (main window / always-on-top mini window)
+│   │   ├── css/styles.css
+│   │   └── js/
+│   │       ├── logic/                       # Pure timer state machines (Timer.js, IntervalTimer.js)
+│   │       ├── alarm/
+│   │       │   ├── AlarmManager.js          # Singleton entry point — source-agnostic
+│   │       │   ├── AlarmProviderFactory.js  # Detects source type, builds the right provider
+│   │       │   └── providers/               # Local / YouTube / Spotify implementations
+│   │       ├── views/                       # DOM templates for each tab
+│   │       └── renderer.js, timer.js, intervalTimer.js, mini.js, presets.js, tabs.js, ...
+│   └── electron/                    # Electron main process
+│       ├── main.js                  # Windows, tray, local HTTP server, Spotify OAuth
+│       ├── preload.cjs              # contextBridge bridge exposing window.electronAPI
+│       ├── lib/                     # Main-process-only modules (presets, Spotify auth, ...)
+│       ├── build/                   # electron-builder assets (app icon)
+│       └── spotify-credentials.json # Gitignored — see "Spotify alarms" above
+└── docs/                            # GitHub Pages landing page (served from /docs on main)
 ```
 
 ## License
