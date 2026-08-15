@@ -6,7 +6,6 @@ import {
   createTimerStateBroadcaster,
   formatDuration,
 } from "./timerStateBroadcast.js";
-import { toFileUrl } from "./alarmModal.js";
 import { t, onLanguageChange } from "./i18n/i18n.js";
 import { isDemoMode } from "./demo/isDemoMode.js";
 
