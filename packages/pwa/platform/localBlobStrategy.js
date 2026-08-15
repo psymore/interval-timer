@@ -16,8 +16,20 @@ export const pwaLocalSourceStrategy = {
       input.addEventListener(
         "change",
         async () => {
-          const file = input.files?.[0];
-          resolve(file ? await storeFile(file) : null);
+          try {
+            const file = input.files?.[0];
+            resolve(file ? await storeFile(file) : null);
+          } catch (e) {
+            // storeFile()/putBlob() can reject (e.g. QuotaExceededError on a
+            // large audio file). Without this catch, the throw inside this
+            // async listener has nowhere to go — resolve() never runs and
+            // pick()'s outer Promise hangs forever, leaving the caller
+            // (alarmModal.js's chooseAlarmBtn handler) stuck with no
+            // feedback. Resolve null so its existing
+            // "no file selected" handling kicks in instead.
+            console.error("localBlobStrategy: failed to store picked file:", e);
+            resolve(null);
+          }
         },
         { once: true },
       );

@@ -7,6 +7,7 @@ import { enhanceNumberInputs } from "./numberStepper.js";
 import { initLanguage, setLanguage, getLanguage, t, onLanguageChange } from "./i18n/i18n.js";
 import { setupUpdateChecker } from "./updates.js";
 import { isDemoMode } from "./demo/isDemoMode.js";
+import { isPwaMode } from "./demo/isPwaMode.js";
 
 const app = document.getElementById("app");
 
@@ -119,7 +120,11 @@ document.addEventListener("keydown", e => {
 let alwaysOnTop = false;
 
 const aotBtn = document.getElementById("alwaysOnTopBtn");
-if (aotBtn) {
+if (aotBtn && isPwaMode()) {
+  // setAlwaysOnTop() is a no-op in the PWA (no native window to pin) —
+  // hide the button instead of leaving it visible and inert.
+  aotBtn.classList.add("hidden");
+} else if (aotBtn) {
   const refreshAotAriaLabel = () => {
     aotBtn.setAttribute(
       "aria-label",
@@ -151,7 +156,9 @@ if (aotBtn) {
 }
 
 // ── Quit ───────────────────────────────────────────────────────
-if (isDemoMode()) {
+if (isDemoMode() || isPwaMode()) {
+  // quitApp() is a no-op in the PWA (no process to quit) — same treatment
+  // as the demo, which also has no real app to quit.
   document.getElementById("quitAppBtn")?.classList.add("hidden");
 } else {
   document.getElementById("quitAppBtn").onclick = () => {

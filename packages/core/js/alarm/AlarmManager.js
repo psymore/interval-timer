@@ -42,13 +42,17 @@ class AlarmManager {
     const detectedType = AlarmProviderFactory.detect(savedSource);
     let sourceToLoad = savedSource;
 
-    if (detectedType === "local") {
-      // Sadece local dosyalar için playable URL'e dönüştür
-      sourceToLoad = await getPlayableUrl(savedSource);
-    }
-    // Spotify veya YouTube ise ham URL'yi koru
-
     try {
+      if (detectedType === "local") {
+        // Sadece local dosyalar için playable URL'e dönüştür — bu, örn.
+        // PWA'da IndexedDB'deki blob silinmişse fırlatabilir
+        // (localBlobStrategy.js#getPlayableUrl); bu try/catch'in tam olarak
+        // "kayıtlı kaynak yüklenemedi" durumunu ele almak için var olması bu
+        // yüzden — dönüşüm de bu bloğun içinde olmalı.
+        sourceToLoad = await getPlayableUrl(savedSource);
+      }
+      // Spotify veya YouTube ise ham URL'yi koru
+
       if (detectedType === "spotify") {
         // Spotify için token hazırla, sonra yükle
         const opts = await this._buildSpotifyOpts();
