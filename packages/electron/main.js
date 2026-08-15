@@ -27,6 +27,15 @@ const log = createLogger("main");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// packages/core is a sibling package in dev; electron-builder can't glob a
+// sibling package's files when packaging, so
+// packages/electron/scripts/sync-core.mjs copies it in as a "core"
+// subfolder before packaging — the packaged app finds it one level
+// shallower there instead of one level up.
+const coreRoot = app.isPackaged
+  ? path.join(__dirname, "core")
+  : path.join(__dirname, "..", "core");
+
 // ── Store ─────────────────────────────────────────────────────
 const store = new Store({
   name: "timer-config",
@@ -76,8 +85,8 @@ app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
 // ── Wire up modules ─────────────────────────────────────────────
-initLocalServer({ appRoot: __dirname, store });
-initWindows({ appRoot: __dirname });
+initLocalServer({ appRoot: coreRoot, store });
+initWindows({ appRoot: __dirname, coreRoot });
 initSpotifyAuth({
   appRoot: __dirname,
   store,

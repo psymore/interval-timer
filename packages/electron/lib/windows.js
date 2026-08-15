@@ -15,13 +15,16 @@ import { startLocalServer, getServerPort } from "./localServer.js";
 
 const log = createLogger("windows");
 
-// Set via initWindows() — the app root directory, used to resolve
-// preload/index/mini/icon paths the same way __dirname did before the
-// split.
+// Set via initWindows() — appRoot resolves Electron-only files
+// (preload.cjs, build/icon.ico); coreRoot resolves the shared renderer
+// (index.html, mini.html, assets/) — see main.js's coreRoot comment for
+// why these differ between dev and a packaged build.
 let appRoot = null;
+let coreRoot = null;
 
-export function initWindows({ appRoot: root }) {
+export function initWindows({ appRoot: root, coreRoot: core }) {
   appRoot = root;
+  coreRoot = core;
 }
 
 // Framed/taskbar-visible windows only — frameless windows (mini) have no
@@ -58,7 +61,7 @@ export function markQuitting() {
 // ── Main window ───────────────────────────────────────────────
 export async function createWindow() {
   const preloadPath = path.join(appRoot, "preload.cjs");
-  const indexPath = path.join(appRoot, "index.html");
+  const indexPath = path.join(coreRoot, "index.html");
 
   if (!fs.existsSync(preloadPath)) {
     log.error(`Preload not found: ${preloadPath}`);
@@ -150,7 +153,7 @@ export function createMiniWindow() {
   }
 
   const preloadPath = path.join(appRoot, "preload.cjs");
-  const miniPath = path.join(appRoot, "mini.html");
+  const miniPath = path.join(coreRoot, "mini.html");
 
   miniWindow = new BrowserWindow({
     ...getDefaultMiniBounds(),
@@ -230,7 +233,7 @@ export function quitApp() {
 
 // ── Tray ──────────────────────────────────────────────────────
 export function createTray() {
-  const iconPath = path.join(appRoot, "assets", "icons", "stopwatch-main.png");
+  const iconPath = path.join(coreRoot, "assets", "icons", "stopwatch-main.png");
   const icon = fs.existsSync(iconPath)
     ? nativeImage.createFromPath(iconPath)
     : nativeImage.createEmpty();
