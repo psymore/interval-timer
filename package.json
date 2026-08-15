@@ -4,6 +4,9 @@
   "description": "",
   "main": "main.js",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
