@@ -38,6 +38,11 @@ const electronStrategy = {
     const [ok] = await window.electronAPI.alarmCheckPathsExist([value]);
     return ok;
   },
+  async unregister() {
+    // No-op: pick()/fromDroppedFile() above only resolve a filesystem
+    // path, they never copy or persist anything, so there's nothing to
+    // undo when a caller rejects the value afterward (e.g. bad extension).
+  },
 };
 
 let strategyPromise = null;
@@ -73,4 +78,14 @@ export async function getPlayableUrl(value) {
 
 export async function localSourceExists(value) {
   return (await getStrategy()).exists(value);
+}
+
+// Callers use this to undo a pick()/fromDroppedFile() result they're not
+// going to use after all (e.g. it failed a post-hoc validation check like
+// file extension) — on the PWA that value is already sitting in IndexedDB
+// by the time pick()/fromDroppedFile() returned (see the strategy comment
+// above), so skipping this call would leak it there permanently since
+// nothing else will ever reference that key again.
+export async function unregisterLocalSource(value) {
+  return (await getStrategy()).unregister(value);
 }

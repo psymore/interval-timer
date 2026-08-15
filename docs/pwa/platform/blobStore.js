@@ -40,3 +40,18 @@ export async function getBlob(key) {
     request.onerror = () => reject(request.error);
   });
 }
+
+// Used to undo putBlob() when a caller stores a file speculatively (e.g.
+// pick()/fromDroppedFile() below, which must persist the blob to return a
+// stable string key at all) and then rejects it after the fact (wrong
+// extension, etc.) — without this, rejected files would silently
+// accumulate in IndexedDB forever since nothing else ever references them.
+export async function deleteBlob(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}

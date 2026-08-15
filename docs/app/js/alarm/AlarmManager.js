@@ -1,5 +1,6 @@
 import { AlarmProviderFactory } from "./AlarmProviderFactory.js";
 import { createLogger } from "../../lib/logger.js";
+import { getPlayableUrl } from "./localSourceAdapter.js";
 
 const log = createLogger("AlarmManager");
 
@@ -42,8 +43,8 @@ class AlarmManager {
     let sourceToLoad = savedSource;
 
     if (detectedType === "local") {
-      // Sadece local dosyalar için file:// dönüşümü yap
-      sourceToLoad = this._toFileUrl(savedSource);
+      // Sadece local dosyalar için playable URL'e dönüştür
+      sourceToLoad = await getPlayableUrl(savedSource);
     }
     // Spotify veya YouTube ise ham URL'yi koru
 
@@ -316,13 +317,6 @@ class AlarmManager {
         await this._provider.stop();
       } catch (e) {}
     }
-  }
-
-  // Renderer http:// origin'inden yüklendiği için file:// kaynaklar artık
-  // çalışmıyor — main.js'in /local-audio/ route'u üzerinden aynı origin'den
-  // servis ediyoruz (bkz. alarmModal.js toFileUrl).
-  _toFileUrl(filePath) {
-    return `${window.location.origin}/local-audio/${encodeURIComponent(filePath)}`;
   }
 
   _emit(event, data = {}) {

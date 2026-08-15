@@ -19,6 +19,7 @@ import {
   registerExistingLocalSource,
   getPlayableUrl,
   localSourceExists,
+  unregisterLocalSource,
 } from "./alarm/localSourceAdapter.js";
 
 const log = createLogger("alarmModal");
@@ -569,6 +570,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const ext = "." + (value.split(".").pop() || "").toLowerCase();
       if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
+        await unregisterLocalSource(value);
         showFeedback(t("alarm.feedback.unsupportedFile"), "error");
         return;
       }
@@ -629,6 +631,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         const ext = "." + (value.split(".").pop() || "").toLowerCase();
         if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
+          await unregisterLocalSource(value);
           showFeedback(t("alarm.feedback.unsupportedFile"), "error");
           return;
         }

@@ -1,6 +1,6 @@
 // The PWA's implementation of js/alarm/localSourceAdapter.js's strategy
 // interface — see that file for the contract and why it exists.
-import { putBlob, getBlob } from "./blobStore.js";
+import { putBlob, getBlob, deleteBlob } from "./blobStore.js";
 
 async function storeFile(file) {
   await putBlob(file.name, file);
@@ -37,5 +37,13 @@ export const pwaLocalSourceStrategy = {
   },
   async exists(value) {
     return Boolean(await getBlob(value));
+  },
+  // pick()/fromDroppedFile() above already wrote this blob to IndexedDB
+  // (unlike Electron's strategy, they have to — see the comment at the top
+  // of this file) before the caller had a chance to validate the
+  // extension. When that validation rejects the file, the caller calls
+  // this to undo the speculative write instead of leaking it.
+  async unregister(value) {
+    await deleteBlob(value);
   },
 };
