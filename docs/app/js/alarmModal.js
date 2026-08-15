@@ -12,16 +12,17 @@ import { escapeHtml } from "./presets.js";
 import { createLogger } from "../lib/logger.js";
 import { t, format, onLanguageChange } from "./i18n/i18n.js";
 import { isDemoMode } from "./demo/isDemoMode.js";
+import { isPwaMode } from "./demo/isPwaMode.js";
+import {
+  pickLocalSource,
+  localSourceFromDroppedFile,
+  registerExistingLocalSource,
+  getPlayableUrl,
+  localSourceExists,
+  unregisterLocalSource,
+} from "./alarm/localSourceAdapter.js";
 
 const log = createLogger("alarmModal");
-
-// ── Path helpers ──────────────────────────────────────────────
-// Renderer http:// origin'inden yüklendiği için file:// kaynaklar artık
-// çalışmıyor (bkz. main.js handleLocalAudioRequest) — bunun yerine local
-// server'ın /local-audio/ route'u üzerinden aynı origin'den servis ediyoruz.
-export function toFileUrl(filePath) {
-  return `${window.location.origin}/local-audio/${encodeURIComponent(filePath)}`;
-}
 
 export function getFileName(filePath) {
   return filePath.replace(/\\/g, "/").split("/").pop();
@@ -54,6 +55,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       hint.textContent = t("alarm.demoHint");
       alarmTitle.insertAdjacentElement("afterend", hint);
     }
+  }
+
+  if (isPwaMode()) {
+    document
+      .querySelector('.alarm-section[data-section="spotify"]')
+      ?.classList.add("hidden");
   }
 
   const chooseAlarmBtn = document.getElementById("chooseAlarmBtn");
@@ -279,10 +286,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let broken = false;
     if (alarmSource.type === "local") {
-      const [exists] = await window.electronAPI.alarmCheckPathsExist([
-        alarmSource.value,
-      ]);
-      broken = !exists;
+      broken = !(await localSourceExists(alarmSource.value));
     } else if (alarmSource.type === "youtube") {
       broken = (await checkYoutubeLink(alarmSource.value)) === "broken";
     } else if (alarmSource.type === "spotify") {
@@ -440,19 +444,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Used by the file-picker button, drag-and-drop, and clicking a "Recent"
   // entry — all three converge here so allowlist registration, current-file
   // display, and the recent-list update stay in exactly one place.
-  async function applyLocalFile(filePath) {
-    const result = await window.electronAPI.alarmUseLocalPath(filePath);
-    if (result?.error) {
+  async function applyLocalFile(value) {
+    const ok = await registerExistingLocalSource(value);
+    if (!ok) {
       showFeedback(t("alarm.feedback.fileLoadError"), "error");
       return false;
     }
 
-    const url = toFileUrl(filePath);
+    const url = await getPlayableUrl(value);
     await alarmManager.load(url);
     alarmManager.setFallbackSource(url);
-    localStorage.setItem("selectedAlarmPath", filePath);
+    localStorage.setItem("selectedAlarmPath", value);
     const savedPreset = await saveActivePreset({
-      alarmSource: { type: "local", value: filePath },
+      alarmSource: { type: "local", value },
     });
     updateAlarmHealthBadge(
       savedPreset?.id ?? null,
@@ -460,11 +464,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
     window.dispatchEvent(new CustomEvent("preset-data-changed"));
 
-    recentPaths = addRecentPath(recentPaths, filePath);
+    recentPaths = addRecentPath(recentPaths, value);
     saveRecentPaths(recentPaths);
 
     usingDefaultAlarm = false;
-    updateCurrentFile(getFileName(filePath));
+    updateCurrentFile(getFileName(value));
     updateCurrentIcon("local");
     resetPreviewBtn();
     await renderRecentList();
@@ -481,8 +485,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const existsResults =
-      await window.electronAPI.alarmCheckPathsExist(recentPaths);
+    const existsResults = await Promise.all(
+      recentPaths.map(p => localSourceExists(p)),
+    );
     const currentPath = localStorage.getItem("selectedAlarmPath");
 
     alarmRecentList.innerHTML = recentPaths
@@ -557,17 +562,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ── Local dosya seç ───────────────────────────────────────
   chooseAlarmBtn.addEventListener("click", async () => {
     try {
-      const filePath = await window.electronAPI.getFilePath();
-      if (!filePath) {
+      const value = await pickLocalSource();
+      if (!value) {
         showFeedback(t("alarm.feedback.noFileSelected"), "error");
         return;
       }
 
-      const applied = await applyLocalFile(filePath);
+      const ext = "." + (value.split(".").pop() || "").toLowerCase();
+      if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
+        await unregisterLocalSource(value);
+        showFeedback(t("alarm.feedback.unsupportedFile"), "error");
+        return;
+      }
+
+      const applied = await applyLocalFile(value);
       if (applied) {
         showFeedback(
           format(t("alarm.feedback.fileLoaded"), {
-            name: getFileName(filePath),
+            name: getFileName(value),
           }),
           "success",
         );
@@ -612,18 +624,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!file) return;
 
       try {
-        const filePath = window.electronAPI.getPathForFile(file);
-        const ext = "." + (filePath.split(".").pop() || "").toLowerCase();
+        const value = await localSourceFromDroppedFile(file);
+        if (!value) {
+          showFeedback(t("alarm.feedback.fileLoadError"), "error");
+          return;
+        }
+        const ext = "." + (value.split(".").pop() || "").toLowerCase();
         if (!SUPPORTED_LOCAL_EXTENSIONS.includes(ext)) {
+          await unregisterLocalSource(value);
           showFeedback(t("alarm.feedback.unsupportedFile"), "error");
           return;
         }
 
-        const applied = await applyLocalFile(filePath);
+        const applied = await applyLocalFile(value);
         if (applied) {
           showFeedback(
             format(t("alarm.feedback.fileLoaded"), {
-              name: getFileName(filePath),
+              name: getFileName(value),
             }),
             "success",
           );
