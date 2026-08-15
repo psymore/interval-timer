@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" style="-webkit-app-region: drag;">
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+             script-src 'self';
+             style-src 'self' 'unsafe-inline';
+             font-src 'self';
+             img-src 'self' data:;
+             connect-src 'self';
+             media-src 'self' file: blob: data:">
+    <meta charset="UTF-8" />
+    <title>Timer — Mini</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/mini.css" />
+</head>
+
+<body>
+    <div class="mini-container">
+
+        <div class="mini-header">
+            <span class="mini-label" id="miniLabel">TIMER</span>
+            <div class="mini-header-actions">
+                <button type="button" class="mini-reset-size" id="miniResetSizeBtn"
+                    aria-label="Reset window to default size and position"
+                    data-i18n-aria-label="mini.resetSizeAriaLabel" title="Reset size"
+                    data-i18n-title="mini.resetSizeTitle"> <img src="assets/icons/resize-red.png" alt=""
+                        class="mini-icon-img" /></button>
+                <button type="button" class="mini-quit" id="miniQuitBtn" aria-label="Quit application"
+                    data-i18n-aria-label="mini.quitAriaLabel" title="Quit" data-i18n-title="mini.quitTitle">
+                    <img src="assets/icons/power.png" alt="" class="mini-icon-img" />
+                </button>
+                <button type="button" class="mini-close mini-pinned" id="miniCloseBtn"
+                    aria-label="Unpin and close mini view" aria-pressed="true"
+                    data-i18n-aria-label="mini.closeAriaLabel" title="Pinned on top" data-i18n-title="mini.closeTitle">
+                    <img src="assets/icons/pinned.png" alt="" class="mini-icon-img" />
+                </button>
+            </div>
+        </div>
+
+        <div class="mini-countdown" id="miniCountdown">00:00</div>
+        <div class="mini-phase" id="miniPhase">READY</div>
+        <div class="mini-loop" id="miniLoop"></div>
+
+        <div class="mini-controls">
+            <button type="button" class="mini-btn" id="miniPauseBtn" data-action="pause" aria-label="Pause timer"
+                data-i18n-aria-label="mini.pauseAriaLabel" data-i18n-title="mini.pauseTitle" title="Pause">⏸</button>
+            <button type="button" class="mini-btn" id="miniContinueBtn" data-action="continue"
+                aria-label="Continue timer" title="Continue">▶</button>
+            <button type="button" class="mini-btn" id="miniResetBtn" data-action="reset" aria-label="Reset timer"
+                data-i18n-aria-label="mini.resetAriaLabel" data-i18n-title="mini.resetTitle" title="Reset">↺</button>
+        </div>
+
+    </div>
+
+    <div class="mini-resize mini-resize-n" data-resize-dir="n" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-s" data-resize-dir="s" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-e" data-resize-dir="e" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-w" data-resize-dir="w" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-nw mini-resize-grip-diagonal" data-resize-dir="nw" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-ne mini-resize-grip-diagonal" data-resize-dir="ne" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-sw mini-resize-grip-diagonal" data-resize-dir="sw" aria-hidden="true"></div>
+    <div class="mini-resize mini-resize-se mini-resize-grip-diagonal" data-resize-dir="se" aria-hidden="true"></div>
+
+    <script type="module" src="js/mini.js"></script>
+</body>
+
+</html>
