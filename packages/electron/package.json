@@ -32,7 +32,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^41.10.1",
+    "electron": "41.10.5",
     "electron-builder": "^26.15.6",
     "rimraf": "^5.0.5"
   },
