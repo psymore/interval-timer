@@ -2,11 +2,12 @@
   "$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
   "files": {
     "includes": [
-      "main.js",
-      "preload.cjs",
-      "js/**/*.js",
-      "*.html",
-      "css/**/*.css"
+      "packages/electron/main.js",
+      "packages/electron/preload.cjs",
+      "packages/electron/lib/**/*.js",
+      "packages/core/js/**/*.js",
+      "packages/core/*.html",
+      "packages/core/css/**/*.css"
     ]
   },
   "linter": {

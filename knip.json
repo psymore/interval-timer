@@ -1,18 +1,19 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": [
-    "main.js",
-    "preload.cjs",
-    "js/renderer.js",
-    "js/alarmModal.js",
-    "js/mini.js"
+    "packages/electron/main.js",
+    "packages/electron/preload.cjs",
+    "packages/core/js/renderer.js",
+    "packages/core/js/alarmModal.js",
+    "packages/core/js/mini.js"
   ],
   "project": [
-    "**/*.js",
-    "**/*.cjs"
+    "packages/**/*.js",
+    "packages/**/*.cjs"
   ],
   "ignore": [
-    "dist/**",
-    "build/**"
+    "**/dist/**",
+    "packages/electron/build/**",
+    "packages/electron/core/**"
   ]
 }
