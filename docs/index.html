@@ -424,6 +424,85 @@
       z-index: 60;
     }
 
+    /* Loading indicator, part 2: the whole border glows and flows with
+       color while the iframe loads — same accent/accent-b colors as the
+       center spinner, so the two read as one "loading" language rather
+       than two unrelated effects. Deliberately a full ring of color
+       spinning fast, not one bright segment chasing around a mostly-dark
+       ring — reads as more alive/obviously "in progress" at a glance. */
+    .mini-demo-border-glow {
+      display: none;
+      position: absolute;
+      /* -3px, not 0: an absolutely-positioned child is placed relative to
+         its containing block's padding box, not its border box — since
+         .mini-demo has a 3px border, inset: 0 here would land 3px inside
+         the actual border instead of flush with it. Pulling out by
+         exactly the border width lines this element's own edge up with
+         .mini-demo's real, visible border edge. */
+      inset: -3px;
+      border-radius: 12px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    /* Animates the gradient's own start angle via a registered custom
+       property, instead of rotating the whole ::before box with
+       `transform: rotate()`. The box (800x1100-ish, not square) matters
+       here: physically rotating a rectangular gradient image means its
+       corners sweep in and out of the frame as it turns, briefly leaving
+       the mask's corners uncovered — exactly the gap/dead-spot look this
+       was meant to fix. Animating the angle instead keeps the rectangle
+       perfectly static and full-bleed at every frame; only the color
+       mapped to each angle shifts, so the ring is always 100% covered. */
+    @property --mini-demo-spin-angle {
+      syntax: '<angle>';
+      inherits: false;
+      initial-value: 0deg;
+    }
+
+    .mini-demo-border-glow::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      /* repeating-conic-gradient with a short 90deg period (instead of one
+         accent/accent-b pair per full 360deg turn) — four repeats per
+         rotation instead of two, so the color reads as continuously
+         flowing past rather than two large blocks swinging around. */
+      background: repeating-conic-gradient(from var(--mini-demo-spin-angle),
+          var(--accent) 0deg,
+          var(--accent-b) 45deg,
+          var(--accent) 90deg);
+      animation: mini-demo-border-spin 1.1s linear infinite;
+    }
+
+    /* Punches out everything but a 3px ring (matching .mini-demo's own
+       border width) — simpler and more reliably cross-browser than
+       mask-composite for carving a ring out of a filled shape. */
+    .mini-demo-border-glow::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 9px;
+      background: #1a1a1a;
+    }
+
+    .mini-demo.is-loading .mini-demo-border-glow {
+      display: block;
+    }
+
+    @keyframes mini-demo-border-spin {
+      to {
+        --mini-demo-spin-angle: 90deg;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mini-demo-border-glow::before {
+        animation: none;
+        opacity: 0.7;
+      }
+    }
+
     /* Resize/drag handles only make sense on the small docked widget —
        the expanded view is a normal-flow block, not something you drag
        around a stage. */
@@ -1045,6 +1124,7 @@
       <div class="mini-demo-stage-placeholder" data-i18n="miniShowcase.idle">Pinned to the corner — click the pin
         icon to bring it back.</div>
       <div class="mini-demo" id="miniDemo">
+        <div class="mini-demo-border-glow" aria-hidden="true"></div>
         <div class="mini-demo-header">
           <span class="mini-demo-label">INTERVAL</span>
           <div class="mini-demo-actions">

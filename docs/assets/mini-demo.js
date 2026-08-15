@@ -359,16 +359,18 @@
 
   let readyTimeoutHandle = null;
 
-  // Swaps the small-widget body for the loading spinner — called whenever
-  // the expanded iframe starts loading, so visitors never see the
-  // 240x180-sized countdown/controls stretched to fill the 800x1100 box.
-  // Exiting this state is two independent moments (demo-ready just hides
-  // the spinner since the iframe covers everything; collapse() restores
-  // the body too), so they're handled inline at each call site instead of
-  // a matching "exit" helper here.
+  // Swaps the small-widget body for the loading spinner and border-glow
+  // ring (see .mini-demo-border-glow in docs/index.html) — called
+  // whenever the expanded iframe starts loading, so visitors never see
+  // the 240x180-sized countdown/controls stretched to fill the 800x1100
+  // box. Exiting this state is two independent moments (demo-ready just
+  // hides the loading UI since the iframe covers everything; collapse()
+  // restores the body too), so they're handled inline at each call site
+  // instead of a matching "exit" helper here.
   function enterLoading() {
     if (body) body.classList.add("hidden");
     if (loadingView) loadingView.classList.remove("hidden");
+    demo.classList.add("is-loading");
   }
 
   function armReadyTimeout() {
@@ -413,6 +415,7 @@
       );
       iframeEl.classList.add("is-visible");
       if (loadingView) loadingView.classList.add("hidden");
+      demo.classList.remove("is-loading");
       stopTicking();
       playBtn?.classList.remove("is-active");
       pauseBtn?.classList.remove("is-active");
@@ -490,6 +493,7 @@
     window.removeEventListener("message", onDemoMessage);
     if (body) body.classList.remove("hidden");
     if (loadingView) loadingView.classList.add("hidden");
+    demo.classList.remove("is-loading");
   }
 
   function togglePin() {
