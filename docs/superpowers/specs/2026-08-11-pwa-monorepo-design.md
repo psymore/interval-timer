@@ -75,14 +75,22 @@ see the existing comment in `scripts/sync-demo-app.mjs`).
 `packages/electron` keeps everything main-process-only: `main.js`,
 `preload.cjs`, the rest of `lib/` (`localServer.js`, `presetsIpc.js`,
 `settingsIpc.js`, `spotifyAuth.js`, `updateChecker.js`, `windows.js`),
-`build/icon.ico`. It also keeps `mini.html`, `js/mini.js`, and `css/mini.css`
-— the always-on-top mini window is a native `BrowserWindow` feature with no
-browser-tab equivalent, so unlike the rest of `js/`/`css/` it isn't
-platform-agnostic and doesn't belong in `packages/core`.
-`js/timerStateBroadcast.js` stays in `packages/core` despite being
-mini-window-related: it's just a thin wrapper around
-`electronAPI.sendTimerState()`, called from the shared `renderer.js`, and
-already no-ops harmlessly under the demo/PWA shims.
+`build/icon.ico`.
+
+`mini.html`, `js/mini.js`, and `css/mini.css` stay in `packages/core`
+despite being Electron-only in practice (the always-on-top mini window has
+no browser-tab equivalent). Two reasons: `mini.html` is loaded via
+`BrowserWindow.loadFile()` (`lib/windows.js`), not through the local HTTP
+server, so there's no serving conflict either way — but it pulls in
+`css/tokens.css` and several shared icon/font assets via plain relative
+paths, and splitting it into a sibling package would mean rewriting every
+one of those into `../../core/...` chains purely for taxonomic purity, with
+real risk of quietly breaking the mini window along the way. Shipping three
+small unused files in the PWA/demo builds costs nothing — same tradeoff the
+demo shim already makes with its unused Spotify stubs.
+`js/timerStateBroadcast.js` stays in `packages/core` too — it's just a thin
+wrapper around `electronAPI.sendTimerState()`, called from the shared
+`renderer.js`, and already no-ops harmlessly under the demo/PWA shims.
 
 ## Code sharing
 
