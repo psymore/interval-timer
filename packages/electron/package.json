@@ -13,6 +13,7 @@
     "dist": "npm run clean && npm run sync-core && electron-builder --win --x64"
   },
   "build": {
+    "electronVersion": "41.10.5",
     "appId": "com.psymore.intervaltimer",
     "productName": "Interval Timer",
     "win": {
