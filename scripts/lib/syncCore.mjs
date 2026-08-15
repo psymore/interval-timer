@@ -14,7 +14,7 @@ const repoRoot = path.dirname(
   path.dirname(path.dirname(fileURLToPath(import.meta.url))),
 );
 const coreDir = path.join(repoRoot, "packages", "core");
-const ENTRIES = ["index.html", "js", "css", "assets", "lib"];
+const ENTRIES = ["index.html", "mini.html", "js", "css", "assets", "lib"];
 
 export function syncCoreInto(destDir) {
   if (existsSync(destDir)) {
