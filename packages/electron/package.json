@@ -1,0 +1,41 @@
+{
+  "name": "@interval-timer/electron",
+  "version": "1.1.0",
+  "description": "",
+  "private": true,
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "clean": "rimraf dist",
+    "sync-core": "node scripts/sync-core.mjs",
+    "build": "npm run clean && npm run sync-core && electron-builder",
+    "dist": "npm run clean && npm run sync-core && electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.psymore.intervaltimer",
+    "productName": "Interval Timer",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "signExecutable": false
+    },
+    "mac": null,
+    "files": [
+      "**/*",
+      "!spotify-credentials.example.json",
+      "!scripts/**"
+    ]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.10.1",
+    "electron-builder": "^26.15.6",
+    "rimraf": "^5.0.5"
+  },
+  "dependencies": {
+    "electron-store": "^11.0.2"
+  }
+}
