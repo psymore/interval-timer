@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+           script-src 'self' https://www.youtube.com https://sdk.scdn.co;
+           frame-src https://www.youtube.com https://www.youtube-nocookie.com https://accounts.spotify.com https://sdk.scdn.co;
+
+           img-src 'self' data: https://i.ytimg.com https://i.scdn.co;
+           connect-src 'self' https://www.youtube.com https://api.spotify.com https://accounts.spotify.com;
+           style-src 'self' 'unsafe-inline';
+           font-src 'self';
+           media-src 'self' blob: data: https://p.scdn.co;
+           worker-src blob:">
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timer App</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="manifest" href="manifest.json" />
+</head>
+
+<body>
+
+    <h1 class="gradient-title" data-i18n="app.title">Timer App</h1>
+
+    <div class="top-bar">
+        <div class="tab-buttons">
+            <button type="button" class="active" data-tab="interval" data-i18n="tabs.interval">Interval Timer</button>
+            <button type="button" data-tab="timer" data-i18n="tabs.timer">Timer</button>
+        </div>
+        <div class="modal-buttons">
+            <button type="button" id="settingsIcon" class="icon-btn" aria-label="Open settings"
+                data-i18n-aria-label="topbar.settingsBtn.ariaLabel">
+                <img src="assets/icons/adjust.png" alt="" class="icon-img" />
+            </button>
+            <button type="button" id="alarmFolderBtn" class="icon-btn" aria-label="Choose alarm sound"
+                data-i18n-aria-label="topbar.alarmBtn.ariaLabel">
+                <img src="assets/icons/alarm-clock.png" alt="" class="icon-img" />
+            </button>
+            <button type="button" id="alwaysOnTopBtn" class="icon-btn" aria-label="Pin window on top"
+                aria-pressed="false">
+                <img src="assets/icons/pinned.png" alt="" class="icon-img" />
+            </button>
+            <button type="button" id="languageBtn" class="icon-btn lang-btn no-hover-lift" aria-label="Switch language"
+                data-i18n-aria-label="topbar.languageBtn.ariaLabel">
+                <img src="assets/icons/globe.png" alt="" class="icon-img" />
+                <span id="languageBtnLabel">EN</span>
+            </button>
+            <button type="button" id="quitAppBtn" class="icon-btn quit-btn" aria-label="Quit application"
+                data-i18n-aria-label="topbar.quitBtn.ariaLabel">
+                <img src="assets/icons/power.png" alt="" class="icon-img" />
+                <span data-i18n="topbar.quitBtn.label">Quit</span>
+            </button>
+
+        </div>
+    </div>
+
+    <div id="updateBanner" class="update-banner hidden" role="status" aria-live="polite"></div>
+
+    <div id="app"></div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modal-content">
+            <h2 id="settingsTitle" data-i18n="settings.title">Alarm Settings</h2>
+            <div id="timerSettings" class="settings-group hidden">
+                <label for="timerAlarmLength">
+                    <span data-i18n="settings.timerAlarmLength">Alarm Length (seconds)</span>
+                    <input type="number" id="timerAlarmLength" min="1" value="5" />
+                </label>
+            </div>
+            <div id="intervalSettings" class="settings-group hidden">
+                <label for="workAlarmLength">
+                    <span data-i18n="settings.workAlarmLength">Work Alarm (seconds)</span>
+                    <input type="number" id="workAlarmLength" min="1" value="5" />
+                </label>
+                <label for="breakAlarmLength">
+                    <span data-i18n="settings.breakAlarmLength">Break Alarm (seconds)</span>
+                    <input type="number" id="breakAlarmLength" min="1" value="5" />
+                </label>
+            </div>
+            <div class="settings-group update-check-row">
+                <span data-i18n="settings.updates.label">Updates</span>
+                <button type="button" id="checkUpdatesBtn" data-i18n="settings.updates.checkBtn">Check for
+                    updates</button>
+            </div>
+            <p id="updateCheckStatus" class="update-check-status" aria-live="polite"></p>
+            <div class="button-group">
+                <button type="button" id="saveSettingsBtn" data-i18n="settings.save">Save</button>
+                <button type="button" id="closeSettingsBtn" data-i18n="settings.close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alarm File Modal -->
+    <div id="alarmFolderModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="alarmTitle">
+        <div class="modal-content alarm-modal-content">
+            <h2 id="alarmTitle" data-i18n="alarm.title">Alarm Sound</h2>
+
+            <!-- Mevcut kaynak -->
+            <div class="alarm-current">
+                <span class="alarm-current-icon" id="alarmCurrentIcon" aria-hidden="true"></span>
+                <span class="alarm-current-label" data-i18n="alarm.current">Current</span>
+                <span class="alarm-current-file" id="alarmCurrentFile">alarm.mp3 (default)</span>
+            </div>
+
+            <!-- Accordion: Local / YouTube / Spotify -->
+            <div class="alarm-accordion" id="alarmAccordion">
+
+                <!-- Local -->
+                <div class="alarm-section" data-section="local">
+                    <button type="button" class="alarm-section-toggle no-hover-lift" id="localSectionToggle"
+                        aria-expanded="true" aria-controls="localSectionBody">
+                        <span class="alarm-section-icon" id="localSectionIcon" aria-hidden="true"></span>
+                        <span class="alarm-section-title" data-i18n="alarm.localSectionLabel">Local file</span>
+                        <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="alarm-section-body" id="localSectionBody">
+                        <div class="alarm-dropzone" id="alarmDropzone">
+                            <span data-i18n="alarm.dropHint">Drag an audio file here, or</span>
+                            <button type="button" id="chooseAlarmBtn" class="btn-primary"
+                                data-i18n="alarm.chooseFile">Choose file…</button>
+                        </div>
+                        <p class="alarm-section-label" data-i18n="alarm.recentLabel">Recent</p>
+                        <ul class="alarm-recent-list" id="alarmRecentList"></ul>
+                        <button type="button" class="btn-subtle alarm-reset-default no-hover-lift"
+                            id="alarmResetDefaultBtn" data-i18n="alarm.resetDefault">Reset to default</button>
+                    </div>
+                </div>
+
+                <!-- YouTube -->
+                <div class="alarm-section" data-section="youtube">
+                    <button type="button" class="alarm-section-toggle no-hover-lift" id="youtubeSectionToggle"
+                        aria-expanded="false" aria-controls="youtubeSectionBody">
+                        <span class="alarm-section-icon" aria-hidden="true"><img src="assets/icons/youtube.svg"
+                                alt="" /></span>
+                        <span class="alarm-section-title" data-i18n="alarm.youtubeSectionLabel">YouTube</span>
+                        <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="alarm-section-body hidden" id="youtubeSectionBody">
+                        <div class="alarm-url-row">
+                            <input id="youtubeUrlInput" type="url" placeholder="https://youtube.com/watch?v=…"
+                                data-i18n-placeholder="alarm.youtubeUrlPlaceholder" autocomplete="off"
+                                spellcheck="false" />
+                            <button type="button" id="youtubeUrlLoadBtn" data-i18n="alarm.urlLoad">Load</button>
+                        </div>
+                        <p class="alarm-url-hint" data-i18n="alarm.youtubeUrlHint">
+                            Paste a YouTube video URL. If unavailable, local alarm will be used as fallback.
+                        </p>
+                        <p class="alarm-section-label" data-i18n="alarm.savedLinksLabel">Saved</p>
+                        <ul class="alarm-recent-list" id="youtubeLinksList"></ul>
+                    </div>
+                </div>
+
+                <!-- Spotify -->
+                <div class="alarm-section" data-section="spotify">
+                    <button type="button" class="alarm-section-toggle no-hover-lift" id="spotifySectionToggle"
+                        aria-expanded="false" aria-controls="spotifySectionBody">
+                        <span class="alarm-section-icon" aria-hidden="true"><img src="assets/icons/spotify.svg"
+                                alt="" /></span>
+                        <span class="alarm-section-title" data-i18n="alarm.spotifySectionLabel">Spotify</span>
+                        <span class="alarm-section-status" id="spotifyStatusLabel">Not connected</span>
+                        <span class="alarm-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="alarm-section-body hidden" id="spotifySectionBody">
+                        <div class="alarm-spotify-status" id="spotifyStatusRow">
+                            <button type="button" id="spotifyConnectBtn" class="btn-subtle no-hover-lift"
+                                data-i18n="alarm.spotifyConnect">Connect Spotify</button>
+                            <button type="button" id="spotifyLogoutBtn" class="btn-subtle no-hover-lift hidden"
+                                data-i18n="alarm.spotifyDisconnect">Disconnect</button>
+                        </div>
+                        <div class="alarm-url-row hidden" id="spotifyUrlRow">
+                            <input id="spotifyUrlInput" type="url" placeholder="https://open.spotify.com/track/…"
+                                data-i18n-placeholder="alarm.spotifyUrlPlaceholder" autocomplete="off"
+                                spellcheck="false" />
+                            <button type="button" id="spotifyUrlLoadBtn" data-i18n="alarm.urlLoad">Load</button>
+                        </div>
+                        <p class="alarm-url-hint" data-i18n="alarm.spotifyUrlHint">
+                            Connect your account, then paste a Spotify track URL. Plays through the real
+                            Spotify app (not an in-app preview). If unavailable, local alarm will be used as fallback.
+                        </p>
+                        <p class="alarm-section-label" data-i18n="alarm.savedLinksLabel">Saved</p>
+                        <ul class="alarm-recent-list" id="spotifyLinksList"></ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Preview -->
+            <div class="alarm-actions">
+                <button type="button" id="previewAlarmBtn" aria-label="Preview alarm sound"
+                    data-i18n-aria-label="alarm.previewAriaLabel">
+                    ▶ Preview
+                </button>
+                <button type="button" id="closeAlarmFolderBtn" class="btn-subtle no-hover-lift"
+                    data-i18n="alarm.done">Done</button>
+            </div>
+
+            <!-- Feedback -->
+            <p class="alarm-feedback hidden" id="alarmFeedback"></p>
+        </div>
+    </div>
+
+    <audio id="alarmSound" src="assets/audio/alarm.mp3" preload="auto"></audio>
+
+    <script src="js/demo/loader.js"></script>
+    <script type="module" src="js/renderer.js"></script>
+    <script type="module" src="js/alarmModal.js"></script>
+
+</body>
+
+</html>
