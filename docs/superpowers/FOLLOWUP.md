@@ -16,38 +16,27 @@ asking which one only if more than one applies and it isn't obvious.
 
 ## Summary
 
-Previous session (2026-08-11 to 2026-08-16) shipped the monorepo
-restructure (`packages/core` + `packages/electron`) and the PWA package
-(`packages/pwa`, deployed to `docs/pwa/`) end-to-end — see git history
-around that period and `CLAUDE.md`'s Architecture section for the durable
-record.
+Earlier work (2026-08-11 to 2026-08-16) shipped the monorepo restructure
+(`packages/core` + `packages/electron`) and the PWA package
+(`packages/pwa`, deployed to `docs/pwa/`) end-to-end. A later session
+(2026-08-20) fixed the `YouTubeAlarmProvider.js` retry-hang bug that work
+had left open, and triaged the Dependabot alerts (`npm audit` now reports
+0 vulnerabilities — looks resolved, but not independently confirmed via
+GitHub's own alert list since the `gh` CLI isn't available in this
+environment). See git history and `CLAUDE.md`'s Architecture section for
+the durable record; nothing below duplicates that.
 
-This session (2026-08-20) fixed the `YouTubeAlarmProvider.js` retry-hang
-bug flagged as an open item from that work:
-`_loadYouTubeAPI()`'s "script tag already exists, poll for
-`window.YT.Player`" branch had no way to recover from a failed load — the
-`<script id="yt-iframe-api">` tag stayed in the DOM after `onerror`, so
-any retry dropped into an infinite poll waiting for an API that would
-never arrive. Fixed by removing the script tag on error (so a retry gets
-a genuine fresh load attempt) and adding a 10s timeout to the poll branch
-as a backstop, matching the existing timeout pattern in
-`_createPlayer()`. Reproduced with a one-off Node harness (no test
-framework in this repo) before fixing, then verified the fix resolves it.
-`npm run sync:demo`/`sync:pwa` were re-run afterward since `docs/app`/
-`docs/pwa` are generated mirrors of `packages/core` — that also picked up
-some pre-existing sync drift in `SpotifyAlarmProvider.js`/
-`numberStepper.js` unrelated to this fix.
-
-Also triaged during this session: `npm audit` now reports 0
-vulnerabilities, so the previously-flagged 11 Dependabot alerts look
-resolved (unconfirmed via GitHub directly — `gh` CLI isn't available in
-this environment).
+This session (2026-08-20, continued) reworked the `FOLLOWUP` mechanism
+itself: it's now one unified convention rather than two — this file's own
+opening paragraph is self-contained and works whether it's read by a
+continuing session or the first message of a completely fresh one, no
+separate "paste this elsewhere" block needed. Committed and pushed
+(`46f807c`).
 
 ## Where we left off
 
-YouTube fix committed, merged to `main`, and pushed to `origin/main` on a
-short-lived branch. Nothing in progress; working tree should be clean
-after that push.
+Offered three open items and asked which to pick up next — no answer
+given yet. Nothing in progress. Working tree is clean on `main`.
 
 ## Open items (not started / not fixed)
 
@@ -57,11 +46,11 @@ after that push.
 - **Stale local worktrees** — 5 fully-merged `worktree-agent-*`
   branches/worktrees left over from a 2026-07-30 landing-page demo
   redesign session, never cleaned up. Not urgent; harmless clutter.
-- **11 Dependabot vulnerabilities** — likely resolved (see Summary above)
-  but not confirmed via GitHub's own alert list; worth a `gh api
+- **11 Dependabot vulnerabilities** — likely resolved (`npm audit` is
+  clean) but not confirmed via GitHub's own alert list; worth a `gh api
   repos/:owner/:repo/dependabot/alerts` check from an environment that has
   the `gh` CLI installed, to close this out for certain.
-- **`docs/app/manifest.json` 404`** — NOT a bug to fix. `docs/app/index.html`
+- **`docs/app/manifest.json` 404** — NOT a bug to fix. `docs/app/index.html`
   has a `<link rel="manifest">` tag (inherited from the shared
   `packages/core/index.html`) but no corresponding manifest file exists
   for the demo mirror. Documented in `CLAUDE.md` as intentional — adding
