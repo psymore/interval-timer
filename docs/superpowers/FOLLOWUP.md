@@ -5,53 +5,69 @@ natural session-end point). Read this fully when the user types `FOLLOWUP`
 — pick up exactly where this left off rather than re-deriving context from
 scratch.
 
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-20
+
+## Mother prompt
+
+Copy-paste the block below as the very first message to a brand-new
+session (a fresh terminal, a different machine, claude.ai — anywhere with
+no prior context) to bootstrap it into this work directly:
+
+> You're picking up work on the `interval-timer` repo (Electron desktop
+> app + installable PWA; GitHub: `psymore/interval-timer`). Read
+> `CLAUDE.md` first for the architecture, then
+> `docs/superpowers/FOLLOWUP.md` for the current status and what's open.
+> Once you've read both, continue with whatever `FOLLOWUP.md`'s "Likely
+> next steps" section says is next — ask me which one if more than one
+> applies and it isn't obvious, otherwise just proceed.
 
 ## Summary
 
-Two plans shipped end-to-end this session, both merged to `main` and
-pushed to `origin/main`:
+Previous session (2026-08-11 to 2026-08-16) shipped the monorepo
+restructure (`packages/core` + `packages/electron`) and the PWA package
+(`packages/pwa`, deployed to `docs/pwa/`) end-to-end — see git history
+around that period and `CLAUDE.md`'s Architecture section for the durable
+record.
 
-1. **Monorepo restructure** (`docs/superpowers/plans/2026-08-11-pwa-monorepo-restructure.md`)
-   — split the single-package Electron app into npm workspaces:
-   `packages/core` (platform-agnostic renderer) + `packages/electron`
-   (main process). Zero intended behavior change; verified via CDP.
-2. **PWA package** (`docs/superpowers/plans/2026-08-11-pwa-package.md`)
-   — built `packages/pwa` on top of that: a real, persistent (localStorage
-   + IndexedDB), installable PWA deployed to `docs/pwa/`, linked from the
-   landing page. Spotify explicitly out of scope for v1. Live at
-   `https://psymore.github.io/interval-timer/pwa/` once GitHub Pages
-   redeploys.
+This session (2026-08-20) fixed the `YouTubeAlarmProvider.js` retry-hang
+bug flagged as an open item from that work:
+`_loadYouTubeAPI()`'s "script tag already exists, poll for
+`window.YT.Player`" branch had no way to recover from a failed load — the
+`<script id="yt-iframe-api">` tag stayed in the DOM after `onerror`, so
+any retry dropped into an infinite poll waiting for an API that would
+never arrive. Fixed by removing the script tag on error (so a retry gets
+a genuine fresh load attempt) and adding a 10s timeout to the poll branch
+as a backstop, matching the existing timeout pattern in
+`_createPlayer()`. Reproduced with a one-off Node harness (no test
+framework in this repo) before fixing, then verified the fix resolves it.
+`npm run sync:demo`/`sync:pwa` were re-run afterward since `docs/app`/
+`docs/pwa` are generated mirrors of `packages/core` — that also picked up
+some pre-existing sync drift in `SpotifyAlarmProvider.js`/
+`numberStepper.js` unrelated to this fix.
 
-Both went through the full subagent-driven-development flow (task
-implementer → task reviewer → fix loop → final whole-branch review → fix
-wave → re-review) and each caught real bugs before merge — including a
-CSP gap that silently killed service worker registration, and a
-service-worker cache-naming bug that would have locked out all future
-PWA updates after the first deploy. Full history is in each plan's now-
-deleted SDD ledger; the plan docs and `CLAUDE.md` are the durable record.
+Also triaged during this session: `npm audit` now reports 0
+vulnerabilities, so the previously-flagged 11 Dependabot alerts look
+resolved (unconfirmed via GitHub directly — `gh` CLI isn't available in
+this environment).
 
 ## Where we left off
 
-User asked how to manually test the deployed PWA (desktop install +
-local `npx serve docs/pwa` instructions given). No response yet on
-whether testing surfaced anything.
+YouTube fix committed, merged to `main`, and pushed to `origin/main` on a
+short-lived branch. Nothing in progress; working tree should be clean
+after that push.
 
 ## Open items (not started / not fixed)
 
 - **Mobile app** — explicitly deferred from the original monorepo
   brainstorm. No spec or plan written yet. Natural next step if the user
   wants to continue the original "PWA + mobile" arc.
-- **`YouTubeAlarmProvider.js` retry-hang bug** — found during PWA manual
-  verification, confirmed pre-existing and unrelated to the PWA/monorepo
-  work, deliberately left unfixed (out of scope for those plans). Root
-  cause: `_loadYouTubeAPI()`'s "script tag already exists, poll for
-  `window.YT.Player`" branch has no timeout — a second load attempt after
-  a first failure hangs forever. Worth its own small brainstorm → plan if
-  the user wants it fixed.
-- **11 Dependabot vulnerabilities** (4 high, 7 moderate) — flagged by
-  GitHub after the `package-lock.json` regeneration during the
-  restructure. Untriaged — haven't looked at what they actually are yet.
+- **Stale local worktrees** — 5 fully-merged `worktree-agent-*`
+  branches/worktrees left over from a 2026-07-30 landing-page demo
+  redesign session, never cleaned up. Not urgent; harmless clutter.
+- **11 Dependabot vulnerabilities** — likely resolved (see Summary above)
+  but not confirmed via GitHub's own alert list; worth a `gh api
+  repos/:owner/:repo/dependabot/alerts` check from an environment that has
+  the `gh` CLI installed, to close this out for certain.
 - **`docs/app/manifest.json` 404`** — NOT a bug to fix. `docs/app/index.html`
   has a `<link rel="manifest">` tag (inherited from the shared
   `packages/core/index.html`) but no corresponding manifest file exists
@@ -64,7 +80,5 @@ whether testing surfaced anything.
 
 - Brainstorm the mobile app plan (Expo/React Native, presumably reusing
   `packages/core`'s logic layer conceptually if not literally).
-- Fix the YouTube retry-hang bug (small, self-contained, systematic-
-  debugging skill territory).
-- Triage the Dependabot findings.
-- Something the user found while manually testing the PWA.
+- Clean up the stale `worktree-agent-*` branches/worktrees.
+- Confirm the Dependabot alerts are actually resolved via `gh`.

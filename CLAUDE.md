@@ -8,6 +8,8 @@ When the user's message is just `FOLLOWUP` (case-insensitive, nothing else neede
 
 Keep `docs/superpowers/FOLLOWUP.md` up to date: whenever the user asks for a followup/handoff summary, or a natural stopping point is reached after a substantial piece of work, overwrite it with a fresh summary, what's open, and likely next steps — don't append, replace the whole file each time so it never goes stale or grows unbounded.
 
+That file also carries a **mother prompt**: a short, self-contained block, written as if it were the very first message to a brand-new session with zero prior context (doesn't assume the reader already knows the `FOLLOWUP` convention or has anything else loaded). It should point that fresh session at `CLAUDE.md` and `docs/superpowers/FOLLOWUP.md` to bootstrap itself, then name the concrete next action — not restate the whole architecture inline, since that would just drift out of sync with `CLAUDE.md`. Regenerate the mother prompt every time `FOLLOWUP.md` itself is refreshed, same cadence as the rest of the file.
+
 ## Commands
 
 ```bash

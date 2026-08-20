@@ -243,12 +243,25 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
         return;
       }
 
-      // Script zaten eklendi, callback'i bekle
-      if (document.getElementById("yt-iframe-api")) {
+      // Script zaten eklendi, callback'i bekle. Timeout var — script daha
+      // önce sessizce takılıp kalmışsa (örn. önceki bir yükleme denemesi
+      // başarısız olduğu halde tag DOM'da kalmışsa) sonsuza kadar
+      // beklememesi için.
+      const existing = document.getElementById("yt-iframe-api");
+      if (existing) {
+        const startedAt = Date.now();
         const interval = setInterval(() => {
           if (window.YT && window.YT.Player) {
             clearInterval(interval);
             resolve();
+          } else if (Date.now() - startedAt > 10000) {
+            clearInterval(interval);
+            existing.remove();
+            reject(
+              new Error(
+                "YouTubeAlarmProvider: Timed out waiting for YouTube IFrame API to load.",
+              ),
+            );
           }
         }, 100);
         return;
@@ -260,10 +273,15 @@ export class YouTubeAlarmProvider extends BaseAlarmProvider {
       const script = document.createElement("script");
       script.id = "yt-iframe-api";
       script.src = "https://www.youtube.com/iframe_api";
-      script.onerror = () =>
+      script.onerror = () => {
+        // Tag'i kaldır — aksi halde bir sonraki load() denemesi bunu
+        // "zaten yükleniyor" sanıp sonsuza kadar poll eder, hiç yeniden
+        // denemez.
+        script.remove();
         reject(
           new Error("YouTubeAlarmProvider: Failed to load YouTube IFrame API."),
         );
+      };
       document.head.appendChild(script);
     });
   }
