@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Session continuity: the `FOLLOWUP` keyword
+
+When the user's message is just `FOLLOWUP` (case-insensitive, nothing else needed), read `docs/superpowers/FOLLOWUP.md` in full and act on its "Where we left off" / "Likely next steps" sections immediately — don't ask what to do, pick up the work it describes. Treat that file as the authoritative session-handoff note, more current than anything else in this repo about "what's in progress right now."
+
+Keep `docs/superpowers/FOLLOWUP.md` up to date: whenever the user asks for a followup/handoff summary, or a natural stopping point is reached after a substantial piece of work, overwrite it with a fresh summary, what's open, and likely next steps — don't append, replace the whole file each time so it never goes stale or grows unbounded.
+
 ## Commands
 
 ```bash
