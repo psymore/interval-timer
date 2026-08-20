@@ -1,25 +1,18 @@
 # Session Followup
 
-Updated by Claude whenever the user asks for a followup summary (or at a
-natural session-end point). Read this fully when the user types `FOLLOWUP`
-— pick up exactly where this left off rather than re-deriving context from
-scratch.
+You're picking up work on the `interval-timer` repo (Electron desktop app
++ installable PWA; GitHub: `psymore/interval-timer`). Updated by Claude
+whenever the user asks for a followup summary, or at a natural
+session-end point. Read this file fully whenever the user types
+`FOLLOWUP` — whether that's later in the same session or the very first
+message of a brand-new one with no other context loaded. If this is a
+fresh session, read `CLAUDE.md` first for the architecture, then come
+back here for current status. Either way, pick up exactly where this
+left off rather than asking what to do or re-deriving context from
+scratch — continue with whatever "Likely next steps" below says is next,
+asking which one only if more than one applies and it isn't obvious.
 
 **Last updated:** 2026-08-20
-
-## Mother prompt
-
-Copy-paste the block below as the very first message to a brand-new
-session (a fresh terminal, a different machine, claude.ai — anywhere with
-no prior context) to bootstrap it into this work directly:
-
-> You're picking up work on the `interval-timer` repo (Electron desktop
-> app + installable PWA; GitHub: `psymore/interval-timer`). Read
-> `CLAUDE.md` first for the architecture, then
-> `docs/superpowers/FOLLOWUP.md` for the current status and what's open.
-> Once you've read both, continue with whatever `FOLLOWUP.md`'s "Likely
-> next steps" section says is next — ask me which one if more than one
-> applies and it isn't obvious, otherwise just proceed.
 
 ## Summary
 

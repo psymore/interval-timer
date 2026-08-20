@@ -4,11 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Session continuity: the `FOLLOWUP` keyword
 
-When the user's message is just `FOLLOWUP` (case-insensitive, nothing else needed), read `docs/superpowers/FOLLOWUP.md` in full and act on its "Where we left off" / "Likely next steps" sections immediately — don't ask what to do, pick up the work it describes. Treat that file as the authoritative session-handoff note, more current than anything else in this repo about "what's in progress right now."
+When the user's message is just `FOLLOWUP` (case-insensitive, nothing else needed), read `docs/superpowers/FOLLOWUP.md` in full and act on it immediately — don't ask what to do, pick up the work it describes. This works the same whether it's typed later in an ongoing session or as the very first message of a brand-new one with nothing else loaded yet — the file's own opening paragraph is self-contained and tells a fresh session to read `CLAUDE.md` first. Treat that file as the authoritative session-handoff note, more current than anything else in this repo about "what's in progress right now."
 
 Keep `docs/superpowers/FOLLOWUP.md` up to date: whenever the user asks for a followup/handoff summary, or a natural stopping point is reached after a substantial piece of work, overwrite it with a fresh summary, what's open, and likely next steps — don't append, replace the whole file each time so it never goes stale or grows unbounded.
-
-That file also carries a **mother prompt**: a short, self-contained block, written as if it were the very first message to a brand-new session with zero prior context (doesn't assume the reader already knows the `FOLLOWUP` convention or has anything else loaded). It should point that fresh session at `CLAUDE.md` and `docs/superpowers/FOLLOWUP.md` to bootstrap itself, then name the concrete next action — not restate the whole architecture inline, since that would just drift out of sync with `CLAUDE.md`. Regenerate the mother prompt every time `FOLLOWUP.md` itself is refreshed, same cadence as the rest of the file.
 
 ## Commands
 
