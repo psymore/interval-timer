@@ -22,23 +22,4 @@ if (new URLSearchParams(location.search).get("demo") === "1") {
       navigator.serviceWorker.register("service-worker.js").catch(() => {});
     });
   }
-
-  // Landing page's "Install as App" link appends ?install=1 — if the
-  // browser considers this page installable, trigger its native install
-  // prompt immediately instead of leaving the visitor to notice the
-  // address-bar install icon themselves. No-op on browsers with no
-  // beforeinstallprompt support (Safari, Firefox) or if already
-  // installed — the visitor just lands on the page normally, same as
-  // without the query param.
-  if (new URLSearchParams(location.search).get("install") === "1") {
-    history.replaceState(null, "", location.pathname + location.hash);
-    window.addEventListener(
-      "beforeinstallprompt",
-      event => {
-        event.preventDefault();
-        event.prompt();
-      },
-      { once: true },
-    );
-  }
 }
